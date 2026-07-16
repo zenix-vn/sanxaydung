@@ -1,0 +1,10 @@
+{
+  "name": "sxd-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Script vận hành cho SanXayDung.vn (import đăng ký đối tác...)",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "csv-parse": "^5.5.6"
+  }
+}
