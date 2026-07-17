@@ -133,11 +133,23 @@ const url = process.env.SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KE
 if (!url || !key) { console.error('Thiếu SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY'); process.exit(1); }
 const supa = createClient(url, key, { auth: { persistSession: false } });
 
-let inserted = 0, duplicate = 0, error = 0;
-for (const r of valid) {
-  const { error: e } = await supa.from('partner_registrations').insert(r);
-  if (!e) inserted++;
-  else if (e.code === '23505') { duplicate++; }         // trùng UNIQUE (tax/phone/zalo)
-  else { error++; console.error(`  Lỗi [${r.tax_code}]: ${e.message}`); }
+// SỐ ĐIỆN THOẠI là khóa chống trùng: gộp theo phone, giữ bản MỚI NHẤT (dòng cuối cùng)
+const byPhone = new Map();
+for (const r of valid) byPhone.set(r.phone, r);
+const uniqueRows = [...byPhone.values()];
+
+let upserted = 0, error = 0;
+for (const r of uniqueRows) {
+  // upsert theo phone: SĐT đã có -> cập nhật; chưa có -> thêm mới
+  const { error: e } = await supa
+    .from('partner_registrations')
+    .upsert(r, { onConflict: 'phone' });
+  if (!e) upserted++;
+  else { error++; console.error(`  Lỗi [${r.phone}]: ${e.message}`); }
 }
-console.log(`\nKẾT QUẢ:  inserted=${inserted}  duplicate=${duplicate}  error=${error}`);
+console.log(`\nKẾT QUẢ:  upserted=${upserted}  error=${error}  (từ ${valid.length} dòng hợp lệ → ${uniqueRows.length} SĐT duy nhất)`);
+
+// Đồng bộ sang companies (tạo mới + cập nhật hồ sơ chưa claim)
+const { data: synced, error: se } = await supa.rpc('sync_all_registrations');
+if (se) console.error(`  Lỗi sync: ${se.message}`);
+else console.log(`ĐỒNG BỘ:  ${synced} hồ sơ đã sync sang companies.`);

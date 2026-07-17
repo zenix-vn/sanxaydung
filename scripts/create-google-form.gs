@@ -41,8 +41,11 @@ function createPartnerForm() {
     'Thông tin dùng để tạo hồ sơ năng lực của doanh nghiệp bạn trên Sàn Xây Dựng. ' +
     'Vui lòng khai chính xác — mỗi doanh nghiệp khai 1 lần.'
   );
-  form.setCollectEmail(true);            // bắt đăng nhập Google -> lọc khai ảo
-  form.setLimitOneResponsePerUser(true); // 1 phản hồi / tài khoản Google
+  // Cho phép trả lời KHÔNG cần đăng nhập Gmail, KHÔNG bắt khai email:
+  form.setCollectEmail(false);            // không thu thập email -> bỏ ô Email bắt buộc
+  form.setLimitOneResponsePerUser(false); // không giới hạn 1 phản hồi -> không ép đăng nhập
+  try { form.setRequireLogin(false); } catch (e) {} // tài khoản Workspace: cho phép người ngoài tổ chức
+  // (Chống trùng/ảo chuyển sang: SĐT bắt buộc + UNIQUE, MST, và duyệt tay khi import)
 
   // Validation dùng lại
   var vMST = FormApp.createTextValidation()

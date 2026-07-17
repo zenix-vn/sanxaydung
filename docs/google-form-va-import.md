@@ -7,7 +7,11 @@ Liên quan: [Thiết kế kỹ thuật](./thiet-ke-ky-thuat.md) · migration `su
 
 ## 1. Cấu hình Google Form (bắt buộc)
 
-- **Settings → Responses:** bật **"Collect email addresses" = Verified** và **"Limit to 1 response" = ON** (đây là lớp lọc khai ảo bằng Gmail).
+- **Settings → Responses:** để thành viên trả lời **không cần đăng nhập Gmail**:
+  - **"Collect email addresses" = Do not collect** (không thu thập email → bỏ ô Email bắt buộc).
+  - **"Limit to 1 response" = OFF** (đây là mục ép đăng nhập; tắt để trả lời ẩn danh).
+  - Nếu là tài khoản Workspace: tắt **"Restrict to users in <tổ chức>"**.
+  - Đánh đổi: mất lớp lọc bằng Gmail → chống trùng/ảo dựa vào **SĐT bắt buộc + UNIQUE**, MST, và **duyệt tay** khi import.
 - **Response validation** cho các trường khóa:
   - MST — Regex: `^[0-9]{10}(-[0-9]{3})?$` — **KHÔNG đặt Required** (đội thi công/cá nhân có thể không có MST; regex chỉ kiểm khi có nhập).
   - SĐT — Regex: `^(0|\+84)[0-9]{9}$` — **Required** (là khóa chống trùng chính khi MST trống).
