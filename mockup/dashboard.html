@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bảng điều khiển — Sàn Xây Dựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<style>
+  .dash{display:grid;grid-template-columns:250px 1fr;gap:0;align-items:start}
+  .dside{background:#fff;border-right:1px solid var(--line);min-height:calc(100vh - 66px);padding:20px 14px;position:sticky;top:66px}
+  .dside .co{display:flex;gap:10px;align-items:center;padding:10px;border-radius:10px;background:#fafbfc;margin-bottom:16px}
+  .dside .co .a{width:40px;height:40px;border-radius:10px;font-weight:800;color:#fff;display:grid;place-items:center;flex:none}
+  .dside .co h4{font-size:13.5px;font-weight:700;color:var(--navy)}
+  .dside .co small{font-size:11px;color:var(--green);display:flex;align-items:center;gap:3px}
+  .dside .co small svg{width:12px;height:12px}
+  .dnav a{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:9px;font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+  .dnav a svg{width:18px;height:18px;color:var(--muted)}
+  .dnav a.active{background:var(--navy);color:#fff}
+  .dnav a.active svg{color:var(--orange-2)}
+  .dnav a:hover:not(.active){background:#f6f8fb}
+  .dnav .grp{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:16px 12px 8px;font-weight:700}
+  .dmain{padding:26px}
+  .welcome{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+  .welcome h1{font-size:23px;font-weight:800;color:var(--navy)}
+  .welcome p{color:var(--muted);font-size:14px;margin-top:3px}
+  .dcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow-sm)}
+  .dcard h3{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+  .act-row{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-2);font-size:13.5px;align-items:center}
+  .act-row:last-child{border-bottom:none}
+  .act-row .ic-b{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none}
+  .act-row small{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
+  .todo{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:13.5px;border-bottom:1px solid var(--line-2)}
+  .todo:last-child{border-bottom:none}
+  .todo .ck{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);display:grid;place-items:center;flex:none}
+  .todo.done .ck{background:var(--green);border-color:var(--green);color:#fff}
+  .todo.done span{color:var(--muted);text-decoration:line-through}
+  .todo a{margin-left:auto;color:var(--orange);font-weight:600;font-size:12.5px}
+  @media(max-width:900px){.dash{grid-template-columns:1fr}.dside{position:static;min-height:auto;border-right:none;border-bottom:1px solid var(--line)}.dnav{display:flex;flex-wrap:wrap;gap:4px}.dnav a{margin:0}.dnav .grp{width:100%}}
+</style>
+</head>
+<body data-nav="" data-auth="user">
+<script src="assets/sprite.js"></script>
+<div data-slot="header"></div>
+
+<div class="dash">
+  <!-- SIDEBAR -->
+  <aside class="dside">
+    <div class="co"><span class="a" style="background:#12439c">HB</span><div><h4>Xây dựng Hòa Bình</h4><small><svg class="ic"><use href="#ic-shield-check"/></svg> Đối tác vàng</small></div></div>
+    <nav class="dnav">
+      <a class="active"><svg class="ic"><use href="#ic-chart"/></svg> Tổng quan</a>
+      <a href="company.html"><svg class="ic"><use href="#ic-building"/></svg> Hồ sơ công khai</a>
+      <a href="company-edit.html"><svg class="ic"><use href="#ic-edit"/></svg> Chỉnh sửa hồ sơ</a>
+      <div class="grp">Kinh doanh</div>
+      <a href="marketplace.html"><svg class="ic"><use href="#ic-briefcase"/></svg> Tin đăng của tôi</a>
+      <a href="marketplace-detail.html"><svg class="ic"><use href="#ic-file-text"/></svg> Báo giá <span class="badge orange" style="margin-left:auto">5</span></a>
+      <a href="chat.html"><svg class="ic"><use href="#ic-chat"/></svg> Tin nhắn <span class="badge orange" style="margin-left:auto">3</span></a>
+      <a href="feed.html"><svg class="ic"><use href="#ic-layers"/></svg> Bài viết</a>
+      <div class="grp">Uy tín &amp; tài khoản</div>
+      <a href="verify.html"><svg class="ic"><use href="#ic-shield"/></svg> Xác minh</a>
+      <a href="pricing.html"><svg class="ic"><use href="#ic-award"/></svg> Gói thành viên</a>
+      <a><svg class="ic"><use href="#ic-users"/></svg> Thành viên &amp; phân quyền</a>
+      <a><svg class="ic"><use href="#ic-settings"/></svg> Cài đặt</a>
+      <a href="index.html"><svg class="ic"><use href="#ic-logout"/></svg> Đăng xuất</a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="dmain">
+    <div class="welcome">
+      <div><h1>Xin chào, Hòa Bình 👋</h1><p>Đây là tổng quan hoạt động doanh nghiệp của bạn trên nền tảng.</p></div>
+      <div class="row"><a class="btn btn-outline" href="marketplace.html"><svg class="ic"><use href="#ic-plus"/></svg> Đăng nhu cầu</a><a class="btn btn-orange" href="feed.html"><svg class="ic"><use href="#ic-edit"/></svg> Đăng bài</a></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid-4 mb-24">
+      <div class="stat-tile"><div class="ic-b" style="background:var(--green-soft);color:var(--green)"><svg class="ic"><use href="#ic-eye"/></svg></div><div class="num">3.842</div><div class="lbl">Lượt xem hồ sơ (30 ngày)</div><div class="delta up"><svg class="ic" style="width:13px;height:13px"><use href="#ic-trending"/></svg> +18%</div></div>
+      <div class="stat-tile"><div class="ic-b" style="background:var(--blue-soft);color:var(--blue)"><svg class="ic"><use href="#ic-file-text"/></svg></div><div class="num">5</div><div class="lbl">Báo giá mới</div><div class="delta up"><svg class="ic" style="width:13px;height:13px"><use href="#ic-trending"/></svg> +2 hôm nay</div></div>
+      <div class="stat-tile"><div class="ic-b" style="background:var(--orange-soft);color:var(--orange)"><svg class="ic"><use href="#ic-people"/></svg></div><div class="num">12</div><div class="lbl">Kết nối đang mở</div></div>
+      <div class="stat-tile"><div class="ic-b" style="background:#eaf7ee;color:var(--green)"><svg class="ic"><use href="#ic-star-f"/></svg></div><div class="num">4.9</div><div class="lbl">Điểm đánh giá TB</div></div>
+    </div>
+
+    <div class="grid-side-r" style="gap:20px">
+      <div>
+        <!-- Trust + completeness -->
+        <div class="grid-2 mb-24" style="gap:20px">
+          <div class="dcard" style="display:flex;gap:16px;align-items:center">
+            <div class="trust-ring" style="--val:95"><div class="inner"><b>95</b><small>/100</small></div></div>
+            <div>
+              <h3 style="margin-bottom:6px">Trust Score</h3>
+              <p class="muted" style="font-size:13px">Top 3% ngành xây dựng.<br/>Tăng <b style="color:var(--green)">+2 điểm</b> tháng này.</p>
+              <a href="verify.html" style="color:var(--orange);font-weight:600;font-size:12.5px">Cách nâng điểm →</a>
+            </div>
+          </div>
+          <div class="dcard">
+            <h3>Độ hoàn thiện hồ sơ <b style="color:var(--orange)">92%</b></h3>
+            <div class="progress mb-16"><div class="bar" style="width:92%"></div></div>
+            <div class="todo done"><span class="ck"><svg class="ic" style="width:13px;height:13px"><use href="#ic-check"/></svg></span><span>Thông tin cơ bản &amp; logo</span></div>
+            <div class="todo done"><span class="ck"><svg class="ic" style="width:13px;height:13px"><use href="#ic-check"/></svg></span><span>Xác minh pháp lý</span></div>
+            <div class="todo"><span class="ck"></span><span>Thêm video giới thiệu</span><a href="company-edit.html">Thêm</a></div>
+          </div>
+        </div>
+
+        <!-- Recent activity -->
+        <div class="dcard mb-24">
+          <h3>Hoạt động gần đây <a href="#" style="font-size:12.5px;color:var(--orange)">Xem tất cả</a></h3>
+          <div class="act-row"><span class="ic-b" style="background:var(--orange-soft);color:var(--orange)"><svg class="ic"><use href="#ic-file-text"/></svg></span><span>Bạn nhận <b>báo giá mới</b> từ Coteccons cho tin "Tòa văn phòng 15 tầng"</span><small>10 phút trước</small></div>
+          <div class="act-row"><span class="ic-b" style="background:var(--blue-soft);color:var(--blue)"><svg class="ic"><use href="#ic-chat"/></svg></span><span>CTCP Đầu tư Sài Gòn đã <b>nhắn tin</b> cho bạn</span><small>1 giờ trước</small></div>
+          <div class="act-row"><span class="ic-b" style="background:#eaf7ee;color:var(--green)"><svg class="ic"><use href="#ic-star-f"/></svg></span><span>Nhận <b>đánh giá 5★</b> từ Vinhomes Project Management</span><small>Hôm qua</small></div>
+          <div class="act-row"><span class="ic-b" style="background:var(--green-soft);color:var(--green)"><svg class="ic"><use href="#ic-shield-check"/></svg></span><span>Chứng chỉ năng lực <b>Hạng I đã được xác minh</b></span><small>2 ngày trước</small></div>
+        </div>
+
+        <!-- My listings -->
+        <div class="dcard">
+          <h3>Tin đăng của tôi <a href="marketplace.html" style="font-size:12.5px;color:var(--orange)">Quản lý</a></h3>
+          <table class="table">
+            <thead><tr><th>Tiêu đề</th><th>Loại</th><th>Báo giá</th><th>Trạng thái</th></tr></thead>
+            <tbody>
+              <tr><td><b style="color:var(--navy)">Cung cấp 500 tấn thép D16–D25</b></td><td>Nhà cung cấp</td><td>11</td><td><span class="badge green">Đang mở</span></td></tr>
+              <tr><td><b style="color:var(--navy)">Tìm đội sơn bả hoàn thiện</b></td><td>Đội thi công</td><td>4</td><td><span class="badge green">Đang mở</span></td></tr>
+              <tr><td><b style="color:var(--navy)">Thuê cẩu tháp 6 tháng</b></td><td>Nhà cung cấp</td><td>7</td><td><span class="badge gray">Đã đóng</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right column -->
+      <aside>
+        <div class="dcard mb-24">
+          <h3><svg class="ic" style="width:18px;height:18px;color:var(--orange)"><use href="#ic-bell"/></svg> Thông báo</h3>
+          <div class="act-row" style="padding:9px 0"><span class="ic-b" style="background:var(--orange-soft);color:var(--orange)"><svg class="ic"><use href="#ic-file-text"/></svg></span><span style="font-size:13px">3 báo giá đang chờ phản hồi</span></div>
+          <div class="act-row" style="padding:9px 0"><span class="ic-b" style="background:var(--blue-soft);color:var(--blue)"><svg class="ic"><use href="#ic-chat"/></svg></span><span style="font-size:13px">3 tin nhắn chưa đọc</span></div>
+          <div class="act-row" style="padding:9px 0"><span class="ic-b" style="background:#fdeaea;color:var(--red)"><svg class="ic"><use href="#ic-clock"/></svg></span><span style="font-size:13px">Gói Professional hết hạn trong 8 ngày</span></div>
+        </div>
+
+        <div class="dcard" style="background:linear-gradient(135deg,#021e48,#12439c);color:#fff;border:none;margin-bottom:24px">
+          <h3 style="color:#fff">Nâng cấp Enterprise</h3>
+          <p style="font-size:13px;color:#c6d3e2;margin-bottom:14px">Mở khóa Analytics nâng cao, hồ sơ nổi bật &amp; hỗ trợ ưu tiên.</p>
+          <a class="btn btn-orange btn-block" href="pricing.html">Xem gói →</a>
+        </div>
+
+        <div class="dcard">
+          <h3>Thành viên (4)</h3>
+          <div class="act-row" style="padding:8px 0"><span class="logo-txt ava-sm ava round" style="background:#12439c;font-size:11px">NV</span><span style="font-size:13px">Nguyễn Văn A</span><small>Owner</small></div>
+          <div class="act-row" style="padding:8px 0"><span class="logo-txt ava-sm ava round" style="background:#0d6b3f;font-size:11px">TT</span><span style="font-size:13px">Trần Thị B</span><small>Admin</small></div>
+          <div class="act-row" style="padding:8px 0"><span class="logo-txt ava-sm ava round" style="background:#b5610f;font-size:11px">LH</span><span style="font-size:13px">Lê Hoàng C</span><small>Editor</small></div>
+          <a class="btn btn-outline btn-block btn-sm mt-8"><svg class="ic"><use href="#ic-plus"/></svg> Mời thành viên</a>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<div data-slot="footer"></div>
+<script src="assets/layout.js"></script>
+</body>
+</html>

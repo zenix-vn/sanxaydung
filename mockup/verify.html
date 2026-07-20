@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Xác minh doanh nghiệp — Sàn Xây Dựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<style>
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:26px}
+  .tier{border:1px solid var(--line);border-radius:16px;padding:22px;background:#fff;box-shadow:var(--shadow-sm);position:relative}
+  .tier.done{border-color:var(--green);background:linear-gradient(0deg,#f6fdf9,#fff)}
+  .tier.active{border-color:var(--orange);box-shadow:0 8px 30px rgba(241,138,28,.16)}
+  .tier .step{position:absolute;top:-11px;left:22px;font-size:11px;font-weight:700;background:var(--navy);color:#fff;padding:3px 12px;border-radius:20px}
+  .tier .badge-lg{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;margin-bottom:14px}
+  .tier h3{font-size:17px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:8px}
+  .tier p{font-size:13px;color:var(--muted);margin:8px 0 14px}
+  .tier li{list-style:none;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px;padding:4px 0}
+  .tier li svg{width:15px;height:15px;color:var(--green);flex:none}
+  .tier .status{margin-top:14px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .card-block{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+  .card-block h2{font-size:18px;font-weight:800;color:var(--navy);margin-bottom:6px}
+  .card-block .sub{color:var(--muted);font-size:13.5px;margin-bottom:18px}
+  .lookup-result{background:#f6fdf9;border:1px solid #b6e6c9;border-radius:12px;padding:16px;margin-top:16px}
+  .lookup-result .kv{display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;border-bottom:1px dashed #cbead6}
+  .lookup-result .kv:last-child{border-bottom:none}
+  .lookup-result .kv .k{color:#4a7a5f}.lookup-result .kv .v{font-weight:600;color:var(--navy)}
+  .steps-flow{display:flex;gap:8px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
+  .steps-flow .s{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  .steps-flow .s .n{width:26px;height:26px;border-radius:50%;background:var(--line);color:var(--muted);display:grid;place-items:center;font-size:12px;font-weight:700}
+  .steps-flow .s.done .n{background:var(--green);color:#fff}
+  .steps-flow .s.active .n{background:var(--orange);color:#fff}
+  .steps-flow .s.active{color:var(--navy);font-weight:600}
+  .steps-flow .line{flex:1;height:2px;background:var(--line);min-width:20px}
+  @media(max-width:900px){.tiers{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-nav="" data-auth="user">
+<script src="assets/sprite.js"></script>
+<div data-slot="header"></div>
+
+<section class="pagehead">
+  <div class="container">
+    <div class="crumb"><a href="dashboard.html">Bảng điều khiển</a> <svg class="ic"><use href="#ic-chevron-right"/></svg> Xác minh doanh nghiệp</div>
+    <h1>Xác minh doanh nghiệp</h1>
+    <p>Gắn dữ liệu gốc (MST, chứng chỉ năng lực) để nâng huy hiệu tin cậy &amp; tăng Trust Score. Xác minh giúp bạn nhận nhiều báo giá &amp; cơ hội hơn.</p>
+  </div>
+</section>
+
+<section class="block" style="padding-top:28px">
+  <div class="container">
+
+    <!-- Tiers -->
+    <div class="tiers">
+      <div class="tier done">
+        <span class="step">Bước 1</span>
+        <div class="badge-lg" style="background:var(--blue-soft);color:var(--blue)"><svg class="ic" style="width:28px;height:28px"><use href="#ic-shield-check"/></svg></div>
+        <h3>Xác minh pháp lý</h3>
+        <p>Tra cứu Mã số thuế / Giấy phép kinh doanh qua Cổng thông tin quốc gia về ĐKDN.</p>
+        <ul>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Huy hiệu "Đã xác minh pháp lý"</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> +14 điểm Trust Score</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Được đăng tin &amp; báo giá</li>
+        </ul>
+        <div class="status" style="color:var(--green)"><svg class="ic" style="width:15px;height:15px"><use href="#ic-check"/></svg> Đã hoàn tất</div>
+      </div>
+
+      <div class="tier active">
+        <span class="step">Bước 2</span>
+        <div class="badge-lg" style="background:#eaf7ee;color:var(--green)"><svg class="ic" style="width:28px;height:28px"><use href="#ic-award"/></svg></div>
+        <h3>Xác minh năng lực</h3>
+        <p>Chứng chỉ năng lực hoạt động xây dựng hạng I/II/III do Bộ Xây dựng cấp.</p>
+        <ul>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Huy hiệu "Đã xác minh năng lực"</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> +6 điểm Trust Score</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Lọc theo hạng năng lực</li>
+        </ul>
+        <div class="status" style="color:var(--orange)"><svg class="ic" style="width:15px;height:15px"><use href="#ic-clock"/></svg> Đang xử lý</div>
+      </div>
+
+      <div class="tier">
+        <span class="step">Bước 3</span>
+        <div class="badge-lg" style="background:linear-gradient(135deg,#fff2d1,#ffe4a3);color:#8a6d1a"><svg class="ic" style="width:28px;height:28px"><use href="#ic-star-f"/></svg></div>
+        <h3>Đối tác vàng</h3>
+        <p>Đạt ngưỡng Trust Score + số dự án + đánh giá xác thực để nhận huy hiệu cao nhất.</p>
+        <ul>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Huy hiệu "Đối tác vàng"</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Ưu tiên hiển thị tìm kiếm</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Nổi bật trong bảng xếp hạng</li>
+        </ul>
+        <div class="status" style="color:var(--muted)"><svg class="ic" style="width:15px;height:15px"><use href="#ic-lock"/></svg> Cần Trust Score ≥ 90</div>
+      </div>
+    </div>
+
+    <div class="grid-side-r">
+      <!-- Form -->
+      <div>
+        <div class="card-block">
+          <h2>Xác minh năng lực — Chứng chỉ hoạt động xây dựng</h2>
+          <p class="sub">Nhập số chứng chỉ để hệ thống đối chiếu; hoặc tải file chứng chỉ để đội ngũ xác minh thủ công.</p>
+
+          <div class="steps-flow">
+            <div class="s done"><span class="n"><svg class="ic" style="width:13px;height:13px"><use href="#ic-check"/></svg></span> Nhập thông tin</div>
+            <span class="line"></span>
+            <div class="s active"><span class="n">2</span> Đối chiếu dữ liệu</div>
+            <span class="line"></span>
+            <div class="s"><span class="n">3</span> Cấp huy hiệu</div>
+          </div>
+
+          <div class="form-row">
+            <div class="field-group"><label>Số chứng chỉ năng lực <span class="req">*</span></label><input class="input" value="BXD-01234/2023"/></div>
+            <div class="field-group"><label>Hạng</label><select class="select"><option>Hạng I</option><option>Hạng II</option><option>Hạng III</option></select></div>
+          </div>
+          <div class="field-group"><label>Lĩnh vực hoạt động trên chứng chỉ</label><input class="input" value="Thi công xây dựng công trình dân dụng, công nghiệp"/></div>
+          <div class="field-group"><label>File chứng chỉ (bằng chứng) <span class="req">*</span></label>
+            <div style="border:1.5px dashed var(--line);border-radius:10px;padding:20px;text-align:center;color:var(--muted)">
+              <svg class="ic" style="width:26px;height:26px;color:var(--orange);margin:0 auto 6px"><use href="#ic-upload"/></svg>
+              <div style="font-size:13.5px"><b style="color:var(--navy)">chung-chi-nang-luc-hang-I.pdf</b> · 2.4 MB</div>
+              <small>Tải lên bucket riêng tư <code>verification-docs</code> — chỉ chủ sở hữu &amp; admin xem.</small>
+            </div>
+          </div>
+          <div class="pill-note mb-16"><svg class="ic"><use href="#ic-shield"/></svg><span>Việc xác minh chạy trên <b>Edge Function</b> với quyền hệ thống, không lộ dữ liệu ra client. Kết quả sẽ tự cập nhật huy hiệu &amp; Trust Score.</span></div>
+          <button class="btn btn-orange btn-lg"><svg class="ic"><use href="#ic-shield-check"/></svg> Gửi yêu cầu xác minh</button>
+        </div>
+
+        <div class="card-block">
+          <h2>Tra cứu Mã số thuế (đã xác minh)</h2>
+          <p class="sub">Kết quả tra cứu từ Cổng thông tin quốc gia về đăng ký doanh nghiệp.</p>
+          <div class="input-icon" style="max-width:360px"><svg class="ic"><use href="#ic-search"/></svg><input class="input" value="0301234567"/></div>
+          <div class="lookup-result">
+            <div class="row" style="gap:8px;margin-bottom:10px"><span class="badge green"><svg class="ic"><use href="#ic-check"/></svg> Khớp dữ liệu quốc gia</span></div>
+            <div class="kv"><span class="k">Tên doanh nghiệp</span><span class="v">CÔNG TY CỔ PHẦN XÂY DỰNG HÒA BÌNH</span></div>
+            <div class="kv"><span class="k">Mã số thuế</span><span class="v">0301234567</span></div>
+            <div class="kv"><span class="k">Tình trạng</span><span class="v" style="color:var(--green)">Đang hoạt động</span></div>
+            <div class="kv"><span class="k">Ngày cấp</span><span class="v">27/09/1987</span></div>
+            <div class="kv"><span class="k">Người đại diện</span><span class="v">Nguyễn Văn A</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside>
+        <div class="card-block" style="text-align:center">
+          <div class="trust-ring" style="--val:95;margin:0 auto 12px"><div class="inner"><b>95</b><small>/100</small></div></div>
+          <h2 style="font-size:16px">Trust Score hiện tại</h2>
+          <p class="muted" style="font-size:13px;margin-top:6px">Hoàn tất xác minh năng lực để giữ vững vị trí <b style="color:var(--green)">Top 3%</b> ngành.</p>
+        </div>
+        <div class="card-block">
+          <h2 style="font-size:15px">Vì sao nên xác minh?</h2>
+          <div class="act-row" style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-2);font-size:13px;align-items:flex-start"><svg class="ic" style="width:18px;height:18px;color:var(--green);flex:none"><use href="#ic-trending"/></svg> Doanh nghiệp đã xác minh nhận báo giá nhiều hơn <b>3.2×</b></div>
+          <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-2);font-size:13px;align-items:flex-start"><svg class="ic" style="width:18px;height:18px;color:var(--green);flex:none"><use href="#ic-shield-check"/></svg> Chống công ty ma, tăng niềm tin đối tác</div>
+          <div style="display:flex;gap:10px;padding:10px 0;font-size:13px;align-items:flex-start"><svg class="ic" style="width:18px;height:18px;color:var(--green);flex:none"><use href="#ic-award"/></svg> Điều kiện để lên "Đối tác vàng"</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<div data-slot="footer"></div>
+<script src="assets/layout.js"></script>
+</body>
+</html>

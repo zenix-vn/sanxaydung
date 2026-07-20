@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tin tức ngành — Sàn Xây Dựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<style>
+  .feed-grid{display:grid;grid-template-columns:240px 1fr 300px;gap:24px;align-items:start}
+  .side-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+  .side-nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;font-size:14px;font-weight:600;color:var(--text)}
+  .side-nav a svg{width:18px;height:18px;color:var(--muted)}
+  .side-nav a.active{background:var(--orange-soft);color:var(--orange)}
+  .side-nav a.active svg{color:var(--orange)}
+  .side-nav a:hover:not(.active){background:#f6f8fb}
+  .composer{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+  .composer .top{display:flex;gap:12px;align-items:center}
+  .composer input{flex:1;border:1px solid var(--line);border-radius:24px;padding:11px 16px;font-size:14px;background:#f6f8fb}
+  .composer .acts{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+  .composer .acts .a{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);padding:7px 12px;border-radius:8px;cursor:pointer}
+  .composer .acts .a:hover{background:#f6f8fb}
+  .composer .acts .a svg{width:16px;height:16px}
+  .post{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);margin-bottom:20px;overflow:hidden}
+  .post .head{display:flex;gap:12px;align-items:center;padding:16px 18px 0}
+  .post .head .a{width:46px;height:46px;border-radius:11px;font-weight:800;color:#fff;display:grid;place-items:center;flex:none}
+  .post .head h4{font-size:14.5px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:6px}
+  .post .head small{font-size:12px;color:var(--muted)}
+  .post .ptype{margin:12px 18px 0}
+  .post .body{padding:12px 18px}
+  .post .body p{font-size:14px;color:#31414f;line-height:1.65}
+  .post .pimg{width:100%;max-height:360px;object-fit:cover;margin-top:6px}
+  .post .stats{padding:10px 18px;font-size:12.5px;color:var(--muted);display:flex;gap:16px;border-top:1px solid var(--line-2)}
+  .post .actions{display:flex;border-top:1px solid var(--line-2)}
+  .post .actions a{flex:1;padding:11px;text-align:center;font-size:13.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:7px}
+  .post .actions a:hover{background:#f6f8fb;color:var(--navy)}
+  .post .actions svg{width:17px;height:17px}
+  .trend a{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2);font-size:13px}
+  .trend a:last-child{border-bottom:none}
+  .trend a b{color:var(--navy)}
+  .trend a span{color:var(--muted);font-size:12px}
+  .sugg{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-2)}
+  .sugg:last-child{border-bottom:none}
+  .sugg .a{width:38px;height:38px;border-radius:9px;font-weight:800;color:#fff;display:grid;place-items:center;font-size:13px;flex:none}
+  .sugg h5{font-size:13px;font-weight:700;color:var(--navy)}
+  .sugg small{font-size:11.5px;color:var(--muted)}
+  @media(max-width:1024px){.feed-grid{grid-template-columns:1fr}.feed-grid aside{display:none}}
+</style>
+</head>
+<body data-nav="feed" data-auth="user">
+<script src="assets/sprite.js"></script>
+<div data-slot="header"></div>
+
+<div class="container" style="padding:24px 20px 48px">
+  <div class="feed-grid">
+    <!-- LEFT NAV -->
+    <aside>
+      <div class="side-card side-nav">
+        <a class="active"><svg class="ic"><use href="#ic-layers"/></svg> Tất cả tin</a>
+        <a><svg class="ic"><use href="#ic-building"/></svg> Công trình mới</a>
+        <a><svg class="ic"><use href="#ic-check"/></svg> Dự án hoàn thành</a>
+        <a><svg class="ic"><use href="#ic-people"/></svg> Tuyển dụng</a>
+        <a><svg class="ic"><use href="#ic-award"/></svg> Chứng nhận</a>
+        <a><svg class="ic"><use href="#ic-tag"/></svg> Khuyến mại</a>
+        <a><svg class="ic"><use href="#ic-heart"/></svg> Đang theo dõi</a>
+      </div>
+    </aside>
+
+    <!-- FEED -->
+    <div>
+      <div class="composer">
+        <div class="top">
+          <span class="logo-txt ava" style="background:#12439c">HB</span>
+          <input placeholder="Chia sẻ cập nhật của Hòa Bình: công trình mới, tin tuyển dụng…"/>
+        </div>
+        <div class="acts">
+          <span class="a"><svg class="ic" style="color:#22a06b"><use href="#ic-image"/></svg> Ảnh</span>
+          <span class="a"><svg class="ic" style="color:#e0455e"><use href="#ic-video"/></svg> Video</span>
+          <span class="a"><svg class="ic" style="color:#2a5a9e"><use href="#ic-building"/></svg> Dự án</span>
+          <span class="a"><svg class="ic" style="color:#d97706"><use href="#ic-people"/></svg> Tuyển dụng</span>
+          <button class="btn btn-orange btn-sm" style="margin-left:auto">Đăng bài</button>
+        </div>
+      </div>
+
+      <!-- Post 1: completed project -->
+      <article class="post">
+        <div class="head">
+          <span class="logo-txt ava" style="background:#12439c">HB</span>
+          <div style="flex:1"><h4>Xây dựng Hòa Bình <svg class="ic" style="width:15px;height:15px;color:var(--green)"><use href="#ic-shield-check"/></svg></h4><small>2 giờ trước · <svg class="ic" style="width:12px;height:12px;vertical-align:-1px"><use href="#ic-globe"/></svg> Công khai</small></div>
+          <a class="btn btn-icon btn-outline" style="border:none"><svg class="ic"><use href="#ic-dots"/></svg></a>
+        </div>
+        <div class="ptype"><span class="badge green"><svg class="ic"><use href="#ic-check"/></svg> Dự án hoàn thành</span></div>
+        <div class="body">
+          <p>🎉 Hòa Bình chính thức bàn giao <b>Landmark Tower — 42 tầng</b> tại TP.HCM, vượt tiến độ 15 ngày! Cảm ơn chủ đầu tư đã tin tưởng đồng hành. Công trình đạt chứng nhận an toàn lao động xuất sắc.</p>
+        </div>
+        <img class="pimg" src="https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=1000&q=75" alt=""/>
+        <div class="stats"><span><svg class="ic fill" style="width:14px;height:14px;color:var(--orange);vertical-align:-2px"><use href="#ic-thumb"/></svg> 214</span><span>32 bình luận</span><span>12 chia sẻ</span></div>
+        <div class="actions">
+          <a><svg class="ic"><use href="#ic-thumb"/></svg> Thích</a>
+          <a><svg class="ic"><use href="#ic-chat"/></svg> Bình luận</a>
+          <a><svg class="ic"><use href="#ic-link"/></svg> Chia sẻ</a>
+        </div>
+      </article>
+
+      <!-- Post 2: recruitment -->
+      <article class="post">
+        <div class="head">
+          <span class="logo-txt ava" style="background:#c0392b">AP</span>
+          <div style="flex:1"><h4>An Phong Construction <svg class="ic" style="width:15px;height:15px;color:var(--green)"><use href="#ic-shield-check"/></svg></h4><small>5 giờ trước · <svg class="ic" style="width:12px;height:12px;vertical-align:-1px"><use href="#ic-globe"/></svg> Công khai</small></div>
+        </div>
+        <div class="ptype"><span class="badge orange"><svg class="ic"><use href="#ic-people"/></svg> Tuyển dụng</span></div>
+        <div class="body">
+          <p>📢 <b>TUYỂN GẤP:</b> 05 Kỹ sư giám sát M&amp;E và 02 Chỉ huy trưởng cho dự án khách sạn tại Đà Nẵng. Lương cạnh tranh 20–35 triệu + phụ cấp công trình. Ứng viên có chứng chỉ hành nghề ưu tiên. Inbox hoặc gửi CV qua nền tảng.</p>
+        </div>
+        <div class="stats"><span><svg class="ic fill" style="width:14px;height:14px;color:var(--orange);vertical-align:-2px"><use href="#ic-thumb"/></svg> 48</span><span>15 bình luận</span></div>
+        <div class="actions">
+          <a><svg class="ic"><use href="#ic-thumb"/></svg> Thích</a>
+          <a><svg class="ic"><use href="#ic-chat"/></svg> Bình luận</a>
+          <a><svg class="ic"><use href="#ic-link"/></svg> Chia sẻ</a>
+        </div>
+      </article>
+
+      <!-- Post 3: certificate -->
+      <article class="post">
+        <div class="head">
+          <span class="logo-txt ava" style="background:#0d6b3f">TC</span>
+          <div style="flex:1"><h4>Vật liệu Thành Công <svg class="ic" style="width:15px;height:15px;color:var(--green)"><use href="#ic-shield-check"/></svg></h4><small>Hôm qua · <svg class="ic" style="width:12px;height:12px;vertical-align:-1px"><use href="#ic-globe"/></svg> Công khai</small></div>
+        </div>
+        <div class="ptype"><span class="badge"><svg class="ic"><use href="#ic-award"/></svg> Chứng nhận</span></div>
+        <div class="body">
+          <p>🏆 Chúng tôi vừa đạt <b>chứng nhận ISO 9001:2015</b> cho hệ thống quản lý chất lượng vật liệu xây dựng. Cam kết cung cấp sản phẩm đạt chuẩn cho mọi công trình.</p>
+        </div>
+        <div class="stats"><span><svg class="ic fill" style="width:14px;height:14px;color:var(--orange);vertical-align:-2px"><use href="#ic-thumb"/></svg> 96</span><span>8 bình luận</span></div>
+        <div class="actions">
+          <a><svg class="ic"><use href="#ic-thumb"/></svg> Thích</a>
+          <a><svg class="ic"><use href="#ic-chat"/></svg> Bình luận</a>
+          <a><svg class="ic"><use href="#ic-link"/></svg> Chia sẻ</a>
+        </div>
+      </article>
+    </div>
+
+    <!-- RIGHT -->
+    <aside>
+      <div class="side-card">
+        <h4 style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px">Xu hướng ngành</h4>
+        <div class="trend">
+          <a href="#"><span><b>Giá thép tăng 3%</b><br><span>Chỉ số giá vật liệu</span></span><svg class="ic" style="width:16px;height:16px;color:var(--green)"><use href="#ic-trending"/></svg></a>
+          <a href="#"><span><b>#DauThauOnline</b><br><span>1.2k thảo luận</span></span></a>
+          <a href="#"><span><b>#ChungChiNangLuc</b><br><span>860 thảo luận</span></span></a>
+          <a href="#"><span><b>#XanhHoaCongTrinh</b><br><span>540 thảo luận</span></span></a>
+        </div>
+      </div>
+      <div class="side-card">
+        <h4 style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px">Gợi ý theo dõi</h4>
+        <div class="sugg"><span class="a" style="background:#111">CT</span><div style="flex:1"><h5>Coteccons</h5><small>Nhà thầu · TP.HCM</small></div><a class="btn btn-outline btn-sm">Theo dõi</a></div>
+        <div class="sugg"><span class="a" style="background:#17479e">DL</span><div style="flex:1"><h5>Delta Group</h5><small>Nhà thầu · Hà Nội</small></div><a class="btn btn-outline btn-sm">Theo dõi</a></div>
+        <div class="sugg"><span class="a" style="background:#0d6b3f">HP</span><div style="flex:1"><h5>Thép Hòa Phát</h5><small>Nhà cung cấp</small></div><a class="btn btn-outline btn-sm">Theo dõi</a></div>
+      </div>
+      <div class="side-card" style="background:linear-gradient(135deg,#021e48,#12439c);color:#fff;border:none">
+        <h4 style="color:#fff;font-size:15px">Nâng cấp hồ sơ nổi bật</h4>
+        <p style="font-size:13px;color:#c6d3e2;margin:8px 0 14px">Bài viết &amp; hồ sơ của bạn hiển thị ưu tiên với gói Professional.</p>
+        <a class="btn btn-orange btn-block" href="pricing.html">Xem gói →</a>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div data-slot="footer"></div>
+<script src="assets/layout.js"></script>
+</body>
+</html>

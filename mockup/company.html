@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Công ty CP Xây dựng Hòa Bình — Sàn Xây Dựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<style>
+  .cover{height:220px;background:linear-gradient(120deg,rgba(2,30,72,.55),rgba(2,30,72,.15)),
+    url("https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1600&q=80") center/cover;position:relative}
+  .cover .edit{position:absolute;right:16px;bottom:16px}
+  .profile-head{background:#fff;border-bottom:1px solid var(--line)}
+  .ph-inner{display:flex;align-items:flex-end;gap:22px;padding:0 0 20px;margin-top:-56px;position:relative}
+  .ph-logo{width:124px;height:124px;border-radius:18px;background:#fff;border:1px solid var(--line);box-shadow:var(--shadow);display:grid;place-items:center;font-weight:800;color:#fff;font-size:36px;flex:none}
+  .ph-main{flex:1;padding-bottom:4px}
+  .ph-main h1{font-size:26px;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ph-badges{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+  .ph-meta{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);margin-top:4px}
+  .ph-meta span{display:flex;align-items:center;gap:6px}
+  .ph-meta svg{width:15px;height:15px}
+  .ph-actions{display:flex;gap:10px;align-items:center;padding-bottom:6px;flex-wrap:wrap}
+  .sticky-tabs{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:66px;z-index:50}
+  .infobox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+  .infobox h3{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .infobox h3 svg{width:18px;height:18px;color:var(--orange)}
+  .kv{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:7px 0;border-bottom:1px dashed var(--line-2)}
+  .kv:last-child{border-bottom:none}
+  .kv .k{color:var(--muted)}
+  .kv .v{font-weight:600;color:var(--navy);text-align:right}
+  .ts-break{margin-top:6px}
+  .ts-row{margin:12px 0}
+  .ts-row .between{font-size:13px;margin-bottom:5px}
+  .ts-row .between b{color:var(--navy)}
+  .card-block{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+  .card-block h2{font-size:18px;font-weight:800;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+  .prose{font-size:14.5px;color:#31414f;line-height:1.75}
+  .proj-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .proj{border:1px solid var(--line);border-radius:12px;overflow:hidden;transition:.2s}
+  .proj:hover{box-shadow:var(--shadow)}
+  .proj .img{height:130px;background-size:cover;background-position:center}
+  .proj .b{padding:12px 14px}
+  .proj h4{font-size:14px;font-weight:700;color:var(--navy);line-height:1.3;margin-bottom:6px}
+  .proj .m{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+  .svc{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line-2)}
+  .svc:last-child{border-bottom:none}
+  .svc .ic-b{width:44px;height:44px;border-radius:10px;background:var(--orange-soft);color:var(--orange);display:grid;place-items:center;flex:none}
+  .svc h4{font-size:14.5px;font-weight:700;color:var(--navy)}
+  .svc p{font-size:13px;color:var(--muted);margin:3px 0}
+  .svc .price{font-size:13.5px;font-weight:700;color:var(--green)}
+  .rev-summary{display:grid;grid-template-columns:200px 1fr;gap:26px;align-items:center;margin-bottom:20px}
+  .rev-big{text-align:center}
+  .rev-big .n{font-size:52px;font-weight:800;color:var(--navy);line-height:1}
+  .rev-crit{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px}
+  .rev-crit .between{font-size:13px}
+  .review{padding:16px 0;border-bottom:1px solid var(--line-2)}
+  .review .top{display:flex;gap:12px;margin-bottom:8px}
+  .review .top .ava{width:42px;height:42px;border-radius:10px;font-weight:800;color:#fff;display:grid;place-items:center;font-size:14px}
+  .review .top h4{font-size:14px;font-weight:700;color:var(--navy)}
+  .review .verified{font-size:11.5px;color:var(--green);display:flex;align-items:center;gap:4px;margin-top:2px}
+  .review .verified svg{width:13px;height:13px}
+  .review p{font-size:13.5px;color:#31414f;margin-top:6px}
+  .doc-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line-2)}
+  .doc-row:last-child{border-bottom:none}
+  .doc-row .ic-b{width:40px;height:40px;border-radius:9px;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;flex:none}
+  .doc-row h4{font-size:14px;font-weight:600;color:var(--navy)}
+  .doc-row small{color:var(--muted);font-size:12px}
+  .staff-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .staff{text-align:center;border:1px solid var(--line);border-radius:12px;padding:16px}
+  .staff .a{width:60px;height:60px;border-radius:50%;margin:0 auto 10px;font-weight:800;color:#fff;display:grid;place-items:center}
+  .staff h4{font-size:13.5px;font-weight:700;color:var(--navy)}
+  .staff small{font-size:12px;color:var(--muted)}
+  @media(max-width:900px){.proj-grid{grid-template-columns:1fr 1fr}.staff-grid{grid-template-columns:1fr 1fr}.rev-summary{grid-template-columns:1fr}}
+  @media(max-width:600px){.proj-grid{grid-template-columns:1fr}.rev-crit{grid-template-columns:1fr}.ph-inner{flex-direction:column;align-items:flex-start}.ph-logo{width:96px;height:96px;font-size:28px}}
+</style>
+</head>
+<body data-nav="directory" data-auth="guest">
+<script src="assets/sprite.js"></script>
+<div data-slot="header"></div>
+
+<!-- Cover -->
+<div class="cover"></div>
+
+<!-- Profile head -->
+<div class="profile-head">
+  <div class="container">
+    <div class="ph-inner">
+      <div class="ph-logo" style="background:#12439c">HB</div>
+      <div class="ph-main">
+        <h1>Công ty CP Xây dựng Hòa Bình</h1>
+        <div class="ph-badges">
+          <span class="verify gold"><svg class="ic"><use href="#ic-star-f"/></svg> Đối tác vàng</span>
+          <span class="verify legal"><svg class="ic"><use href="#ic-shield-check"/></svg> Xác minh pháp lý</span>
+          <span class="verify capability"><svg class="ic"><use href="#ic-award"/></svg> Chứng chỉ năng lực Hạng I</span>
+        </div>
+        <div class="ph-meta">
+          <span><svg class="ic"><use href="#ic-briefcase"/></svg> Tổng thầu xây dựng</span>
+          <span><svg class="ic"><use href="#ic-pin"/></svg> TP. Hồ Chí Minh</span>
+          <span><svg class="ic"><use href="#ic-users"/></svg> Trên 200 nhân sự</span>
+          <span><svg class="ic"><use href="#ic-clock"/></svg> Thành lập 1987</span>
+          <span><svg class="ic fill" style="color:var(--orange)"><use href="#ic-star-f"/></svg> <b style="color:var(--navy)">4.9</b> (128 đánh giá)</span>
+        </div>
+      </div>
+      <div class="ph-actions">
+        <a class="btn btn-outline btn-icon" title="Theo dõi"><svg class="ic"><use href="#ic-heart"/></svg></a>
+        <a class="btn btn-outline" href="#"><svg class="ic"><use href="#ic-link"/></svg> Chia sẻ</a>
+        <a class="btn btn-outline" href="chat.html"><svg class="ic"><use href="#ic-chat"/></svg> Nhắn tin</a>
+        <a class="btn btn-orange" href="marketplace-detail.html"><svg class="ic"><use href="#ic-plus"/></svg> Kết nối &amp; mời báo giá</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="sticky-tabs">
+  <div class="container">
+    <nav class="tabs">
+      <a class="active" href="#gioithieu">Giới thiệu</a>
+      <a href="#duan">Dự án (128)</a>
+      <a href="#dichvu">Dịch vụ</a>
+      <a href="#danhgia">Đánh giá (128)</a>
+      <a href="#tailieu">Hồ sơ năng lực</a>
+      <a href="#nhansu">Nhân sự &amp; Thiết bị</a>
+    </nav>
+  </div>
+</div>
+
+<section class="block" style="padding-top:24px">
+  <div class="container grid-side-r">
+
+    <!-- MAIN -->
+    <div>
+      <div class="card-block" id="gioithieu">
+        <h2>Giới thiệu <a href="#" style="font-size:13px;color:var(--orange);font-weight:600">Báo cáo</a></h2>
+        <p class="prose">Công ty CP Xây dựng Hòa Bình là một trong những tổng thầu xây dựng hàng đầu Việt Nam với hơn <b>35 năm</b> kinh nghiệm thi công nhà cao tầng, hạ tầng dân dụng và công nghiệp. Chúng tôi cung cấp dịch vụ trọn gói từ thiết kế, thi công phần thô, cơ điện đến hoàn thiện — cam kết chất lượng, tiến độ và an toàn lao động.</p>
+        <p class="prose mt-8">Đội ngũ hơn 200 kỹ sư, chỉ huy trưởng giàu kinh nghiệm cùng hệ thống quản lý chất lượng ISO 9001:2015 đảm bảo mỗi công trình đều đạt tiêu chuẩn nghiệm thu cao nhất.</p>
+        <div class="grid-4 mt-16" style="gap:12px">
+          <div class="stat-tile" style="box-shadow:none;background:#fafbfc"><div class="num">128</div><div class="lbl">Dự án hoàn thành</div></div>
+          <div class="stat-tile" style="box-shadow:none;background:#fafbfc"><div class="num">35</div><div class="lbl">Năm kinh nghiệm</div></div>
+          <div class="stat-tile" style="box-shadow:none;background:#fafbfc"><div class="num">63</div><div class="lbl">Tỉnh/thành phủ sóng</div></div>
+          <div class="stat-tile" style="box-shadow:none;background:#fafbfc"><div class="num">98%</div><div class="lbl">Tỷ lệ hoàn thành đúng hạn</div></div>
+        </div>
+      </div>
+
+      <div class="card-block" id="duan">
+        <h2>Dự án tiêu biểu <a href="#" style="font-size:13px;color:var(--orange);font-weight:600">Xem tất cả 128 →</a></h2>
+        <div class="proj-grid">
+          <div class="proj">
+            <div class="img" style="background-image:url('https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=600&q=70')"></div>
+            <div class="b"><h4>Landmark Tower — 42 tầng</h4><div class="m"><span>Tổng thầu</span><span>2023</span><span>TP.HCM</span></div></div>
+          </div>
+          <div class="proj">
+            <div class="img" style="background-image:url('https://images.unsplash.com/photo-1590986701617-b3c649502e40?auto=format&fit=crop&w=600&q=70')"></div>
+            <div class="b"><h4>KCN Long Hậu — Nhà xưởng</h4><div class="m"><span>Tổng thầu</span><span>2022</span><span>Long An</span></div></div>
+          </div>
+          <div class="proj">
+            <div class="img" style="background-image:url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=600&q=70')"></div>
+            <div class="b"><h4>Bệnh viện Đa khoa 500 giường</h4><div class="m"><span>Tổng thầu</span><span>2021</span><span>Bình Dương</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-block" id="dichvu">
+        <h2>Dịch vụ cung cấp</h2>
+        <div class="svc">
+          <div class="ic-b"><svg class="ic"><use href="#ic-building"/></svg></div>
+          <div style="flex:1"><h4>Thi công tổng thầu nhà cao tầng</h4><p>Thi công trọn gói phần thô đến hoàn thiện, quản lý dự án theo tiêu chuẩn quốc tế.</p></div>
+          <div class="price">Theo dự án</div>
+        </div>
+        <div class="svc">
+          <div class="ic-b"><svg class="ic"><use href="#ic-gear"/></svg></div>
+          <div style="flex:1"><h4>Thi công cơ điện (M&amp;E)</h4><p>Hệ thống điện, cấp thoát nước, HVAC, PCCC cho công trình quy mô lớn.</p></div>
+          <div class="price">Theo hạng mục</div>
+        </div>
+        <div class="svc">
+          <div class="ic-b"><svg class="ic"><use href="#ic-ruler"/></svg></div>
+          <div style="flex:1"><h4>Tư vấn thiết kế &amp; quản lý dự án</h4><p>Thiết kế kiến trúc – kết cấu, tư vấn giám sát, quản lý chi phí.</p></div>
+          <div class="price">Từ 50 triệu</div>
+        </div>
+      </div>
+
+      <div class="card-block" id="danhgia">
+        <h2>Đánh giá từ đối tác</h2>
+        <div class="rev-summary">
+          <div class="rev-big">
+            <div class="n">4.9</div>
+            <div class="stars" style="justify-content:center"><span class="st">★★★★★</span></div>
+            <div class="muted" style="font-size:13px;margin-top:4px">128 đánh giá xác thực</div>
+          </div>
+          <div class="rev-crit">
+            <div><div class="between"><span>Chất lượng</span><b>4.9</b></div><div class="progress"><div class="bar green" style="width:98%"></div></div></div>
+            <div><div class="between"><span>Tiến độ</span><b>4.8</b></div><div class="progress"><div class="bar green" style="width:96%"></div></div></div>
+            <div><div class="between"><span>Chi phí</span><b>4.6</b></div><div class="progress"><div class="bar green" style="width:92%"></div></div></div>
+            <div><div class="between"><span>Thái độ hợp tác</span><b>5.0</b></div><div class="progress"><div class="bar green" style="width:100%"></div></div></div>
+            <div><div class="between"><span>An toàn</span><b>4.9</b></div><div class="progress"><div class="bar green" style="width:98%"></div></div></div>
+            <div><div class="between"><span>Bảo hành</span><b>4.7</b></div><div class="progress"><div class="bar green" style="width:94%"></div></div></div>
+          </div>
+        </div>
+        <div class="pill-note mb-16"><svg class="ic"><use href="#ic-shield-check"/></svg><span>Chỉ doanh nghiệp có <b>kết nối đã hoàn tất</b> trên sàn mới được đánh giá — chống review ảo.</span></div>
+        <div class="review">
+          <div class="top">
+            <div class="ava" style="background:#0d6b3f">VH</div>
+            <div style="flex:1">
+              <h4>Vinhomes Project Management</h4>
+              <div class="verified"><svg class="ic"><use href="#ic-shield-check"/></svg> Kết nối xác thực · Dự án Landmark Tower · 03/2024</div>
+            </div>
+            <div class="stars"><span class="st">★★★★★</span></div>
+          </div>
+          <p>Hòa Bình thi công đúng tiến độ cam kết, chất lượng hoàn thiện vượt kỳ vọng. Đội ngũ chỉ huy chuyên nghiệp, xử lý phát sinh nhanh. Chắc chắn hợp tác tiếp cho các dự án sau.</p>
+        </div>
+        <div class="review">
+          <div class="top">
+            <div class="ava" style="background:#b5610f">TC</div>
+            <div style="flex:1">
+              <h4>Tập đoàn Thành Công</h4>
+              <div class="verified"><svg class="ic"><use href="#ic-shield-check"/></svg> Kết nối xác thực · Nhà xưởng KCN · 11/2023</div>
+            </div>
+            <div class="stars"><span class="st">★★★★</span><span class="st" style="opacity:.3">★</span></div>
+          </div>
+          <p>Thi công nhà xưởng đạt yêu cầu kỹ thuật, an toàn lao động tốt. Chi phí phát sinh có thương lượng hợp lý. Giao mặt bằng đúng hẹn.</p>
+        </div>
+        <a class="btn btn-outline btn-block mt-16" href="#">Xem tất cả 128 đánh giá</a>
+      </div>
+
+      <div class="card-block" id="tailieu">
+        <h2>Hồ sơ năng lực</h2>
+        <div class="doc-row">
+          <div class="ic-b"><svg class="ic"><use href="#ic-file-text"/></svg></div>
+          <div style="flex:1"><h4>Giấy chứng nhận đăng ký kinh doanh</h4><small>PDF · Công khai · Đã xác minh</small></div>
+          <span class="badge green"><svg class="ic"><use href="#ic-check"/></svg> Verified</span>
+        </div>
+        <div class="doc-row">
+          <div class="ic-b"><svg class="ic"><use href="#ic-award"/></svg></div>
+          <div style="flex:1"><h4>Chứng chỉ năng lực hoạt động xây dựng Hạng I</h4><small>PDF · Công khai · Bộ Xây dựng cấp</small></div>
+          <span class="badge green"><svg class="ic"><use href="#ic-check"/></svg> Verified</span>
+        </div>
+        <div class="doc-row">
+          <div class="ic-b"><svg class="ic"><use href="#ic-lock"/></svg></div>
+          <div style="flex:1"><h4>Hồ sơ năng lực đầy đủ (Company Profile 2024)</h4><small>PDF · 24 MB · Chỉ đối tác đã kết nối</small></div>
+          <a class="btn btn-outline btn-sm" href="#"><svg class="ic"><use href="#ic-download"/></svg> Yêu cầu</a>
+        </div>
+      </div>
+
+      <div class="card-block" id="nhansu">
+        <h2>Nhân sự chủ chốt</h2>
+        <div class="staff-grid mb-16">
+          <div class="staff"><div class="a" style="background:#12439c">NV</div><h4>Nguyễn Văn A</h4><small>Tổng Giám đốc · 30 năm</small></div>
+          <div class="staff"><div class="a" style="background:#0d6b3f">TT</div><h4>Trần Thị B</h4><small>Giám đốc kỹ thuật · 22 năm</small></div>
+          <div class="staff"><div class="a" style="background:#b5610f">LH</div><h4>Lê Hoàng C</h4><small>Chỉ huy trưởng · 18 năm</small></div>
+          <div class="staff"><div class="a" style="background:#7a5a0f">PM</div><h4>Phạm Minh D</h4><small>Trưởng phòng M&amp;E · 15 năm</small></div>
+        </div>
+        <h2>Thiết bị chính</h2>
+        <div class="grid-3" style="gap:12px">
+          <div class="stat-tile" style="box-shadow:none;background:#fafbfc"><div class="num">12</div><div class="lbl">Cẩu tháp</div></div>
+          <div class="stat-tile" style="box-shadow:none;background:#fafbfc"><div class="num">8</div><div class="lbl">Máy ép cọc</div></div>
+          <div class="stat-tile" style="box-shadow:none;background:#fafbfc"><div class="num">45</div><div class="lbl">Giàn giáo (bộ)</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside>
+      <div class="infobox" style="text-align:center">
+        <h3 style="justify-content:center"><svg class="ic"><use href="#ic-shield-check"/></svg> Trust Score</h3>
+        <div style="display:flex;justify-content:center;margin:6px 0 14px">
+          <div class="trust-ring" style="--val:95"><div class="inner"><b>95</b><small>/ 100</small></div></div>
+        </div>
+        <div class="ts-break">
+          <div class="ts-row"><div class="between"><span>Xác minh pháp lý &amp; năng lực</span><b>20/20</b></div><div class="progress"><div class="bar green" style="width:100%"></div></div></div>
+          <div class="ts-row"><div class="between"><span>Đánh giá khách hàng</span><b>29/30</b></div><div class="progress"><div class="bar green" style="width:97%"></div></div></div>
+          <div class="ts-row"><div class="between"><span>Số &amp; quy mô dự án</span><b>15/15</b></div><div class="progress"><div class="bar green" style="width:100%"></div></div></div>
+          <div class="ts-row"><div class="between"><span>Độ hoàn thiện hồ sơ</span><b>10/10</b></div><div class="progress"><div class="bar" style="width:100%"></div></div></div>
+          <div class="ts-row"><div class="between"><span>Mức độ phản hồi</span><b>9/10</b></div><div class="progress"><div class="bar" style="width:90%"></div></div></div>
+          <div class="ts-row"><div class="between"><span>Tỷ lệ hoàn thành kết nối</span><b>10/10</b></div><div class="progress"><div class="bar" style="width:100%"></div></div></div>
+        </div>
+        <a href="#" style="font-size:12.5px;color:var(--orange);font-weight:600">Trust Score được tính thế nào?</a>
+      </div>
+
+      <div class="infobox">
+        <h3><svg class="ic"><use href="#ic-file-text"/></svg> Thông tin pháp lý</h3>
+        <div class="kv"><span class="k">Mã số thuế</span><span class="v">0301●●●●●5</span></div>
+        <div class="kv"><span class="k">Tên pháp lý</span><span class="v">CTCP Xây dựng Hòa Bình</span></div>
+        <div class="kv"><span class="k">Năm thành lập</span><span class="v">1987</span></div>
+        <div class="kv"><span class="k">Hạng năng lực</span><span class="v">Hạng I</span></div>
+        <div class="kv"><span class="k">Quy mô</span><span class="v">Trên 200 người</span></div>
+      </div>
+
+      <div class="infobox">
+        <h3><svg class="ic"><use href="#ic-phone"/></svg> Liên hệ</h3>
+        <div class="kv"><span class="k">Điện thoại</span><span class="v">028 3●●● ●●●</span></div>
+        <div class="kv"><span class="k">Email</span><span class="v">info@hbc.vn</span></div>
+        <div class="kv"><span class="k">Website</span><span class="v">hbcg.vn</span></div>
+        <div class="kv"><span class="k">Địa chỉ</span><span class="v" style="max-width:170px">235 Võ Thị Sáu, Q.3, TP.HCM</span></div>
+        <a class="btn btn-orange btn-block mt-16" href="chat.html"><svg class="ic"><use href="#ic-chat"/></svg> Gửi tin nhắn</a>
+      </div>
+
+      <div class="infobox">
+        <h3><svg class="ic"><use href="#ic-pin"/></svg> Khu vực hoạt động</h3>
+        <div class="row wrap" style="gap:6px">
+          <span class="badge gray">TP.HCM</span><span class="badge gray">Hà Nội</span><span class="badge gray">Bình Dương</span><span class="badge gray">Đồng Nai</span><span class="badge gray">Long An</span><span class="badge gray">Đà Nẵng</span><span class="badge gray">+58 tỉnh</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<div data-slot="footer"></div>
+<script src="assets/layout.js"></script>
+</body>
+</html>

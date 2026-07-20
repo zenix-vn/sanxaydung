@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Danh bạ doanh nghiệp — Sàn Xây Dựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<style>
+  .searchband{background:var(--navy);padding:20px 0 24px}
+  .searchbar{background:#fff;border-radius:12px;padding:10px;display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:8px;box-shadow:var(--shadow)}
+  .searchbar .fld{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;background:#f6f8fb;border:1px solid var(--line)}
+  .searchbar .fld svg{width:18px;height:18px;color:var(--muted)}
+  .searchbar input,.searchbar select{border:none;outline:none;background:transparent;font-size:14px;width:100%;color:var(--text)}
+  .filter-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow-sm);position:sticky;top:82px}
+  .filter-card h4{font-size:14px;font-weight:700;color:var(--navy);margin:16px 0 10px;display:flex;align-items:center;justify-content:space-between}
+  .filter-card h4:first-child{margin-top:0}
+  .fopt{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text);padding:6px 0;cursor:pointer}
+  .fopt input{width:16px;height:16px;accent-color:var(--orange)}
+  .fopt .cnt{margin-left:auto;font-size:12px;color:var(--muted)}
+  .range{display:flex;align-items:center;gap:8px}
+  .range input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:13px}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .toolbar .count b{color:var(--navy)}
+  .viewtoggle{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+  .viewtoggle a{padding:8px 12px;color:var(--muted);display:grid;place-items:center}
+  .viewtoggle a.active{background:var(--navy);color:#fff}
+  .viewtoggle a svg{width:18px;height:18px}
+  .list-comp{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;grid-template-columns:74px 1fr auto;gap:18px;box-shadow:var(--shadow-sm);transition:.2s}
+  .list-comp:hover{box-shadow:var(--shadow);border-color:#dfe6ee}
+  .list-comp .lg{width:74px;height:74px;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;font-weight:800;color:#fff;font-size:20px}
+  .list-comp h3{font-size:17px;font-weight:700;color:var(--navy)}
+  .list-comp .meta{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:8px 0}
+  .list-comp .meta span{display:flex;align-items:center;gap:5px}
+  .list-comp .meta svg{width:14px;height:14px}
+  .list-comp .tagline{font-size:13.5px;color:var(--text);margin-bottom:10px}
+  .list-comp .cats{display:flex;gap:6px;flex-wrap:wrap}
+  .list-comp .side{text-align:right;display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:10px}
+  .ts-pill{background:var(--green-soft);border-radius:10px;padding:8px 12px;text-align:center;min-width:78px}
+  .ts-pill b{font-size:22px;color:var(--green);font-weight:800;line-height:1}
+  .ts-pill small{font-size:10.5px;color:#0d7a3e;display:block}
+  .pagination{display:flex;gap:6px;justify-content:center;margin-top:28px}
+  .pagination a{min-width:38px;height:38px;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;font-size:14px;font-weight:600;color:var(--text);background:#fff}
+  .pagination a.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .pagination a:hover:not(.active){border-color:var(--orange);color:var(--orange)}
+  .chips-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  @media(max-width:1024px){.searchbar{grid-template-columns:1fr 1fr}.searchbar .btn{grid-column:span 2;justify-content:center}}
+  @media(max-width:760px){
+    .searchbar{grid-template-columns:1fr}
+    .list-comp{grid-template-columns:56px 1fr;gap:12px}
+    .list-comp .lg{width:56px;height:56px;font-size:16px}
+    .list-comp .side{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:space-between}
+  }
+</style>
+</head>
+<body data-nav="directory" data-auth="guest">
+<script src="assets/sprite.js"></script>
+<div data-slot="header"></div>
+
+<!-- Thanh tìm kiếm -->
+<section class="searchband">
+  <div class="container">
+    <div class="crumb"><a href="index.html">Trang chủ</a> <svg class="ic"><use href="#ic-chevron-right"/></svg> Danh bạ doanh nghiệp</div>
+    <form class="searchbar" onsubmit="return false">
+      <div class="fld"><svg class="ic"><use href="#ic-search"/></svg><input placeholder="Tên doanh nghiệp, lĩnh vực… (vd: xây trọn gói, dien nuoc)"/></div>
+      <div class="fld"><svg class="ic"><use href="#ic-pin"/></svg><select><option>Toàn quốc</option><option>Hà Nội</option><option>TP. Hồ Chí Minh</option><option>Đà Nẵng</option><option>Bình Dương</option></select></div>
+      <div class="fld"><svg class="ic"><use href="#ic-briefcase"/></svg><select><option>Tất cả lĩnh vực</option><option>Nhà thầu</option><option>Đội thi công</option><option>Nhà cung cấp</option><option>Dịch vụ</option></select></div>
+      <button class="btn btn-orange">Tìm kiếm</button>
+    </form>
+  </div>
+</section>
+
+<section class="block" style="padding-top:28px">
+  <div class="container grid-side">
+
+    <!-- Bộ lọc -->
+    <aside class="filter-card">
+      <h4>Nhóm lĩnh vực <a href="#" style="font-size:12px;color:var(--orange);font-weight:600">Xóa</a></h4>
+      <label class="fopt"><input type="checkbox" checked/> Nhà thầu <span class="cnt">3.204</span></label>
+      <label class="fopt"><input type="checkbox"/> Đội thi công <span class="cnt">2.881</span></label>
+      <label class="fopt"><input type="checkbox"/> Nhà cung cấp <span class="cnt">1.905</span></label>
+      <label class="fopt"><input type="checkbox"/> Đơn vị dịch vụ <span class="cnt">955</span></label>
+
+      <div class="divider"></div>
+      <h4>Mức xác minh</h4>
+      <label class="fopt"><input type="checkbox"/> <span class="verify legal"><svg class="ic"><use href="#ic-shield-check"/></svg>Pháp lý</span> <span class="cnt">4.120</span></label>
+      <label class="fopt"><input type="checkbox"/> <span class="verify capability"><svg class="ic"><use href="#ic-award"/></svg>Năng lực</span> <span class="cnt">1.870</span></label>
+      <label class="fopt"><input type="checkbox"/> <span class="verify gold"><svg class="ic"><use href="#ic-star-f"/></svg>Đối tác vàng</span> <span class="cnt">312</span></label>
+
+      <div class="divider"></div>
+      <h4>Hạng năng lực</h4>
+      <label class="fopt"><input type="checkbox"/> Hạng I <span class="cnt">640</span></label>
+      <label class="fopt"><input type="checkbox"/> Hạng II <span class="cnt">1.230</span></label>
+      <label class="fopt"><input type="checkbox"/> Hạng III <span class="cnt">2.480</span></label>
+
+      <div class="divider"></div>
+      <h4>Trust Score tối thiểu</h4>
+      <input type="range" min="0" max="100" value="70" style="width:100%;accent-color:var(--orange)"/>
+      <div class="between" style="font-size:12px;color:var(--muted)"><span>0</span><span><b style="color:var(--green)">≥ 70</b></span><span>100</span></div>
+
+      <div class="divider"></div>
+      <h4>Quy mô nhân sự</h4>
+      <label class="fopt"><input type="checkbox"/> 1–10 người</label>
+      <label class="fopt"><input type="checkbox"/> 11–50 người</label>
+      <label class="fopt"><input type="checkbox"/> 51–200 người</label>
+      <label class="fopt"><input type="checkbox"/> Trên 200 người</label>
+
+      <button class="btn btn-navy btn-block mt-16">Áp dụng bộ lọc</button>
+    </aside>
+
+    <!-- Kết quả -->
+    <div>
+      <div class="toolbar">
+        <div class="count">Tìm thấy <b>3.204</b> doanh nghiệp phù hợp tại <b>Toàn quốc</b></div>
+        <div class="row">
+          <select class="select" style="width:auto;padding:8px 12px"><option>Sắp xếp: Trust Score cao nhất</option><option>Đánh giá tốt nhất</option><option>Nhiều dự án nhất</option><option>Mới cập nhật</option></select>
+          <div class="viewtoggle">
+            <a class="active" title="Danh sách"><svg class="ic"><use href="#ic-grid"/></svg></a>
+            <a href="#" title="Bản đồ"><svg class="ic"><use href="#ic-map"/></svg></a>
+          </div>
+        </div>
+      </div>
+
+      <div class="chips-row">
+        <span class="chip active">Nhà thầu <svg class="ic"><use href="#ic-x"/></svg></span>
+        <span class="chip">+ Đã xác minh</span>
+        <span class="chip">+ Có chứng chỉ năng lực</span>
+        <span class="chip">+ TP. Hồ Chí Minh</span>
+      </div>
+
+      <div class="stack">
+        <!-- 1 -->
+        <a class="list-comp" href="company.html">
+          <div class="lg" style="background:#12439c">HB</div>
+          <div>
+            <div class="row"><h3>Công ty CP Xây dựng Hòa Bình</h3> <span class="verify gold"><svg class="ic"><use href="#ic-star-f"/></svg>Đối tác vàng</span></div>
+            <div class="meta">
+              <span><svg class="ic"><use href="#ic-pin"/></svg> TP. Hồ Chí Minh</span>
+              <span><svg class="ic"><use href="#ic-briefcase"/></svg> Tổng thầu · Hạng I</span>
+              <span><svg class="ic"><use href="#ic-clipboard"/></svg> 128 dự án</span>
+              <span><svg class="ic fill" style="color:var(--orange)"><use href="#ic-star-f"/></svg> 4.9 (128)</span>
+            </div>
+            <p class="tagline">Tổng thầu thi công nhà cao tầng, hạ tầng dân dụng &amp; công nghiệp. 35 năm kinh nghiệm.</p>
+            <div class="cats"><span class="badge">Nhà cao tầng</span><span class="badge">Hạ tầng</span><span class="badge">Kết cấu BTCT</span></div>
+          </div>
+          <div class="side">
+            <div class="ts-pill"><b>95</b><small>TRUST SCORE</small></div>
+            <span class="btn btn-outline btn-sm">Xem hồ sơ</span>
+          </div>
+        </a>
+
+        <!-- 2 -->
+        <a class="list-comp" href="company.html">
+          <div class="lg" style="background:#111">CT</div>
+          <div>
+            <div class="row"><h3>Coteccons</h3> <span class="verify capability"><svg class="ic"><use href="#ic-award"/></svg>Đã xác minh năng lực</span></div>
+            <div class="meta">
+              <span><svg class="ic"><use href="#ic-pin"/></svg> Hà Nội</span>
+              <span><svg class="ic"><use href="#ic-briefcase"/></svg> Tổng thầu · Hạng I</span>
+              <span><svg class="ic"><use href="#ic-clipboard"/></svg> 96 dự án</span>
+              <span><svg class="ic fill" style="color:var(--orange)"><use href="#ic-star-f"/></svg> 4.8 (96)</span>
+            </div>
+            <p class="tagline">Tổng thầu xây dựng dân dụng &amp; công nghiệp quy mô lớn, thi công trọn gói.</p>
+            <div class="cats"><span class="badge">Dân dụng</span><span class="badge">Công nghiệp</span></div>
+          </div>
+          <div class="side">
+            <div class="ts-pill"><b>92</b><small>TRUST SCORE</small></div>
+            <span class="btn btn-outline btn-sm">Xem hồ sơ</span>
+          </div>
+        </a>
+
+        <!-- 3 -->
+        <a class="list-comp" href="company.html">
+          <div class="lg" style="background:#c0392b">AP</div>
+          <div>
+            <div class="row"><h3>An Phong Construction</h3> <span class="verify legal"><svg class="ic"><use href="#ic-shield-check"/></svg>Đã xác minh pháp lý</span></div>
+            <div class="meta">
+              <span><svg class="ic"><use href="#ic-pin"/></svg> Đà Nẵng</span>
+              <span><svg class="ic"><use href="#ic-briefcase"/></svg> Nhà thầu · Hạng II</span>
+              <span><svg class="ic"><use href="#ic-clipboard"/></svg> 75 dự án</span>
+              <span><svg class="ic fill" style="color:var(--orange)"><use href="#ic-star-f"/></svg> 4.7 (75)</span>
+            </div>
+            <p class="tagline">Thi công cơ điện (M&amp;E), hoàn thiện cao cấp cho khách sạn, văn phòng.</p>
+            <div class="cats"><span class="badge">Cơ điện M&amp;E</span><span class="badge">Hoàn thiện</span></div>
+          </div>
+          <div class="side">
+            <div class="ts-pill"><b>90</b><small>TRUST SCORE</small></div>
+            <span class="btn btn-outline btn-sm">Xem hồ sơ</span>
+          </div>
+        </a>
+
+        <!-- 4 -->
+        <a class="list-comp" href="company.html">
+          <div class="lg" style="background:#17479e">DL</div>
+          <div>
+            <div class="row"><h3>Delta Group</h3> <span class="verify legal"><svg class="ic"><use href="#ic-shield-check"/></svg>Đã xác minh pháp lý</span></div>
+            <div class="meta">
+              <span><svg class="ic"><use href="#ic-pin"/></svg> Hà Nội</span>
+              <span><svg class="ic"><use href="#ic-briefcase"/></svg> Tổng thầu · Hạng II</span>
+              <span><svg class="ic"><use href="#ic-clipboard"/></svg> 64 dự án</span>
+              <span><svg class="ic fill" style="color:var(--orange)"><use href="#ic-star-f"/></svg> 4.6 (64)</span>
+            </div>
+            <p class="tagline">Thi công tầng hầm, móng cọc, kết cấu phần thô cho công trình cao tầng.</p>
+            <div class="cats"><span class="badge">Móng &amp; hầm</span><span class="badge">Kết cấu</span></div>
+          </div>
+          <div class="side">
+            <div class="ts-pill"><b>88</b><small>TRUST SCORE</small></div>
+            <span class="btn btn-outline btn-sm">Xem hồ sơ</span>
+          </div>
+        </a>
+
+        <!-- 5 (chưa xác minh) -->
+        <a class="list-comp" href="company.html">
+          <div class="lg" style="background:#0f7a4f">TN</div>
+          <div>
+            <div class="row"><h3>Xây dựng Thành Nam</h3> <span class="badge gray"><svg class="ic"><use href="#ic-clock"/></svg>Chưa xác minh</span></div>
+            <div class="meta">
+              <span><svg class="ic"><use href="#ic-pin"/></svg> Bình Dương</span>
+              <span><svg class="ic"><use href="#ic-briefcase"/></svg> Nhà thầu phụ · Hạng III</span>
+              <span><svg class="ic"><use href="#ic-clipboard"/></svg> 18 dự án</span>
+              <span><svg class="ic fill" style="color:var(--orange)"><use href="#ic-star-f"/></svg> 4.4 (12)</span>
+            </div>
+            <p class="tagline">Nhà thầu phụ xây thô &amp; hoàn thiện nhà phố, biệt thự khu vực Đông Nam Bộ.</p>
+            <div class="cats"><span class="badge">Nhà phố</span><span class="badge">Biệt thự</span></div>
+          </div>
+          <div class="side">
+            <div class="ts-pill" style="background:#f1f4f7"><b style="color:var(--muted)">61</b><small style="color:var(--muted)">TRUST SCORE</small></div>
+            <span class="btn btn-outline btn-sm">Xem hồ sơ</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="pill-note mt-24"><svg class="ic"><use href="#ic-search"/></svg><span>Tìm kiếm tiếng Việt không dấu: gõ <b>"hoa binh"</b> vẫn khớp <b>"Hòa Bình"</b> — dùng Postgres FTS + <code>unaccent</code>.</span></div>
+
+      <div class="pagination">
+        <a><svg class="ic"><use href="#ic-arrow-left"/></svg></a>
+        <a class="active">1</a><a>2</a><a>3</a><a>4</a><a>…</a><a>214</a>
+        <a><svg class="ic"><use href="#ic-arrow-right"/></svg></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div data-slot="footer"></div>
+<script src="assets/layout.js"></script>
+</body>
+</html>

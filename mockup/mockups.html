@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bộ Mockup — Sàn Xây Dựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<style>
+  .hero-g{background:linear-gradient(115deg,#021e48,#062a5a);color:#fff;padding:54px 0 40px}
+  .hero-g .eyebrow{color:var(--orange-2);font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+  .hero-g h1{font-size:clamp(28px,4vw,42px);font-weight:800;line-height:1.1;margin-bottom:14px}
+  .hero-g p{color:#c6d3e2;max-width:640px}
+  .mg{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .mcard{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:.2s;box-shadow:var(--shadow-sm);display:flex;flex-direction:column}
+  .mcard:hover{box-shadow:var(--shadow);transform:translateY(-4px);border-color:var(--orange)}
+  .mthumb{height:120px;display:grid;place-items:center;color:#fff;position:relative}
+  .mthumb svg{width:40px;height:40px}
+  .mthumb .tag{position:absolute;top:10px;right:10px;font-size:10.5px;font-weight:700;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:20px;letter-spacing:.3px}
+  .mbody{padding:16px 18px;flex:1;display:flex;flex-direction:column}
+  .mbody h3{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px}
+  .mbody p{font-size:13px;color:var(--muted);flex:1}
+  .mbody .go{margin-top:12px;color:var(--orange);font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:6px}
+  .grp{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:34px 0 16px}
+  @media(max-width:900px){.mg{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:600px){.mg{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-nav="" data-auth="guest">
+<script src="assets/sprite.js"></script>
+
+<section class="hero-g">
+  <div class="container">
+    <div class="eyebrow">Prototype · MVP+</div>
+    <h1>Bộ mockup Sàn Xây Dựng</h1>
+    <p>Toàn bộ màn hình chính của nền tảng B2B ngành xây dựng — bám sát Đề án &amp; Thiết kế kỹ thuật (Supabase). Company‑centric: mọi luồng xoay quanh hồ sơ doanh nghiệp, Trust Score và lớp tin cậy tối thiểu.</p>
+  </div>
+</section>
+
+<div class="container" style="padding-bottom:56px">
+  <div class="grp">Khám phá công khai (guest)</div>
+  <div class="mg">
+    <a class="mcard" href="index.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#021e48,#12439c)"><svg class="ic"><use href="#ic-building"/></svg><span class="tag">Trang chủ</span></div>
+      <div class="mbody"><h3>Trang chủ</h3><p>Hero tìm kiếm, danh mục, top doanh nghiệp uy tín, số liệu nền tảng.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="directory.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#0d5b8a,#2a8fc4)"><svg class="ic"><use href="#ic-search"/></svg><span class="tag">Directory</span></div>
+      <div class="mbody"><h3>Danh bạ doanh nghiệp</h3><p>Kết quả tìm kiếm FTS tiếng Việt: bộ lọc lĩnh vực · khu vực · hạng · Trust Score, chế độ lưới/bản đồ.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="company.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#0f7a4f,#22a06b)"><svg class="ic"><use href="#ic-shield-check"/></svg><span class="tag">Trung tâm</span></div>
+      <div class="mbody"><h3>Hồ sơ doanh nghiệp</h3><p>Company Page: huy hiệu xác minh, Trust Score breakdown, dự án, dịch vụ, đánh giá, tài liệu, nhân sự.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="marketplace.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#b5610f,#f18a1c)"><svg class="ic"><use href="#ic-briefcase"/></svg><span class="tag">Marketplace</span></div>
+      <div class="mbody"><h3>Nhu cầu &amp; Báo giá</h3><p>Danh sách tin RFQ: tìm nhà thầu/đội/nhà cung cấp, tin nổi bật, lọc theo ngân sách &amp; deadline.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="marketplace-detail.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#8a4d0c,#d98324)"><svg class="ic"><use href="#ic-file-text"/></svg><span class="tag">RFQ</span></div>
+      <div class="mbody"><h3>Chi tiết tin &amp; gửi báo giá</h3><p>Yêu cầu báo giá chi tiết, gửi báo giá, danh sách báo giá đã nhận, so sánh &amp; shortlist.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="feed.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#1a4a86,#3f8fd6)"><svg class="ic"><use href="#ic-layers"/></svg><span class="tag">News Feed</span></div>
+      <div class="mbody"><h3>Tin tức ngành</h3><p>News Feed doanh nghiệp: công trình mới, dự án hoàn thành, tuyển dụng, chứng nhận, khuyến mại.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="pricing.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#5a3b8c,#8a5fc4)"><svg class="ic"><use href="#ic-award"/></svg><span class="tag">Doanh thu</span></div>
+      <div class="mbody"><h3>Bảng giá gói thành viên</h3><p>Free · Professional · Enterprise + dịch vụ Verified/hồ sơ nổi bật — doanh thu ngày 1.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+  </div>
+
+  <div class="grp">Tài khoản &amp; quản trị doanh nghiệp</div>
+  <div class="mg">
+    <a class="mcard" href="auth.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#021e48,#0d3a72)"><svg class="ic"><use href="#ic-lock"/></svg><span class="tag">Auth</span></div>
+      <div class="mbody"><h3>Đăng nhập / Đăng ký</h3><p>OTP điện thoại (phổ biến ở VN), email, OAuth Google/Zalo; luồng claim hồ sơ theo SĐT.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="dashboard.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#0f5c52,#1f9e86)"><svg class="ic"><use href="#ic-chart"/></svg><span class="tag">Dashboard</span></div>
+      <div class="mbody"><h3>Bảng điều khiển</h3><p>Tổng quan doanh nghiệp: Trust Score, độ hoàn thiện hồ sơ, tin đăng, báo giá, thông báo.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="company-edit.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#7a5a0f,#c99a1e)"><svg class="ic"><use href="#ic-edit"/></svg><span class="tag">Hồ sơ</span></div>
+      <div class="mbody"><h3>Chỉnh sửa hồ sơ</h3><p>Biên tập Company Profile theo mục, thanh “độ hoàn thiện hồ sơ” khuyến khích cập nhật.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="verify.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#0d6b3f,#1aa35f)"><svg class="ic"><use href="#ic-shield"/></svg><span class="tag">Tin cậy</span></div>
+      <div class="mbody"><h3>Xác minh doanh nghiệp</h3><p>Verification tiers: tra cứu MST/GPKD, chứng chỉ năng lực hạng I/II/III → huy hiệu Verified.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+    <a class="mcard" href="chat.html">
+      <div class="mthumb" style="background:linear-gradient(135deg,#1a4a86,#2f6fb0)"><svg class="ic"><use href="#ic-chat"/></svg><span class="tag">Realtime</span></div>
+      <div class="mbody"><h3>Chat doanh nghiệp</h3><p>Hội thoại gắn ngữ cảnh tin đăng/dự án, gửi báo giá, file, lưu lịch sử làm việc.</p><span class="go">Xem mockup <svg class="ic"><use href="#ic-arrow-right"/></svg></span></div>
+    </a>
+  </div>
+
+  <div class="pill-note mt-24" style="max-width:820px">
+    <svg class="ic"><use href="#ic-shield"/></svg>
+    <span><b>Ghi chú:</b> Đây là mockup tĩnh (HTML/CSS) để duyệt UI/UX. Dữ liệu là minh hoạ. Bộ khung dùng chung <code>assets/app.css</code>, <code>assets/sprite.js</code>, <code>assets/layout.js</code> để đồng bộ header/footer và design tokens.</span>
+  </div>
+</div>
+
+<div data-slot="footer"></div>
+<script src="assets/layout.js"></script>
+</body>
+</html>

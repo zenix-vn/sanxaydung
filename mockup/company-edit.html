@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chỉnh sửa hồ sơ — Sàn Xây Dựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<style>
+  .edit-grid{display:grid;grid-template-columns:230px 1fr;gap:24px;align-items:start}
+  .sec-nav{position:sticky;top:82px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow-sm)}
+  .sec-nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--text)}
+  .sec-nav a svg{width:17px;height:17px;color:var(--muted)}
+  .sec-nav a.active{background:var(--orange-soft);color:var(--orange)}
+  .sec-nav a.active svg{color:var(--orange)}
+  .sec-nav a:hover:not(.active){background:#f6f8fb}
+  .card-block{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+  .card-block h2{font-size:17px;font-weight:800;color:var(--navy);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .card-block .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .media-edit{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+  .cover-up{flex:1;min-width:260px;height:130px;border-radius:12px;background:linear-gradient(120deg,rgba(2,30,72,.4),rgba(2,30,72,.1)),url("https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=800&q=70") center/cover;display:grid;place-items:center;position:relative}
+  .cover-up .btn{background:rgba(255,255,255,.9);color:var(--navy)}
+  .logo-up{width:100px;height:100px;border-radius:16px;background:#12439c;color:#fff;display:grid;place-items:center;font-weight:800;font-size:30px;position:relative;flex:none}
+  .logo-up .cam{position:absolute;bottom:-6px;right:-6px;width:34px;height:34px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;border:3px solid #fff}
+  .logo-up .cam svg{width:16px;height:16px}
+  .savebar{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding:14px 0;margin-top:8px;display:flex;justify-content:flex-end;gap:12px;z-index:40}
+  .tagpick{display:flex;gap:8px;flex-wrap:wrap}
+  .completeness{background:linear-gradient(135deg,#021e48,#12439c);color:#fff;border-radius:14px;padding:18px}
+  .completeness .n{font-size:30px;font-weight:800}
+  .completeness .progress{background:rgba(255,255,255,.2);margin:10px 0 14px}
+  .completeness li{list-style:none;font-size:12.5px;color:#c6d3e2;display:flex;align-items:center;gap:8px;padding:4px 0}
+  .completeness li svg{width:14px;height:14px;flex:none}
+  @media(max-width:900px){.edit-grid{grid-template-columns:1fr}.sec-nav{position:static;display:flex;flex-wrap:wrap;gap:4px}}
+</style>
+</head>
+<body data-nav="" data-auth="user">
+<script src="assets/sprite.js"></script>
+<div data-slot="header"></div>
+
+<section class="pagehead" style="padding:22px 0">
+  <div class="container">
+    <div class="crumb"><a href="dashboard.html">Bảng điều khiển</a> <svg class="ic"><use href="#ic-chevron-right"/></svg> Chỉnh sửa hồ sơ</div>
+    <div class="between"><h1>Chỉnh sửa hồ sơ doanh nghiệp</h1><a class="btn btn-ghost" href="company.html"><svg class="ic"><use href="#ic-eye"/></svg> Xem trước</a></div>
+  </div>
+</section>
+
+<section class="block" style="padding-top:26px">
+  <div class="container edit-grid">
+    <!-- Section nav + completeness -->
+    <div>
+      <nav class="sec-nav mb-24">
+        <a class="active" href="#basic"><svg class="ic"><use href="#ic-building"/></svg> Thông tin cơ bản</a>
+        <a href="#media"><svg class="ic"><use href="#ic-image"/></svg> Logo &amp; ảnh bìa</a>
+        <a href="#field"><svg class="ic"><use href="#ic-briefcase"/></svg> Lĩnh vực &amp; khu vực</a>
+        <a href="#intro"><svg class="ic"><use href="#ic-file-text"/></svg> Giới thiệu</a>
+        <a href="#projects"><svg class="ic"><use href="#ic-clipboard"/></svg> Dự án</a>
+        <a href="#services"><svg class="ic"><use href="#ic-tag"/></svg> Dịch vụ</a>
+        <a href="#docs"><svg class="ic"><use href="#ic-folder"/></svg> Hồ sơ năng lực</a>
+        <a href="#contact"><svg class="ic"><use href="#ic-phone"/></svg> Liên hệ</a>
+      </nav>
+      <div class="completeness">
+        <div>Độ hoàn thiện hồ sơ</div>
+        <div class="n">92%</div>
+        <div class="progress"><div class="bar" style="width:92%"></div></div>
+        <li><svg class="ic" style="color:#4ade80"><use href="#ic-check"/></svg> Thông tin cơ bản</li>
+        <li><svg class="ic" style="color:#4ade80"><use href="#ic-check"/></svg> Logo &amp; ảnh bìa</li>
+        <li><svg class="ic" style="color:#4ade80"><use href="#ic-check"/></svg> 128 dự án</li>
+        <li><svg class="ic" style="color:var(--orange-2)"><use href="#ic-plus"/></svg> Thêm video giới thiệu</li>
+        <li><svg class="ic" style="color:var(--orange-2)"><use href="#ic-plus"/></svg> Thêm bảng giá dịch vụ</li>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div>
+      <div class="card-block" id="basic">
+        <h2>Thông tin cơ bản</h2>
+        <p class="sub">Thông tin nhận diện doanh nghiệp trên nền tảng.</p>
+        <div class="form-row">
+          <div class="field-group"><label>Tên hiển thị <span class="req">*</span></label><input class="input" value="Công ty CP Xây dựng Hòa Bình"/></div>
+          <div class="field-group"><label>Đường dẫn hồ sơ (slug)</label><div class="input-icon"><svg class="ic"><use href="#ic-link"/></svg><input class="input" value="hoa-binh"/></div><div class="hint">sanxaydung.vn/cong-ty/<b>hoa-binh</b></div></div>
+        </div>
+        <div class="form-row">
+          <div class="field-group"><label>Tên pháp lý</label><input class="input" value="CÔNG TY CỔ PHẦN XÂY DỰNG HÒA BÌNH"/></div>
+          <div class="field-group"><label>Mã số thuế <span class="badge green" style="font-weight:600"><svg class="ic"><use href="#ic-check"/></svg> Verified</span></label><input class="input" value="0301234567" readonly style="background:#f6fdf9"/></div>
+        </div>
+        <div class="form-row">
+          <div class="field-group"><label>Năm thành lập</label><input class="input" value="1987"/></div>
+          <div class="field-group"><label>Quy mô nhân sự</label><select class="select"><option>1–10 người</option><option>11–50 người</option><option>51–200 người</option><option selected>Trên 200 người</option></select></div>
+        </div>
+      </div>
+
+      <div class="card-block" id="media">
+        <h2>Logo &amp; ảnh bìa</h2>
+        <p class="sub">Lưu trên bucket công khai <code>company-logos</code>, path theo <code>company_id/</code>.</p>
+        <div class="media-edit">
+          <div class="logo-up">HB<span class="cam"><svg class="ic"><use href="#ic-camera"/></svg></span></div>
+          <div class="cover-up"><span class="btn btn-sm"><svg class="ic"><use href="#ic-camera"/></svg> Đổi ảnh bìa</span></div>
+        </div>
+      </div>
+
+      <div class="card-block" id="field">
+        <h2>Lĩnh vực &amp; khu vực hoạt động</h2>
+        <p class="sub">Giúp doanh nghiệp xuất hiện đúng bộ lọc &amp; gợi ý AI Matching (GĐ2).</p>
+        <div class="field-group"><label>Nhóm &amp; lĩnh vực</label>
+          <div class="tagpick">
+            <span class="chip active">Tổng thầu <svg class="ic"><use href="#ic-x"/></svg></span>
+            <span class="chip active">Nhà cao tầng <svg class="ic"><use href="#ic-x"/></svg></span>
+            <span class="chip active">Kết cấu BTCT <svg class="ic"><use href="#ic-x"/></svg></span>
+            <span class="chip active">Cơ điện M&amp;E <svg class="ic"><use href="#ic-x"/></svg></span>
+            <span class="chip"><svg class="ic"><use href="#ic-plus"/></svg> Thêm lĩnh vực</span>
+          </div>
+        </div>
+        <div class="field-group"><label>Khu vực hoạt động</label>
+          <div class="tagpick">
+            <span class="chip active">TP.HCM <svg class="ic"><use href="#ic-x"/></svg></span>
+            <span class="chip active">Hà Nội <svg class="ic"><use href="#ic-x"/></svg></span>
+            <span class="chip active">Bình Dương <svg class="ic"><use href="#ic-x"/></svg></span>
+            <span class="chip"><svg class="ic"><use href="#ic-plus"/></svg> Thêm tỉnh/thành</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-block" id="intro">
+        <h2>Giới thiệu doanh nghiệp</h2>
+        <p class="sub">Nội dung này tối ưu SEO cho Company Page (schema.org Organization).</p>
+        <div class="field-group"><label>Mô tả ngắn (intro)</label><input class="input" value="Tổng thầu xây dựng hàng đầu — 35 năm kinh nghiệm nhà cao tầng &amp; hạ tầng."/></div>
+        <div class="field-group"><label>Giới thiệu chi tiết</label><textarea class="textarea" style="min-height:140px">Công ty CP Xây dựng Hòa Bình là một trong những tổng thầu xây dựng hàng đầu Việt Nam với hơn 35 năm kinh nghiệm...</textarea></div>
+      </div>
+
+      <div class="card-block" id="projects">
+        <h2 class="between"><span>Dự án portfolio</span><a class="btn btn-outline btn-sm"><svg class="ic"><use href="#ic-plus"/></svg> Thêm dự án</a></h2>
+        <table class="table">
+          <thead><tr><th>Dự án</th><th>Vai trò</th><th>Năm</th><th>Khu vực</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><b style="color:var(--navy)">Landmark Tower — 42 tầng</b></td><td>Tổng thầu</td><td>2023</td><td>TP.HCM</td><td><a href="#"><svg class="ic" style="width:16px;height:16px;color:var(--muted)"><use href="#ic-edit"/></svg></a></td></tr>
+            <tr><td><b style="color:var(--navy)">KCN Long Hậu — Nhà xưởng</b></td><td>Tổng thầu</td><td>2022</td><td>Long An</td><td><a href="#"><svg class="ic" style="width:16px;height:16px;color:var(--muted)"><use href="#ic-edit"/></svg></a></td></tr>
+            <tr><td><b style="color:var(--navy)">Bệnh viện Đa khoa 500 giường</b></td><td>Tổng thầu</td><td>2021</td><td>Bình Dương</td><td><a href="#"><svg class="ic" style="width:16px;height:16px;color:var(--muted)"><use href="#ic-edit"/></svg></a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-block" id="docs">
+        <h2 class="between"><span>Hồ sơ năng lực</span><a class="btn btn-outline btn-sm"><svg class="ic"><use href="#ic-upload"/></svg> Tải tài liệu</a></h2>
+        <p class="sub">Đặt mức riêng tư: công khai / thành viên / chỉ đối tác đã kết nối.</p>
+        <div class="row between" style="padding:12px 0;border-bottom:1px solid var(--line-2)"><span class="row" style="gap:10px"><svg class="ic" style="color:var(--blue)"><use href="#ic-file-text"/></svg> Giấy chứng nhận ĐKKD</span><select class="select" style="width:auto"><option>Công khai</option><option>Thành viên</option><option>Đối tác kết nối</option></select></div>
+        <div class="row between" style="padding:12px 0"><span class="row" style="gap:10px"><svg class="ic" style="color:var(--blue)"><use href="#ic-lock"/></svg> Company Profile 2024 (24MB)</span><select class="select" style="width:auto"><option>Đối tác kết nối</option><option>Công khai</option><option>Thành viên</option></select></div>
+      </div>
+
+      <div class="card-block" id="contact">
+        <h2>Thông tin liên hệ</h2>
+        <div class="form-row">
+          <div class="field-group"><label>Điện thoại</label><div class="input-icon"><svg class="ic"><use href="#ic-phone"/></svg><input class="input" value="028 3932 0000"/></div></div>
+          <div class="field-group"><label>Email</label><div class="input-icon"><svg class="ic"><use href="#ic-mail"/></svg><input class="input" value="info@hbc.vn"/></div></div>
+        </div>
+        <div class="form-row">
+          <div class="field-group"><label>Website</label><div class="input-icon"><svg class="ic"><use href="#ic-globe"/></svg><input class="input" value="hbcg.vn"/></div></div>
+          <div class="field-group"><label>Tỉnh/thành trụ sở</label><select class="select"><option selected>TP. Hồ Chí Minh</option><option>Hà Nội</option><option>Đà Nẵng</option></select></div>
+        </div>
+        <div class="field-group"><label>Địa chỉ</label><input class="input" value="235 Võ Thị Sáu, Phường 7, Quận 3, TP.HCM"/></div>
+      </div>
+
+      <div class="savebar">
+        <a class="btn btn-outline" href="dashboard.html">Hủy</a>
+        <button class="btn btn-outline">Lưu nháp</button>
+        <button class="btn btn-orange"><svg class="ic"><use href="#ic-check"/></svg> Lưu &amp; xuất bản</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div data-slot="footer"></div>
+<script src="assets/layout.js"></script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tin nhắn — Sàn Xây Dựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<style>
+  .chat{display:grid;grid-template-columns:320px 1fr 280px;height:calc(100vh - 66px);background:#fff}
+  .clist{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .clist .search{padding:14px;border-bottom:1px solid var(--line)}
+  .clist .search .input-icon svg{width:16px;height:16px}
+  .clist .search .input{padding:9px 9px 9px 36px;background:#f6f8fb;border:none;font-size:13.5px}
+  .conv{display:flex;gap:11px;padding:13px 14px;border-bottom:1px solid var(--line-2);cursor:pointer}
+  .conv:hover{background:#fafbfc}
+  .conv.active{background:var(--orange-soft)}
+  .conv .a{width:46px;height:46px;border-radius:11px;font-weight:800;color:#fff;display:grid;place-items:center;flex:none;position:relative}
+  .conv .a .on{position:absolute;bottom:-1px;right:-1px;width:12px;height:12px;background:var(--green);border:2px solid #fff;border-radius:50%}
+  .conv .mid{flex:1;min-width:0}
+  .conv .mid .r1{display:flex;justify-content:space-between;gap:8px}
+  .conv h4{font-size:13.5px;font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .conv small{font-size:11px;color:var(--muted);white-space:nowrap}
+  .conv p{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .conv .unread{background:var(--orange);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 5px}
+  .cthread{display:flex;flex-direction:column;min-height:0}
+  .cthead{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .cthead .a{width:42px;height:42px;border-radius:10px;font-weight:800;color:#fff;display:grid;place-items:center;flex:none}
+  .cthead h3{font-size:15px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:6px}
+  .cthead small{font-size:12px;color:var(--green)}
+  .ctx-bar{background:#fafbfc;border-bottom:1px solid var(--line);padding:10px 18px;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:8px}
+  .ctx-bar svg{width:15px;height:15px;color:var(--orange)}
+  .msgs{flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:12px;background:#f7f9fb}
+  .day{text-align:center;font-size:11.5px;color:var(--muted);margin:6px 0}
+  .msg{max-width:70%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.5}
+  .msg.them{background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px;align-self:flex-start}
+  .msg.me{background:var(--navy);color:#fff;border-bottom-right-radius:4px;align-self:flex-end}
+  .msg .t{font-size:10.5px;opacity:.6;margin-top:4px;text-align:right}
+  .quote-msg{align-self:flex-start;max-width:78%;background:#fff;border:1px solid var(--orange);border-radius:14px;overflow:hidden}
+  .quote-msg .h{background:var(--orange-soft);padding:10px 14px;font-size:12.5px;font-weight:700;color:var(--orange);display:flex;align-items:center;gap:6px}
+  .quote-msg .b{padding:12px 14px}
+  .quote-msg .amt{font-size:20px;font-weight:800;color:var(--green)}
+  .quote-msg .row2{display:flex;gap:8px;margin-top:10px}
+  .composer2{border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;align-items:center}
+  .composer2 .tools{display:flex;gap:4px}
+  .composer2 .tools a{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;color:var(--muted)}
+  .composer2 .tools a:hover{background:#f6f8fb;color:var(--orange)}
+  .composer2 input{flex:1;border:1px solid var(--line);border-radius:22px;padding:11px 16px;font-size:14px;background:#f6f8fb}
+  .cinfo{border-left:1px solid var(--line);padding:20px 16px;overflow-y:auto}
+  .cinfo .a{width:64px;height:64px;border-radius:14px;font-weight:800;color:#fff;display:grid;place-items:center;font-size:22px;margin:0 auto 10px}
+  .kv{display:flex;justify-content:space-between;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--line-2)}
+  .kv .k{color:var(--muted)}.kv .v{font-weight:600;color:var(--navy)}
+  @media(max-width:1024px){.chat{grid-template-columns:300px 1fr}.cinfo{display:none}}
+  @media(max-width:760px){.chat{grid-template-columns:1fr}.clist{display:none}}
+</style>
+</head>
+<body data-nav="" data-auth="user">
+<script src="assets/sprite.js"></script>
+<div data-slot="header"></div>
+
+<div class="chat">
+  <!-- Conversation list -->
+  <div class="clist">
+    <div class="search"><div class="input-icon"><svg class="ic"><use href="#ic-search"/></svg><input class="input" placeholder="Tìm hội thoại…"/></div></div>
+    <div style="overflow-y:auto;flex:1">
+      <div class="conv active">
+        <span class="a" style="background:#0d6b3f">SG<span class="on"></span></span>
+        <div class="mid"><div class="r1"><h4>CTCP Đầu tư Sài Gòn</h4><small>10:24</small></div><p>Bên mình xem hồ sơ rồi, mời qua trao đổi…</p></div>
+      </div>
+      <div class="conv">
+        <span class="a" style="background:#111">CT</span>
+        <div class="mid"><div class="r1"><h4>Coteccons</h4><small>09:12</small></div><p style="color:var(--navy);font-weight:600">Đã gửi báo giá 49 tỷ</p></div>
+        <span class="unread">2</span>
+      </div>
+      <div class="conv">
+        <span class="a" style="background:#17479e">DL<span class="on"></span></span>
+        <div class="mid"><div class="r1"><h4>Delta Group</h4><small>Hôm qua</small></div><p>Cảm ơn anh, mình sẽ gửi bản vẽ…</p></div>
+      </div>
+      <div class="conv">
+        <span class="a" style="background:#b5610f">HP</span>
+        <div class="mid"><div class="r1"><h4>Thép Hòa Phát</h4><small>T2</small></div><p>Giá thép D16 hôm nay là…</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Thread -->
+  <div class="cthread">
+    <div class="cthead">
+      <span class="a" style="background:#0d6b3f">SG</span>
+      <div style="flex:1"><h3>CTCP Đầu tư Sài Gòn <svg class="ic" style="width:15px;height:15px;color:var(--green)"><use href="#ic-shield-check"/></svg></h3><small>● Đang hoạt động</small></div>
+      <a class="btn btn-icon btn-outline" style="border:none" href="company.html"><svg class="ic"><use href="#ic-eye"/></svg></a>
+      <a class="btn btn-icon btn-outline" style="border:none"><svg class="ic"><use href="#ic-dots"/></svg></a>
+    </div>
+    <div class="ctx-bar"><svg class="ic"><use href="#ic-briefcase"/></svg> Hội thoại gắn với tin: <b style="color:var(--navy)">&nbsp;Cần tổng thầu tòa văn phòng 15 tầng</b> · <a href="marketplace-detail.html" style="color:var(--orange);font-weight:600">Xem tin</a></div>
+
+    <div class="msgs">
+      <div class="day">Hôm nay</div>
+      <div class="msg them">Chào Hòa Bình, bên mình đã xem hồ sơ năng lực của công ty. Rất ấn tượng với các công trình cao tầng đã thực hiện.<div class="t">10:05</div></div>
+      <div class="msg me">Cảm ơn anh! Hòa Bình có thể sắp xếp buổi khảo sát mặt bằng và trình bày biện pháp thi công chi tiết ạ.<div class="t">10:10</div></div>
+
+      <div class="quote-msg">
+        <div class="h"><svg class="ic"><use href="#ic-file-text"/></svg> Báo giá đã gửi</div>
+        <div class="b">
+          <div style="font-size:13px;color:var(--muted)">Thi công tổng thầu · 18 tháng</div>
+          <div class="amt">52.000.000.000 ₫</div>
+          <div class="row2"><a class="btn btn-outline btn-sm"><svg class="ic"><use href="#ic-file-text"/></svg> Hồ sơ đính kèm.pdf</a></div>
+        </div>
+      </div>
+
+      <div class="msg them">Bên mình xem hồ sơ rồi, mời qua văn phòng trao đổi chi tiết vào thứ 5 tuần này nhé. 14h chiều được không?<div class="t">10:24</div></div>
+      <div class="msg me">Dạ được ạ, Hòa Bình sẽ có mặt lúc 14h thứ 5. Em gửi trước bản tiến độ để anh tham khảo.<div class="t">10:26</div></div>
+    </div>
+
+    <div class="composer2">
+      <div class="tools">
+        <a title="Đính kèm"><svg class="ic"><use href="#ic-folder"/></svg></a>
+        <a title="Gửi báo giá"><svg class="ic"><use href="#ic-coin"/></svg></a>
+        <a title="Ảnh"><svg class="ic"><use href="#ic-image"/></svg></a>
+      </div>
+      <input placeholder="Nhập tin nhắn…"/>
+      <button class="btn btn-orange btn-icon"><svg class="ic"><use href="#ic-send"/></svg></button>
+    </div>
+  </div>
+
+  <!-- Info panel -->
+  <aside class="cinfo">
+    <div style="text-align:center">
+      <div class="a" style="background:#0d6b3f">SG</div>
+      <h3 style="font-size:15px;font-weight:800;color:var(--navy)">CTCP Đầu tư Sài Gòn</h3>
+      <div class="verify legal" style="margin:8px auto"><svg class="ic"><use href="#ic-shield-check"/></svg> Đã xác minh</div>
+      <a class="btn btn-outline btn-block btn-sm mt-8" href="company.html">Xem hồ sơ</a>
+    </div>
+    <div class="divider"></div>
+    <div class="kv"><span class="k">Trust Score</span><span class="v" style="color:var(--green)">88</span></div>
+    <div class="kv"><span class="k">Lĩnh vực</span><span class="v">Chủ đầu tư</span></div>
+    <div class="kv"><span class="k">Khu vực</span><span class="v">TP.HCM</span></div>
+    <div class="divider"></div>
+    <h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px">Tài liệu đã chia sẻ</h4>
+    <a class="row" style="gap:10px;padding:8px 0;font-size:13px" href="#"><svg class="ic" style="color:var(--blue)"><use href="#ic-file-text"/></svg> Hồ sơ mời thầu.pdf</a>
+    <a class="row" style="gap:10px;padding:8px 0;font-size:13px" href="#"><svg class="ic" style="color:var(--red)"><use href="#ic-file-text"/></svg> Báo giá Hòa Bình.pdf</a>
+    <a class="row" style="gap:10px;padding:8px 0;font-size:13px" href="#"><svg class="ic" style="color:var(--green)"><use href="#ic-image"/></svg> Phối cảnh dự án.jpg</a>
+  </aside>
+</div>
+
+<script src="assets/layout.js"></script>
+</body>
+</html>

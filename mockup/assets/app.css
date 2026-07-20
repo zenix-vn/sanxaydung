@@ -1,0 +1,234 @@
+/* =========================================================================
+   Sàn Xây Dựng — Design System dùng chung cho toàn bộ mockup
+   Navy #021e48 · Cam #f18a1c · Font Be Vietnam Pro
+   ========================================================================= */
+:root{
+  --navy:#021e48; --navy-2:#062a5a; --navy-3:#021e48;
+  --orange:#f18a1c; --orange-2:#ff9e2c; --orange-soft:#fff4e8;
+  --text:#1f2b3a; --muted:#6b7a8d; --line:#e6ebf1; --line-2:#eef2f6;
+  --bg:#f4f6f9; --green:#16a34a; --green-soft:#e7f6ec;
+  --blue:#2a5a9e; --blue-soft:#eaf1fb; --red:#dc2626; --amber:#d97706;
+  --radius:12px; --radius-lg:16px;
+  --shadow:0 8px 30px rgba(14,42,77,.08);
+  --shadow-sm:0 2px 10px rgba(14,42,77,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Be Vietnam Pro',system-ui,Arial,sans-serif;color:var(--text);background:var(--bg);line-height:1.5;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+img{max-width:100%;display:block}
+input,select,textarea,button{font-family:inherit}
+svg.ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+svg.ic.fill{fill:currentColor;stroke:none}
+.container{max-width:1200px;margin:0 auto;padding:0 20px}
+.container-wide{max-width:1320px;margin:0 auto;padding:0 20px}
+.muted{color:var(--muted)}
+.hide{display:none!important}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;font-weight:600;font-size:14px;border-radius:8px;padding:11px 20px;transition:.2s;white-space:nowrap}
+.btn svg{width:18px;height:18px}
+.btn-orange{background:var(--orange);color:#fff}
+.btn-orange:hover{background:var(--orange-2)}
+.btn-ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.4)}
+.btn-ghost:hover{border-color:#fff}
+.btn-outline{background:#fff;color:var(--navy);border:1.5px solid var(--line)}
+.btn-outline:hover{border-color:var(--orange);color:var(--orange)}
+.btn-navy{background:var(--navy);color:#fff}
+.btn-navy:hover{background:var(--navy-2)}
+.btn-sm{padding:8px 14px;font-size:13px}
+.btn-lg{padding:14px 26px;font-size:15px}
+.btn-block{width:100%;justify-content:center}
+.btn-icon{padding:9px;border-radius:8px}
+
+/* ---------- Header ---------- */
+header.site{background:var(--navy);color:#fff;position:sticky;top:0;z-index:100}
+.nav{display:flex;align-items:center;gap:24px;height:66px;position:relative}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .logo{width:42px;height:42px;border-radius:9px;object-fit:cover}
+.brand b{font-size:16px;letter-spacing:.4px;display:block;line-height:1.1}
+.brand span{font-size:10px;color:#9db3cd;letter-spacing:.3px}
+.menu{display:flex;gap:20px;margin-left:8px;flex:1}
+.menu a{font-size:14px;color:#d6e0ec;font-weight:500;padding:6px 0;position:relative;white-space:nowrap}
+.menu a.active,.menu a:hover{color:#fff}
+.menu a.active::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:2px;background:var(--orange);border-radius:2px}
+.nav-actions{display:flex;gap:10px;align-items:center}
+.nav-icon{width:40px;height:40px;border-radius:9px;display:grid;place-items:center;color:#d6e0ec;position:relative;background:rgba(255,255,255,.05)}
+.nav-icon:hover{background:rgba(255,255,255,.12);color:#fff}
+.nav-icon .dot{position:absolute;top:8px;right:9px;width:8px;height:8px;background:var(--orange);border-radius:50%;border:2px solid var(--navy)}
+.avatar-btn{display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 8px 5px 5px;border-radius:30px;background:rgba(255,255,255,.06)}
+.avatar-btn:hover{background:rgba(255,255,255,.13)}
+.avatar-btn img{width:32px;height:32px;border-radius:50%;object-fit:cover}
+.avatar-btn .who{font-size:12.5px;line-height:1.15}
+.avatar-btn .who small{color:#9db3cd;font-size:11px}
+.nav-toggle{display:none}
+.nav-menu-wrap{display:contents}
+.hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;width:44px;height:44px;margin-left:auto;cursor:pointer;border-radius:8px}
+.hamburger span{display:block;width:24px;height:2px;background:#fff;border-radius:2px;transition:.25s}
+.nav-toggle:checked ~ .hamburger span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.nav-toggle:checked ~ .hamburger span:nth-child(2){opacity:0}
+.nav-toggle:checked ~ .hamburger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* ---------- Page head / breadcrumb ---------- */
+.pagehead{background:var(--navy);color:#fff;padding:26px 0}
+.pagehead h1{font-size:26px;font-weight:800}
+.pagehead p{color:#b9c7d8;font-size:14px;margin-top:6px}
+.crumb{display:flex;align-items:center;gap:8px;font-size:13px;color:#9db3cd;margin-bottom:12px;flex-wrap:wrap}
+.crumb a:hover{color:#fff}
+.crumb svg{width:14px;height:14px;opacity:.6}
+
+/* ---------- Cards ---------- */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm)}
+.card-p{padding:20px}
+.section-title{font-size:26px;font-weight:800;color:var(--navy)}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:16px;flex-wrap:wrap}
+.sec-head h2{font-size:24px;font-weight:800;color:var(--navy)}
+.sec-head a.more{color:var(--orange);font-weight:600;font-size:14px}
+section.block{padding:44px 0}
+
+/* ---------- Badges ---------- */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;background:var(--blue-soft);color:var(--blue);padding:4px 11px;border-radius:20px;font-weight:600}
+.badge.gray{background:#eef2f6;color:var(--muted)}
+.badge.green{background:var(--green-soft);color:var(--green)}
+.badge.orange{background:var(--orange-soft);color:var(--orange)}
+.badge.red{background:#fdeaea;color:var(--red)}
+.badge svg{width:13px;height:13px}
+.verify{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px}
+.verify svg{width:14px;height:14px}
+.verify.legal{background:var(--blue-soft);color:var(--blue)}
+.verify.capability{background:#eaf7ee;color:var(--green)}
+.verify.gold{background:linear-gradient(90deg,#fff2d1,#ffe4a3);color:#8a6d1a}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:6px 13px;border-radius:20px;border:1px solid var(--line);background:#fff;color:var(--text);cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--orange);color:var(--orange)}
+.chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.chip svg{width:14px;height:14px}
+
+/* ---------- Stars & trust ---------- */
+.stars{display:inline-flex;align-items:center;gap:5px;font-size:14px}
+.stars .st{color:var(--orange);letter-spacing:1px}
+.stars b{color:var(--navy);font-weight:700}
+.stars span{color:var(--muted);font-weight:400;font-size:13px}
+.trust-badge{display:inline-flex;align-items:center;gap:8px}
+.trust-badge b{font-size:20px;color:var(--green);font-weight:800}
+.trust-ring{--val:0;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;
+  background:conic-gradient(var(--green) calc(var(--val)*1%), var(--line) 0);flex:none}
+.trust-ring .inner{width:76px;height:76px;border-radius:50%;background:#fff;display:grid;place-items:center;text-align:center}
+.trust-ring .inner b{font-size:26px;color:var(--navy);font-weight:800;line-height:1}
+.trust-ring .inner small{font-size:10px;color:var(--muted)}
+
+/* ---------- Company card (dùng ở directory / home) ---------- */
+.comp{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;transition:.2s;box-shadow:var(--shadow-sm)}
+.comp:hover{box-shadow:var(--shadow);transform:translateY(-3px)}
+.comp-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+.comp-logo{width:62px;height:62px;border-radius:12px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;flex:none;padding:5px;overflow:hidden}
+.comp-logo svg,.comp-logo img{width:100%;height:100%}
+.comp h3{font-size:15.5px;font-weight:700;color:var(--navy);line-height:1.25;margin-bottom:8px}
+.comp .loc{font-size:13px;color:var(--muted);margin:6px 0;display:flex;align-items:center;gap:6px}
+.comp .loc svg{width:15px;height:15px}
+.comp .trust{display:flex;align-items:center;justify-content:space-between;border-top:1px dashed var(--line);padding-top:13px;margin-top:13px}
+.comp .trust small{font-size:13px;color:var(--muted)}
+.comp .trust b{font-size:22px;color:var(--green);font-weight:800}
+
+/* ---------- Forms ---------- */
+.field-group{margin-bottom:18px}
+.field-group label{display:block;font-size:13.5px;font-weight:600;color:var(--navy);margin-bottom:7px}
+.field-group label .req{color:var(--red)}
+.input,.select,.textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:14px;color:var(--text);background:#fff;transition:.15s}
+.input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(241,138,28,.12)}
+.textarea{resize:vertical;min-height:96px}
+.input-icon{position:relative}
+.input-icon svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted)}
+.input-icon .input{padding-left:40px}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs a{padding:13px 18px;font-size:14px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tabs a.active{color:var(--navy);border-bottom-color:var(--orange)}
+.tabs a:hover{color:var(--navy)}
+
+/* ---------- Tables ---------- */
+.table{width:100%;border-collapse:collapse;font-size:14px}
+.table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:12px 14px;border-bottom:1px solid var(--line);font-weight:600}
+.table td{padding:14px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+.table tr:hover td{background:#fafbfc}
+
+/* ---------- Layout helpers ---------- */
+.grid-side{display:grid;grid-template-columns:280px 1fr;gap:26px;align-items:start}
+.grid-side-r{display:grid;grid-template-columns:1fr 320px;gap:26px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;align-items:center;gap:12px}
+.between{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.wrap{flex-wrap:wrap}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+
+/* ---------- Avatars ---------- */
+.ava{width:44px;height:44px;border-radius:10px;object-fit:cover;flex:none;background:var(--line)}
+.ava.round{border-radius:50%}
+.ava-sm{width:34px;height:34px}
+.ava-lg{width:64px;height:64px}
+.logo-txt{display:grid;place-items:center;font-weight:800;color:#fff;flex:none}
+
+/* ---------- Stat tiles ---------- */
+.stat-tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow-sm)}
+.stat-tile .ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px}
+.stat-tile .num{font-size:26px;font-weight:800;color:var(--navy);line-height:1.1}
+.stat-tile .lbl{font-size:13px;color:var(--muted);margin-top:3px}
+.stat-tile .delta{font-size:12px;font-weight:600;margin-top:8px;display:inline-flex;align-items:center;gap:4px}
+.stat-tile .delta.up{color:var(--green)}
+
+/* ---------- Progress ---------- */
+.progress{height:8px;background:var(--line);border-radius:20px;overflow:hidden}
+.progress .bar{height:100%;background:var(--orange);border-radius:20px}
+.progress .bar.green{background:var(--green)}
+.progress .bar.blue{background:var(--blue)}
+
+/* ---------- Footer ---------- */
+footer.site{background:var(--navy-3);color:#c6d3e2;padding:48px 0 22px;font-size:14px}
+.foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:30px;margin-bottom:32px}
+footer.site h4{color:#fff;font-size:15px;margin-bottom:16px}
+footer.site li{list-style:none;margin-bottom:10px;color:#a7bad0;display:flex;align-items:center;gap:8px}
+footer.site li a:hover{color:#fff}
+footer.site li svg{width:16px;height:16px;stroke:var(--orange-2);flex:none}
+footer.site .brand b{color:#fff;font-size:16px}
+footer.site .brand span{color:#7f97b3}
+.foot-desc{color:#9db3cd;font-size:13.5px;margin:14px 0;max-width:300px}
+.foot-bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:18px;text-align:center;color:#7f97b3;font-size:13px}
+
+/* ---------- Utilities ---------- */
+.mt-0{margin-top:0}.mt-8{margin-top:8px}.mt-16{margin-top:16px}.mt-24{margin-top:24px}
+.mb-8{margin-bottom:8px}.mb-16{margin-bottom:16px}.mb-24{margin-bottom:24px}
+.pill-note{background:var(--orange-soft);border:1px solid #ffe1bd;color:#9a5a10;border-radius:10px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start}
+.pill-note svg{width:18px;height:18px;flex:none;color:var(--orange)}
+.divider{height:1px;background:var(--line);margin:18px 0}
+
+/* ---------- Responsive ---------- */
+@media(max-width:1024px){
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .grid-3{grid-template-columns:repeat(2,1fr)}
+  .grid-side,.grid-side-r{grid-template-columns:1fr}
+}
+@media(max-width:900px){
+  .hamburger{display:flex}
+  .nav-menu-wrap{display:none;position:absolute;top:100%;left:0;right:0;background:var(--navy);
+    flex-direction:column;align-items:stretch;padding:12px 20px 20px;
+    border-top:1px solid rgba(255,255,255,.10);box-shadow:0 14px 26px rgba(0,0,0,.28);z-index:60}
+  .nav-toggle:checked ~ .nav-menu-wrap{display:flex}
+  .menu{flex-direction:column;gap:0;margin:0}
+  .menu a{padding:13px 2px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .menu a.active::after{display:none}
+  .nav-actions{flex-direction:column;gap:10px;margin-top:14px;align-items:stretch}
+  .nav-actions .btn{width:100%;justify-content:center;padding:12px}
+  .nav-icon,.avatar-btn{align-self:flex-start}
+  .foot-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:760px){
+  section.block{padding:32px 0}
+  .sec-head h2,.section-title{font-size:21px}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .foot-grid{grid-template-columns:1fr}
+}

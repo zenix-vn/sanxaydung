@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bảng giá gói thành viên — Sàn Xây Dựng</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/app.css"/>
+<style>
+  .price-hero{background:linear-gradient(150deg,#021e48,#062a5a);color:#fff;padding:48px 0 30px;text-align:center}
+  .price-hero .eyebrow{color:var(--orange-2);font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+  .price-hero h1{font-size:clamp(26px,4vw,38px);font-weight:800;margin-bottom:12px}
+  .price-hero p{color:#c6d3e2;max-width:560px;margin:0 auto}
+  .toggle{display:inline-flex;background:rgba(255,255,255,.08);border-radius:30px;padding:5px;margin-top:20px}
+  .toggle a{padding:9px 20px;border-radius:24px;font-size:13.5px;font-weight:600;color:#c6d3e2;cursor:pointer}
+  .toggle a.active{background:#fff;color:var(--navy)}
+  .toggle .save{font-size:11px;color:var(--green);font-weight:700;margin-left:4px}
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:-40px}
+  .plan{background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px 24px;box-shadow:var(--shadow-sm);position:relative;display:flex;flex-direction:column}
+  .plan.pop{border:2px solid var(--orange);box-shadow:var(--shadow);transform:scale(1.02)}
+  .plan .tagpop{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;font-size:12px;font-weight:700;padding:5px 16px;border-radius:20px}
+  .plan .pname{font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .plan .pico{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;margin-bottom:14px}
+  .plan .price{font-size:36px;font-weight:800;color:var(--navy);margin:14px 0 2px;line-height:1}
+  .plan .price small{font-size:14px;font-weight:500;color:var(--muted)}
+  .plan .pdesc{font-size:13px;color:var(--muted);margin:8px 0 18px;min-height:38px}
+  .plan ul{list-style:none;margin-bottom:22px;flex:1}
+  .plan li{font-size:13.5px;color:var(--text);display:flex;align-items:flex-start;gap:9px;padding:7px 0}
+  .plan li svg{width:16px;height:16px;color:var(--green);flex:none;margin-top:2px}
+  .plan li.off{color:var(--muted)}
+  .plan li.off svg{color:var(--line)}
+  .addon{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:26px}
+  .addon .a{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow-sm)}
+  .addon .a .ic-b{width:44px;height:44px;border-radius:11px;background:var(--orange-soft);color:var(--orange);display:grid;place-items:center;margin-bottom:12px}
+  .addon .a h3{font-size:15px;font-weight:700;color:var(--navy)}
+  .addon .a p{font-size:13px;color:var(--muted);margin:6px 0 10px}
+  .addon .a b{color:var(--navy);font-size:15px}
+  .cmp{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:26px}
+  .cmp th,.cmp td{padding:14px 18px;text-align:center;font-size:13.5px;border-bottom:1px solid var(--line-2)}
+  .cmp th{background:#fafbfc;font-weight:700;color:var(--navy)}
+  .cmp td:first-child,.cmp th:first-child{text-align:left;color:var(--text)}
+  .cmp td svg{width:17px;height:17px;color:var(--green)}
+  .faq{max-width:760px;margin:0 auto}
+  .faq details{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px}
+  .faq summary{font-size:14.5px;font-weight:700;color:var(--navy);cursor:pointer;list-style:none;display:flex;justify-content:space-between}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq p{font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+  @media(max-width:900px){.plans{grid-template-columns:1fr}.plan.pop{transform:none}.addon{grid-template-columns:1fr}.cmp{display:block;overflow-x:auto}}
+</style>
+</head>
+<body data-nav="pricing" data-auth="guest">
+<script src="assets/sprite.js"></script>
+<div data-slot="header"></div>
+
+<section class="price-hero">
+  <div class="container">
+    <div class="eyebrow">Gói thành viên</div>
+    <h1>Chọn gói phù hợp với doanh nghiệp</h1>
+    <p>Bắt đầu miễn phí, nâng cấp khi cần hồ sơ nổi bật, analytics và công cụ tăng trưởng. Không ràng buộc — hủy bất cứ lúc nào.</p>
+    <div class="toggle"><a class="active">Theo tháng</a><a>Theo năm <span class="save">−20%</span></a></div>
+  </div>
+</section>
+
+<section class="block" style="padding-top:0">
+  <div class="container">
+    <div class="plans">
+      <!-- Free -->
+      <div class="plan">
+        <div class="pico" style="background:#eef2f6;color:var(--muted)"><svg class="ic"><use href="#ic-building"/></svg></div>
+        <div class="pname">Free</div>
+        <div class="price">0₫ <small>/tháng</small></div>
+        <p class="pdesc">Tạo hiện diện số &amp; bắt đầu kết nối cơ bản.</p>
+        <ul>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Company Page cơ bản</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Xác minh pháp lý (MST/GPKD)</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Đăng 3 tin nhu cầu/tháng</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Chat &amp; nhận báo giá</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Nhận đánh giá xác thực</li>
+          <li class="off"><svg class="ic"><use href="#ic-x"/></svg> Hồ sơ nổi bật</li>
+          <li class="off"><svg class="ic"><use href="#ic-x"/></svg> Analytics nâng cao</li>
+        </ul>
+        <a class="btn btn-outline btn-block" href="auth.html#register">Bắt đầu miễn phí</a>
+      </div>
+
+      <!-- Professional -->
+      <div class="plan pop">
+        <div class="tagpop">Phổ biến nhất</div>
+        <div class="pico" style="background:var(--orange-soft);color:var(--orange)"><svg class="ic"><use href="#ic-trending"/></svg></div>
+        <div class="pname">Professional</div>
+        <div class="price">990K <small>/tháng</small></div>
+        <p class="pdesc">Cho doanh nghiệp muốn tăng cơ hội &amp; nổi bật.</p>
+        <ul>
+          <li><svg class="ic"><use href="#ic-check"/></svg> <b>Toàn bộ gói Free</b></li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Hồ sơ &amp; tin đăng <b>nổi bật</b></li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Đăng tin không giới hạn</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Analytics: lượt xem, nguồn khách</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Video giới thiệu &amp; album mở rộng</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Huy hiệu ưu tiên tìm kiếm</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> 10 thành viên</li>
+        </ul>
+        <a class="btn btn-orange btn-block" href="auth.html#register">Chọn Professional</a>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="plan">
+        <div class="pico" style="background:var(--blue-soft);color:var(--blue)"><svg class="ic"><use href="#ic-award"/></svg></div>
+        <div class="pname">Enterprise</div>
+        <div class="price">Liên hệ</div>
+        <p class="pdesc">Cho tổng thầu &amp; tập đoàn cần quy mô &amp; tích hợp.</p>
+        <ul>
+          <li><svg class="ic"><use href="#ic-check"/></svg> <b>Toàn bộ gói Professional</b></li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Analytics &amp; benchmark ngành</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Báo cáo thị trường độc quyền</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Thành viên &amp; phân quyền không giới hạn</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> Hỗ trợ ưu tiên + account manager</li>
+          <li><svg class="ic"><use href="#ic-check"/></svg> API tích hợp (GĐ3)</li>
+        </ul>
+        <a class="btn btn-navy btn-block" href="#">Liên hệ tư vấn</a>
+      </div>
+    </div>
+
+    <!-- Add-ons -->
+    <h2 class="section-title" style="margin:44px 0 4px">Dịch vụ mua thêm</h2>
+    <p class="muted mb-16">Tạo doanh thu ngay từ MVP — không cần chờ đủ quy mô.</p>
+    <div class="addon" style="margin-top:6px">
+      <div class="a"><div class="ic-b"><svg class="ic"><use href="#ic-shield-check"/></svg></div><h3>Gói Verified năng lực</h3><p>Xác minh chứng chỉ năng lực + huy hiệu, ưu tiên duyệt nhanh.</p><b>Từ 500K</b> <span class="muted">/lần</span></div>
+      <div class="a"><div class="ic-b"><svg class="ic"><use href="#ic-star-f"/></svg></div><h3>Tin đăng ưu tiên</h3><p>Ghim đầu danh sách Marketplace, gắn nhãn "Nổi bật" 7 ngày.</p><b>Từ 200K</b> <span class="muted">/tin</span></div>
+      <div class="a"><div class="ic-b"><svg class="ic"><use href="#ic-layers"/></svg></div><h3>Banner &amp; gian hàng tài trợ</h3><p>Hiển thị banner trang chủ / top danh mục theo lượt hiển thị.</p><b>Liên hệ</b></div>
+    </div>
+
+    <!-- Compare -->
+    <h2 class="section-title" style="margin:44px 0 0">So sánh chi tiết</h2>
+    <table class="cmp">
+      <thead><tr><th>Tính năng</th><th>Free</th><th>Professional</th><th>Enterprise</th></tr></thead>
+      <tbody>
+        <tr><td>Company Page &amp; hồ sơ năng lực</td><td><svg class="ic"><use href="#ic-check"/></svg></td><td><svg class="ic"><use href="#ic-check"/></svg></td><td><svg class="ic"><use href="#ic-check"/></svg></td></tr>
+        <tr><td>Tin đăng nhu cầu / tháng</td><td>3</td><td>Không giới hạn</td><td>Không giới hạn</td></tr>
+        <tr><td>Hồ sơ &amp; tin nổi bật</td><td>—</td><td><svg class="ic"><use href="#ic-check"/></svg></td><td><svg class="ic"><use href="#ic-check"/></svg></td></tr>
+        <tr><td>Analytics doanh nghiệp</td><td>Cơ bản</td><td>Nâng cao</td><td>Nâng cao + benchmark</td></tr>
+        <tr><td>Số thành viên</td><td>3</td><td>10</td><td>Không giới hạn</td></tr>
+        <tr><td>Báo cáo thị trường</td><td>—</td><td>—</td><td><svg class="ic"><use href="#ic-check"/></svg></td></tr>
+        <tr><td>API tích hợp</td><td>—</td><td>—</td><td><svg class="ic"><use href="#ic-check"/></svg></td></tr>
+        <tr><td>Hỗ trợ</td><td>Email</td><td>Ưu tiên</td><td>Account manager</td></tr>
+      </tbody>
+    </table>
+
+    <!-- FAQ -->
+    <h2 class="section-title" style="margin:44px 0 18px;text-align:center">Câu hỏi thường gặp</h2>
+    <div class="faq">
+      <details open><summary>Tôi có thể dùng miễn phí mãi không? <svg class="ic"><use href="#ic-chevron-down"/></svg></summary><p>Có. Gói Free đầy đủ để tạo hồ sơ, xác minh pháp lý, đăng tin và nhận báo giá. Bạn chỉ nâng cấp khi cần nổi bật hơn hoặc dùng analytics nâng cao.</p></details>
+      <details><summary>Xác minh doanh nghiệp có tính phí không? <svg class="ic"><use href="#ic-chevron-down"/></svg></summary><p>Xác minh pháp lý (MST/GPKD) miễn phí ở mọi gói. Xác minh năng lực (chứng chỉ hạng I/II/III) là dịch vụ mua thêm với phí duyệt hồ sơ.</p></details>
+      <details><summary>Thanh toán theo năm tiết kiệm bao nhiêu? <svg class="ic"><use href="#ic-chevron-down"/></svg></summary><p>Thanh toán theo năm được giảm 20% so với theo tháng, áp dụng cho gói Professional.</p></details>
+      <details><summary>Dữ liệu của tôi được bảo vệ thế nào? <svg class="ic"><use href="#ic-chevron-down"/></svg></summary><p>Nền tảng tuân thủ Nghị định 13/2023/NĐ-CP: thu thập có đồng ý, quyền truy cập/chỉnh sửa/xóa dữ liệu và nhật ký truy cập cho các hành động nhạy cảm.</p></details>
+    </div>
+
+    <div class="pill-note mt-24" style="max-width:760px;margin-left:auto;margin-right:auto"><svg class="ic"><use href="#ic-gift"/></svg><span><b>Ưu đãi cold-start:</b> 500 doanh nghiệp đầu tiên claim hồ sơ được tặng 3 tháng Professional. <a href="auth.html#register" style="color:var(--orange);font-weight:600">Đăng ký ngay →</a></span></div>
+  </div>
+</section>
+
+<div data-slot="footer"></div>
+<script src="assets/layout.js"></script>
+</body>
+</html>
