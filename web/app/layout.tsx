@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import IconSprite from '@/components/IconSprite';
+import NavMenu from '@/components/NavMenu';
 
 export const metadata: Metadata = {
   title: {
@@ -39,19 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <label htmlFor="navtoggle" className="hamburger" aria-label="Mở menu">
               <span></span><span></span><span></span>
             </label>
-            <div className="nav-menu-wrap">
-              <nav className="menu">
-                <a href="/" className="active">Trang chủ</a>
-                <a href="/directory">Tìm nhà thầu</a>
-                <a href="/directory?group=crew">Tìm đội thi công</a>
-                <a href="/directory?group=supplier">Nhà cung cấp</a>
-                <a href="/marketplace">Nhu cầu</a>
-              </nav>
-              <div className="nav-actions">
-                <a className="btn btn-ghost" href="/login">Đăng nhập</a>
-                <a className="btn btn-orange" href="/login">Đăng ký</a>
-              </div>
-            </div>
+            <NavMenu />
           </div>
         </header>
 
@@ -80,14 +69,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <li><a href="/directory">Tìm nhà thầu</a></li>
                   <li><a href="/directory?group=crew">Tìm đội thi công</a></li>
                   <li><a href="/directory?group=supplier">Nhà cung cấp</a></li>
-                  <li><a href="/marketplace">Nhu cầu</a></li>
+                  <li><a href="/marketplace">Nhu cầu / Báo giá</a></li>
+                  <li><a href="/feed">Tin tức ngành</a></li>
                 </ul>
               </div>
               <div>
                 <h4>Hỗ trợ</h4>
                 <ul>
                   <li><a href="#">Hướng dẫn sử dụng</a></li>
-                  <li><a href="#">Bảng giá</a></li>
+                  <li><a href="/pricing">Bảng giá</a></li>
                   <li><a href="#">Câu hỏi thường gặp</a></li>
                   <li><a href="#">Liên hệ</a></li>
                 </ul>

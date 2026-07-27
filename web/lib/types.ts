@@ -61,12 +61,16 @@ export interface Listing {
   description: string | null;
   category_id: string | null;
   province_code: string | null;
+  location_text: string | null;
   budget_from: number | null;
   budget_to: number | null;
   deadline: string | null;
   status: string;
   is_featured: boolean;
   quote_count: number;
+  company_name: string | null;
+  start_date: string | null;
+  view_count: number | null;
   created_at: string;
 }
 
