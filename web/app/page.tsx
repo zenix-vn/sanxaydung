@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: { absolute: TITLE },
   description: DESC,
   alternates: { canonical: '/' },
-  openGraph: { title: TITLE, description: DESC, url: '/' },
+  openGraph: { type: 'website', locale: 'vi_VN', siteName: 'Sàn Xây Dựng', title: TITLE, description: DESC, url: '/' },
   twitter: { title: TITLE, description: DESC },
 };
 
