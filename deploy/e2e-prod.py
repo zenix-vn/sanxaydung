@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke test đầu-cuối cho sanxaydung.vn (41 kiểm tra), chạy TRÊN SERVER production.
+"""Smoke test đầu-cuối cho sanxaydung.vn (44 kiểm tra), chạy TRÊN SERVER production.
 
 Dùng GoTrue admin tạo 2 user thử → chạy các luồng chính qua domain thật (OpenLiteSpeed → Kong →
 GoTrue/PostgREST/Storage) → tự dọn dữ liệu thử. Khóa đọc từ /opt/sxd-supabase/.env, không in ra.
@@ -38,6 +38,10 @@ def mkuser(n):
     st, t = call("POST", "/auth/v1/token?grant_type=password", {"email": f"e2e-{n}-{tag}@example.com", "password": pw})
     check(f"đăng nhập user {n} lấy JWT", st == 200 and "access_token" in t, f"{st} {t}")
     users[n] = (u["id"], t["access_token"])
+# Người chưa đăng nhập phải đọc được dữ liệu công khai (sự cố 2026-11-19: policy admin chặn anon)
+for t in ("companies", "projects", "marketplace_listings"):
+    st, _ = call("GET", f"/rest/v1/{t}?select=id&limit=1")
+    check(f"anon đọc được {t}", st == 200, st)
 try:
     mkuser("a"); mkuser("b")
     (ua, ta), (ub, tb) = users["a"], users["b"]
