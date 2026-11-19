@@ -1,21 +1,23 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { safeRedirect } from '@/lib/phone';
+import { publicOrigin } from '@/lib/origin';
 
 // Callback cho magic link / OAuth: đổi `code` lấy phiên, bảo đảm có profile, rồi chuyển về `redirect`.
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
   const next = safeRedirect(url.searchParams.get('redirect'));
+  const origin = publicOrigin(req);
   const supa = createSupabaseServer();
 
   if (code) {
     const { error } = await supa.auth.exchangeCodeForSession(code);
-    if (error) return NextResponse.redirect(new URL('/login?error=callback', url.origin));
+    if (error) return NextResponse.redirect(new URL('/login?error=callback', origin));
   }
 
   const { data: { user } } = await supa.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL('/login?error=callback', url.origin));
+  if (!user) return NextResponse.redirect(new URL('/login?error=callback', origin));
 
   // Trigger handle_new_user đã tạo profile; upsert phòng khi thiếu (bỏ qua lỗi).
   await supa.from('profiles').upsert(
@@ -23,5 +25,5 @@ export async function GET(req: Request) {
     { onConflict: 'id', ignoreDuplicates: true },
   );
 
-  return NextResponse.redirect(new URL(next, url.origin));
+  return NextResponse.redirect(new URL(next, origin));
 }
