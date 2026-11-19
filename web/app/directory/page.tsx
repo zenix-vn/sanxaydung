@@ -53,10 +53,6 @@ const fetchSearch = cachedPublic(async (sp: SP): Promise<Company[]> => {
     const { data, error } = await supa.from('categories').select('id').eq('slug', sp.category).maybeSingle();
     if (error) throw error;
     categoryId = data?.id ?? null;
-  } else if (sp.group) {
-    const { data, error } = await supa.from('categories').select('id').eq('group_key', sp.group).limit(1).maybeSingle();
-    if (error) throw error;
-    categoryId = data?.id ?? null;
   }
   const page = Math.max(1, parseInt(sp.page ?? '1'));
   const { data, error } = await supa.rpc('search_companies', {
@@ -66,6 +62,7 @@ const fetchSearch = cachedPublic(async (sp: SP): Promise<Company[]> => {
     _verified_only: sp.verified === 'true',
     _limit: 20,
     _offset: (page - 1) * 20,
+    _group: sp.group || null,
   });
   if (error) throw error;
   return (data ?? []) as Company[];
