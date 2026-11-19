@@ -51,4 +51,4 @@ export function parseMoney(input: string): number | null {
   return Math.round(n * mult);
 }
 
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://demo.sanxaydung.vn').replace(/\/$/, '');
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sanxaydung.vn').replace(/\/$/, '');

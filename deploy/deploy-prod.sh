@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Deploy SanXayDung lên zenix-server (demo.sanxaydung.vn)
+# Deploy SanXayDung lên zenix-server (sanxaydung.vn)
 #   ./deploy/deploy-prod.sh web        build lại image web trên server + chạy lại container
 #   ./deploy/deploy-prod.sh db         áp migration CHƯA áp (theo bảng public._sxd_migrations)
 #   ./deploy/deploy-prod.sh all        db rồi web
@@ -8,12 +8,12 @@
 # Kiến trúc trên server (/opt):
 #   sxd-supabase/  Supabase RIÊNG (project "sxd": db, auth, rest, realtime, storage, kong → 127.0.0.1:8110)
 #   sxd-web/src    mã nguồn web; image `sxd-web` chạy container `sxd-web` → 127.0.0.1:3020
-#   OpenLiteSpeed vhost: /usr/local/lsws/conf/vhosts/demo.sanxaydung.vn (mẫu: deploy/ols/)
+#   OpenLiteSpeed vhost: /usr/local/lsws/conf/vhosts/sanxaydung.vn (mẫu: deploy/ols/)
 # KHÔNG dùng chung stack /opt/supabase (thuộc app khác).
 set -euo pipefail
 SSH="ssh -o BatchMode=yes zenix-server"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DOMAIN="demo.sanxaydung.vn"
+DOMAIN="sanxaydung.vn"
 
 db() {
   echo "==> Đồng bộ migration"

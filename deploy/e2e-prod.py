@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke test đầu-cuối cho demo.sanxaydung.vn (35 kiểm tra), chạy TRÊN SERVER production.
+"""Smoke test đầu-cuối cho sanxaydung.vn (35 kiểm tra), chạy TRÊN SERVER production.
 
 Dùng GoTrue admin tạo 2 user thử → chạy các luồng chính qua domain thật (OpenLiteSpeed → Kong →
 GoTrue/PostgREST/Storage) → tự dọn dữ liệu thử. Khóa đọc từ /opt/sxd-supabase/.env, không in ra.
@@ -7,7 +7,7 @@ GoTrue/PostgREST/Storage) → tự dọn dữ liệu thử. Khóa đọc từ /o
   scp deploy/e2e-prod.py zenix-server:/tmp/ && ssh zenix-server 'python3 /tmp/e2e-prod.py; rm /tmp/e2e-prod.py'
 """
 import json, os, subprocess, urllib.request, urllib.error, secrets, struct, zlib
-B = "https://demo.sanxaydung.vn"
+B = "https://sanxaydung.vn"
 env = dict(l.strip().split("=", 1) for l in open("/opt/sxd-supabase/.env") if "=" in l)
 ANON, SERVICE = env["ANON_KEY"], env["SERVICE_ROLE_KEY"]
 res = []

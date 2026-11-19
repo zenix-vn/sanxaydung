@@ -19,9 +19,9 @@ env = {
  "ANON_KEY": jwt("anon"), "SERVICE_ROLE_KEY": jwt("service_role"),
  "SECRET_KEY_BASE": secrets.token_hex(48),
  "KONG_HTTP_PORT": "8110",
- "API_EXTERNAL_URL": "https://demo.sanxaydung.vn",
- "SITE_URL": "https://demo.sanxaydung.vn",
- "ADDITIONAL_REDIRECT_URLS": "https://demo.sanxaydung.vn/**",
+ "API_EXTERNAL_URL": "https://sanxaydung.vn",
+ "SITE_URL": "https://sanxaydung.vn",
+ "ADDITIONAL_REDIRECT_URLS": "https://sanxaydung.vn/**,https://www.sanxaydung.vn/**",
  "SMTP_ADMIN_EMAIL": "no-reply@sanxaydung.vn", "SMTP_HOST": "", "SMTP_PORT": "587", "SMTP_USER": "", "SMTP_PASS": "",
  "GOOGLE_ENABLED": "false", "GOOGLE_CLIENT_ID": "", "GOOGLE_SECRET": "",
 }
