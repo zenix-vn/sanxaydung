@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke test đầu-cuối cho sanxaydung.vn (39 kiểm tra), chạy TRÊN SERVER production.
+"""Smoke test đầu-cuối cho sanxaydung.vn (41 kiểm tra), chạy TRÊN SERVER production.
 
 Dùng GoTrue admin tạo 2 user thử → chạy các luồng chính qua domain thật (OpenLiteSpeed → Kong →
 GoTrue/PostgREST/Storage) → tự dọn dữ liệu thử. Khóa đọc từ /opt/sxd-supabase/.env, không in ra.
@@ -96,6 +96,14 @@ try:
     seed = sql("select id from companies where owner_id is null and slug not like 'zz-e2e-%' limit 1").stdout.strip()
     st, cl = call("POST", "/rest/v1/rpc/claim_company", {"_company": seed, "_note": "e2e"}, token=tb)
     check("claim công ty → 'pending' (email không khớp)", st == 200 and cl == "pending", f"{st} {cl}")
+    # Tạo công ty mới qua RPC create_company → phải có đủ thành viên owner (lỗi cũ: thiếu company_members)
+    cphone = "091" + str(int(tag, 16) % 10**7).zfill(7)
+    st, newc = call("POST", "/rest/v1/rpc/create_company", {"_name": f"E2E Create {tag}", "_phone": cphone}, token=ta)
+    check("RPC create_company tạo công ty", st == 200 and isinstance(newc, str), f"{st} {newc}")
+    if isinstance(newc, str):
+        companies["created"] = newc
+        st, mem = call("GET", f"/rest/v1/company_members?company_id=eq.{newc}&select=role,status", token=ta)
+        check("công ty mới có thành viên owner/active", st == 200 and mem == [{"role": "owner", "status": "active"}], f"{st} {mem}")
     # Nhận hồ sơ qua email đăng ký (dữ liệu thử, không đụng hồ sơ thật)
     reg_email = f"e2e-claim-{tag}@example.com"
     fake_phone = "090" + str(int(tag, 16) % 10**7).zfill(7)
