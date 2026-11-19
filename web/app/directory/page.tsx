@@ -1,8 +1,15 @@
+import type { Metadata } from 'next';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { SUPABASE_URL } from '@/lib/env';
 import type { Company } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Tìm nhà thầu, đội thi công, nhà cung cấp',
+  description: 'Danh bạ doanh nghiệp xây dựng Việt Nam: nhà thầu, đội thi công, nhà cung cấp vật liệu — lọc theo lĩnh vực, khu vực, mức độ xác minh.',
+  alternates: { canonical: '/directory' },
+};
 
 const GROUP_LABELS: Record<string, string> = {
   contractor: 'Nhà thầu',

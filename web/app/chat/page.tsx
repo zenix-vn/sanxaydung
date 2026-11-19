@@ -1,13 +1,8 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import ChatClient from './ChatClient';
 
 export const metadata: Metadata = { title: 'Tin nhắn' };
-
-const CONVS = [
-  { initials: 'SG', bg: '#0d6b3f', name: 'CTCP Đầu tư Sài Gòn', time: '10:24', last: 'Bên mình xem hồ sơ rồi, mời qua trao đổi…', online: true, active: true },
-  { initials: 'CT', bg: '#111', name: 'Coteccons', time: '09:12', last: 'Đã gửi báo giá 49 tỷ', unread: 2, bold: true },
-  { initials: 'DL', bg: '#17479e', name: 'Delta Group', time: 'Hôm qua', last: 'Cảm ơn anh, mình sẽ gửi bản vẽ…', online: true },
-  { initials: 'HP', bg: '#b5610f', name: 'Thép Hòa Phát', time: 'T2', last: 'Giá thép D16 hôm nay là…' },
-];
 
 export default function ChatPage() {
   return (
@@ -57,140 +52,16 @@ export default function ChatPage() {
         .cinfo .kv .k{color:var(--muted)}.cinfo .kv .v{font-weight:600;color:var(--navy)}
         @media(max-width:1024px){.chat-wrap{grid-template-columns:300px 1fr}.cinfo{display:none}}
         @media(max-width:760px){.chat-wrap{grid-template-columns:1fr}.clist{display:none}}
+              .chat-wrap.has-conv .back{display:inline-flex}
+        .back{display:none}
+        .cempty{flex:1;display:grid;place-items:center;color:var(--muted);text-align:center;padding:24px}
+        .msg .qline{font-size:12px;opacity:.8;margin-top:4px}
+        .csel{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;margin-top:10px;background:#fff}
+        @media(max-width:760px){.chat-wrap.has-conv{grid-template-columns:1fr}.chat-wrap.has-conv .clist{display:none}.chat-wrap:not(.has-conv) .cthread{display:none}.chat-wrap:not(.has-conv) .clist{display:flex}}
       `}</style>
-
-      <div className="chat-wrap">
-        {/* Conversation list */}
-        <div className="clist">
-          <div className="csearch">
-            <div style={{ position: 'relative' }}>
-              <svg className="ic" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted)' }}>
-                <use href="#ic-search" />
-              </svg>
-              <input className="input" placeholder="Tìm hội thoại…" />
-            </div>
-          </div>
-          <div style={{ overflowY: 'auto', flex: 1 }}>
-            {CONVS.map((c) => (
-              <div key={c.name} className={`conv${c.active ? ' active' : ''}`}>
-                <span className="ava" style={{ background: c.bg }}>
-                  {c.initials}
-                  {c.online && <span className="on" />}
-                </span>
-                <div className="mid">
-                  <div className="r1">
-                    <h4>{c.name}</h4>
-                    <small>{c.time}</small>
-                  </div>
-                  <p style={c.bold ? { color: 'var(--navy)', fontWeight: 600 } : {}}>{c.last}</p>
-                </div>
-                {c.unread && <span className="unread">{c.unread}</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Thread */}
-        <div className="cthread">
-          <div className="cthead">
-            <span className="ava" style={{ background: '#0d6b3f' }}>SG</span>
-            <div style={{ flex: 1 }}>
-              <h3>
-                CTCP Đầu tư Sài Gòn
-                <svg className="ic" style={{ width: 15, height: 15, color: 'var(--green)' }}><use href="#ic-shield-check" /></svg>
-              </h3>
-              <small>● Đang hoạt động</small>
-            </div>
-            <a className="btn btn-icon btn-outline" style={{ border: 'none' }} href="/cong-ty/dau-tu-sai-gon">
-              <svg className="ic"><use href="#ic-eye" /></svg>
-            </a>
-            <a className="btn btn-icon btn-outline" style={{ border: 'none' }}>
-              <svg className="ic"><use href="#ic-dots" /></svg>
-            </a>
-          </div>
-          <div className="ctx-bar">
-            <svg className="ic"><use href="#ic-briefcase" /></svg>
-            Hội thoại gắn với tin: <b style={{ color: 'var(--navy)' }}>&nbsp;Cần tổng thầu tòa văn phòng 15 tầng</b>
-            &nbsp;·&nbsp;
-            <a href="/marketplace/1" style={{ color: 'var(--orange)', fontWeight: 600 }}>Xem tin</a>
-          </div>
-
-          <div className="msgs">
-            <div className="day">Hôm nay</div>
-            <div className="msg them">
-              Chào Hòa Bình, bên mình đã xem hồ sơ năng lực của công ty. Rất ấn tượng với các công trình cao tầng đã thực hiện.
-              <div className="t">10:05</div>
-            </div>
-            <div className="msg me">
-              Cảm ơn anh! Hòa Bình có thể sắp xếp buổi khảo sát mặt bằng và trình bày biện pháp thi công chi tiết ạ.
-              <div className="t">10:10</div>
-            </div>
-            <div className="quote-msg">
-              <div className="qh">
-                <svg className="ic"><use href="#ic-file-text" /></svg> Báo giá đã gửi
-              </div>
-              <div className="qb">
-                <div style={{ fontSize: 13, color: 'var(--muted)' }}>Thi công tổng thầu · 18 tháng</div>
-                <div className="amt">52.000.000.000 ₫</div>
-                <div className="row2">
-                  <a className="btn btn-outline btn-sm">
-                    <svg className="ic"><use href="#ic-file-text" /></svg> Hồ sơ đính kèm.pdf
-                  </a>
-                </div>
-              </div>
-            </div>
-            <div className="msg them">
-              Bên mình xem hồ sơ rồi, mời qua văn phòng trao đổi chi tiết vào thứ 5 tuần này nhé. 14h chiều được không?
-              <div className="t">10:24</div>
-            </div>
-            <div className="msg me">
-              Dạ được ạ, Hòa Bình sẽ có mặt lúc 14h thứ 5. Em gửi trước bản tiến độ để anh tham khảo.
-              <div className="t">10:26</div>
-            </div>
-          </div>
-
-          <div className="composer2">
-            <div className="tools">
-              <a title="Đính kèm"><svg className="ic"><use href="#ic-folder" /></svg></a>
-              <a title="Gửi báo giá"><svg className="ic"><use href="#ic-coin" /></svg></a>
-              <a title="Ảnh"><svg className="ic"><use href="#ic-image" /></svg></a>
-            </div>
-            <input placeholder="Nhập tin nhắn…" />
-            <button className="btn btn-orange btn-icon">
-              <svg className="ic"><use href="#ic-send" /></svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Info panel */}
-        <aside className="cinfo">
-          <div style={{ textAlign: 'center' }}>
-            <div className="ava-lg" style={{ background: '#0d6b3f' }}>SG</div>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>CTCP Đầu tư Sài Gòn</h3>
-            <div className="verify legal" style={{ margin: '8px auto', display: 'inline-flex' }}>
-              <svg className="ic"><use href="#ic-shield-check" /></svg> Đã xác minh
-            </div>
-            <a className="btn btn-outline btn-block btn-sm mt-8" href="/cong-ty/dau-tu-sai-gon">
-              Xem hồ sơ
-            </a>
-          </div>
-          <div className="divider" />
-          <div className="kv"><span className="k">Trust Score</span><span className="v" style={{ color: 'var(--green)' }}>88</span></div>
-          <div className="kv"><span className="k">Lĩnh vực</span><span className="v">Chủ đầu tư</span></div>
-          <div className="kv"><span className="k">Khu vực</span><span className="v">TP.HCM</span></div>
-          <div className="divider" />
-          <h4 style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 10 }}>Tài liệu đã chia sẻ</h4>
-          <a className="row" style={{ gap: 10, padding: '8px 0', fontSize: 13, textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }} href="#">
-            <svg className="ic" style={{ color: 'var(--blue)' }}><use href="#ic-file-text" /></svg> Hồ sơ mời thầu.pdf
-          </a>
-          <a className="row" style={{ gap: 10, padding: '8px 0', fontSize: 13, textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }} href="#">
-            <svg className="ic" style={{ color: 'var(--red)' }}><use href="#ic-file-text" /></svg> Báo giá Hòa Bình.pdf
-          </a>
-          <a className="row" style={{ gap: 10, padding: '8px 0', fontSize: 13, textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }} href="#">
-            <svg className="ic" style={{ color: 'var(--green)' }}><use href="#ic-image" /></svg> Phối cảnh dự án.jpg
-          </a>
-        </aside>
-      </div>
+      <Suspense fallback={null}>
+        <ChatClient />
+      </Suspense>
     </>
   );
 }

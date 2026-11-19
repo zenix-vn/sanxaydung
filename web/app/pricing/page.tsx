@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Bảng giá gói thành viên' };
 
-export default function PricingPage() {
+export default function PricingPage({ searchParams }: { searchParams: { billing?: string } }) {
+  const yearly = searchParams.billing === 'year';
+  const q = (plan: string) => `/pricing/checkout?plan=${plan}&billing=${yearly ? 'year' : 'month'}`;
   return (
     <>
       <style>{`
@@ -54,8 +56,8 @@ export default function PricingPage() {
           <h1>Chọn gói phù hợp với doanh nghiệp</h1>
           <p>Bắt đầu miễn phí, nâng cấp khi cần hồ sơ nổi bật, analytics và công cụ tăng trưởng. Không ràng buộc — hủy bất cứ lúc nào.</p>
           <div className="toggle">
-            <a className="active">Theo tháng</a>
-            <a>Theo năm <span className="save">−20%</span></a>
+            <a href="/pricing" className={yearly ? '' : 'active'}>Theo tháng</a>
+            <a href="/pricing?billing=year" className={yearly ? 'active' : ''}>Theo năm <span className="save">−20%</span></a>
           </div>
         </div>
       </section>
@@ -90,7 +92,7 @@ export default function PricingPage() {
                 <svg className="ic"><use href="#ic-trending" /></svg>
               </div>
               <div className="pname">Professional</div>
-              <div className="price">990K <small>/tháng</small></div>
+              <div className="price">{yearly ? '792K' : '990K'} <small>/tháng{yearly ? ' · 9,5 triệu/năm' : ''}</small></div>
               <p className="pdesc">Cho doanh nghiệp muốn tăng cơ hội &amp; nổi bật.</p>
               <ul>
                 <li><svg className="ic"><use href="#ic-check" /></svg> <b>Toàn bộ gói Free</b></li>
@@ -101,7 +103,7 @@ export default function PricingPage() {
                 <li><svg className="ic"><use href="#ic-check" /></svg> Huy hiệu ưu tiên tìm kiếm</li>
                 <li><svg className="ic"><use href="#ic-check" /></svg> 10 thành viên</li>
               </ul>
-              <a className="btn btn-orange btn-block" href="/login#register">Chọn Professional</a>
+              <a className="btn btn-orange btn-block" href={q('professional')}>Chọn Professional</a>
             </div>
 
             {/* Enterprise */}
@@ -120,7 +122,7 @@ export default function PricingPage() {
                 <li><svg className="ic"><use href="#ic-check" /></svg> Hỗ trợ ưu tiên + account manager</li>
                 <li><svg className="ic"><use href="#ic-check" /></svg> API tích hợp (GĐ3)</li>
               </ul>
-              <a className="btn btn-navy btn-block" href="#">Liên hệ tư vấn</a>
+              <a className="btn btn-navy btn-block" href={q('enterprise')}>Liên hệ tư vấn</a>
             </div>
           </div>
 
@@ -133,18 +135,21 @@ export default function PricingPage() {
               <h3>Gói Verified năng lực</h3>
               <p>Xác minh chứng chỉ năng lực + huy hiệu, ưu tiên duyệt nhanh.</p>
               <b>Từ 500K</b> <span className="muted">/lần</span>
+              <div className="mt-8"><a className="btn btn-outline btn-sm" href={q('verified')}>Mua gói</a></div>
             </div>
             <div className="a">
               <div className="ic-b"><svg className="ic"><use href="#ic-star-f" /></svg></div>
               <h3>Tin đăng ưu tiên</h3>
               <p>Ghim đầu danh sách Marketplace, gắn nhãn &ldquo;Nổi bật&rdquo; 7 ngày.</p>
               <b>Từ 200K</b> <span className="muted">/tin</span>
+              <div className="mt-8"><a className="btn btn-outline btn-sm" href={q('featured-listing')}>Mua gói</a></div>
             </div>
             <div className="a">
               <div className="ic-b"><svg className="ic"><use href="#ic-layers" /></svg></div>
               <h3>Banner &amp; gian hàng tài trợ</h3>
               <p>Hiển thị banner trang chủ / top danh mục theo lượt hiển thị.</p>
               <b>Liên hệ</b>
+              <div className="mt-8"><a className="btn btn-outline btn-sm" href={q('banner')}>Liên hệ</a></div>
             </div>
           </div>
 

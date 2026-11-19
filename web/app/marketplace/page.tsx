@@ -1,8 +1,15 @@
+import type { Metadata } from 'next';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { SUPABASE_URL } from '@/lib/env';
 import type { Listing } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Nhu cầu & Báo giá',
+  description: 'Đăng nhu cầu, nhận nhiều báo giá và chọn đối tác xây dựng uy tín: tìm nhà thầu, đội thi công, nhà cung cấp.',
+  alternates: { canonical: '/marketplace' },
+};
 
 const TYPES = [
   { key: '', label: 'Tất cả', icon: 'ic-grid' },
@@ -109,7 +116,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
               <h1>Nhu cầu &amp; Báo giá (Marketplace)</h1>
               <p>Nơi kết nối cung – cầu ngành xây dựng. Đăng nhu cầu → nhận nhiều báo giá → so sánh &amp; chọn đối tác.</p>
             </div>
-            <a className="btn btn-ghost" href="/login">
+            <a className="btn btn-ghost" href="/marketplace/new">
               <svg className="ic"><use href="#ic-plus" /></svg> Đăng nhu cầu
             </a>
           </div>
@@ -199,7 +206,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
                     <use href="#ic-clipboard" />
                   </svg>
                   <p className="muted">Chưa có tin đăng nào trong danh mục này.</p>
-                  <a className="btn btn-orange mt-16" href="/login">Đăng tin ngay</a>
+                  <a className="btn btn-orange mt-16" href="/marketplace/new">Đăng tin ngay</a>
                 </div>
               ) : (
                 <>

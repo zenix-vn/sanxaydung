@@ -1,8 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { toE164VN, toLocalVN, safeRedirect } from '@/lib/phone';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [tab, setTab] = useState<'login' | 'register'>('login');
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
   const [email, setEmail] = useState('');
@@ -11,6 +14,37 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const [redirectTo, setRedirectTo] = useState('/dashboard');
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    setRedirectTo(safeRedirect(q.get('redirect')));
+    if (q.get('error')) setError('Liên kết đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.');
+    if (window.location.hash === '#register') setTab('register');
+  }, []);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  function switchMethod(m: 'phone' | 'email') {
+    setMethod(m);
+    setSent(false);
+    setError(null);
+  }
+
+  async function oauth(provider: 'google') {
+    setError(null);
+    const supa = createSupabaseBrowser();
+    const { error } = await supa.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/login/callback?redirect=${encodeURIComponent(redirectTo)}` },
+    });
+    if (error) setError('Đăng nhập Google chưa được bật: ' + error.message);
+  }
 
   async function sendEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -20,7 +54,7 @@ export default function LoginPage() {
       const supa = createSupabaseBrowser();
       const { error } = await supa.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: typeof window !== 'undefined' ? window.location.origin : undefined },
+        options: { emailRedirectTo: `${window.location.origin}/login/callback?redirect=${encodeURIComponent(redirectTo)}` },
       });
       if (error) throw error;
       setSent(true);
@@ -31,14 +65,61 @@ export default function LoginPage() {
     }
   }
 
-  function handleOtpInput(idx: number, val: string) {
-    const next = [...otp];
-    next[idx] = val.slice(-1);
-    setOtp(next);
-    if (val && idx < 5) {
-      const el = document.getElementById(`otp-${idx + 1}`);
-      el?.focus();
+  async function sendPhone() {
+    setError(null);
+    const e164 = toE164VN(phone);
+    if (!e164) return setError('Số điện thoại không hợp lệ (ví dụ 0912345678).');
+    setLoading(true);
+    try {
+      const supa = createSupabaseBrowser();
+      const { error } = await supa.auth.signInWithOtp({ phone: e164 });
+      if (error) throw error;
+      setSent(true);
+      setCooldown(60);
+      setOtp(['', '', '', '', '', '']);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  async function verifyPhone() {
+    const token = otp.join('');
+    const e164 = toE164VN(phone);
+    if (token.length !== 6 || !e164) return setError('Nhập đủ 6 số của mã OTP.');
+    setLoading(true);
+    setError(null);
+    try {
+      const supa = createSupabaseBrowser();
+      const { data, error } = await supa.auth.verifyOtp({ phone: e164, token, type: 'sms' });
+      if (error) throw error;
+      if (data.user) {
+        // Bảo đảm có profile (trigger đã tạo; upsert chỉ phòng hờ)
+        await supa.from('profiles').upsert({ id: data.user.id, phone: toLocalVN(phone) }, { onConflict: 'id', ignoreDuplicates: true });
+      }
+      router.replace(redirectTo);
+      router.refresh();
+    } catch (err) {
+      setError('Mã OTP không đúng hoặc đã hết hạn.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleOtpInput(idx: number, val: string) {
+    const digits = val.replace(/\D/g, '');
+    if (digits.length > 2) {
+      // dán cả mã
+      const next = digits.slice(0, 6).split('');
+      setOtp([...next, ...Array(6 - next.length).fill('')]);
+      document.getElementById(`otp-${Math.min(next.length, 5)}`)?.focus();
+      return;
+    }
+    const next = [...otp];
+    next[idx] = digits.slice(-1);
+    setOtp(next);
+    if (digits && idx < 5) document.getElementById(`otp-${idx + 1}`)?.focus();
   }
 
   return (
@@ -121,7 +202,7 @@ export default function LoginPage() {
 
             {/* OAuth */}
             <div className="oauth">
-              <a href="/dashboard">
+              <a href="#" onClick={(e) => { e.preventDefault(); oauth('google'); }}>
                 <svg viewBox="0 0 24 24" style={{ width: 18, height: 18 }}>
                   <path fill="#4285F4" d="M22.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-2 3.3-4.9 3.3-7.8z"/>
                   <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.3 1.1-3.7 1.1-2.8 0-5.2-1.9-6-4.5H2.3v2.8A11 11 0 0 0 12 23z"/>
@@ -130,22 +211,15 @@ export default function LoginPage() {
                 </svg>
                 Google
               </a>
-              <a href="/dashboard">
-                <svg viewBox="0 0 24 24" style={{ width: 18, height: 18 }}>
-                  <rect width="24" height="24" rx="5" fill="#0068FF"/>
-                  <text x="12" y="16" fontSize="11" fontWeight="800" fill="#fff" textAnchor="middle" fontFamily="Arial">Zalo</text>
-                </svg>
-                Zalo
-              </a>
             </div>
             <div className="divider-or">hoặc dùng</div>
 
             {/* Method switcher */}
             <div className="method">
-              <button className={method === 'phone' ? 'active' : ''} onClick={() => setMethod('phone')}>
+              <button className={method === 'phone' ? 'active' : ''} onClick={() => switchMethod('phone')}>
                 <svg className="ic"><use href="#ic-phone" /></svg> Số điện thoại (OTP)
               </button>
-              <button className={method === 'email' ? 'active' : ''} onClick={() => setMethod('email')}>
+              <button className={method === 'email' ? 'active' : ''} onClick={() => switchMethod('email')}>
                 <svg className="ic"><use href="#ic-mail" /></svg> Email
               </button>
             </div>
@@ -163,9 +237,10 @@ export default function LoginPage() {
                   />
                   <div className="hint">Chúng tôi sẽ gửi mã OTP gồm 6 số qua SMS/Zalo.</div>
                 </div>
-                <button className="btn btn-orange btn-block btn-lg" onClick={() => setSent(true)}>
-                  Gửi mã OTP
+                <button className="btn btn-orange btn-block btn-lg" disabled={loading || cooldown > 0} onClick={sendPhone}>
+                  {loading && !sent ? 'Đang gửi…' : sent ? 'Gửi lại mã OTP' : 'Gửi mã OTP'}
                 </button>
+                {error && method === 'phone' && <p style={{ color: '#c0392b', fontSize: 13, marginTop: 10 }}>{error}</p>}
                 {sent && (
                   <div style={{ marginTop: 22 }}>
                     <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: 'var(--navy)', marginBottom: 8 }}>
@@ -176,15 +251,18 @@ export default function LoginPage() {
                         <input
                           key={i}
                           id={`otp-${i}`}
-                          maxLength={1}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
                           value={v}
                           onChange={(e) => handleOtpInput(i, e.target.value)}
                         />
                       ))}
                     </div>
                     <div className="between mt-16">
-                      <span className="hint" style={{ margin: 0 }}>Gửi lại mã sau <b style={{ color: 'var(--navy)' }}>42s</b></span>
-                      <a href="/dashboard" className="btn btn-navy btn-sm">Xác nhận</a>
+                      <span className="hint" style={{ margin: 0 }}>
+                        {cooldown > 0 ? <>Gửi lại mã sau <b style={{ color: 'var(--navy)' }}>{cooldown}s</b></> : 'Chưa nhận được mã? Bấm “Gửi lại mã OTP”.'}
+                      </span>
+                      <button className="btn btn-navy btn-sm" disabled={loading} onClick={verifyPhone}>Xác nhận</button>
                     </div>
                   </div>
                 )}

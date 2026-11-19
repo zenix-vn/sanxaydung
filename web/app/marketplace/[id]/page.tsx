@@ -4,6 +4,9 @@ import { createSupabaseServer } from '@/lib/supabase/server';
 import { SUPABASE_URL } from '@/lib/env';
 import type { Listing } from '@/lib/types';
 import QuoteForm from './QuoteForm';
+import QuoteActions from './QuoteActions';
+import { getMe } from '@/lib/me';
+import { colorFor, initials, fmtMoney } from '@/lib/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,30 +73,72 @@ async function getSimilar(id: string, type: string): Promise<Listing[]> {
   }
 }
 
+interface QuoteRow {
+  id: string;
+  company_id: string;
+  amount: number | null;
+  message: string | null;
+  status: string;
+  created_at: string;
+  companies: { id: string; name: string; slug: string; logo_url: string | null; verified_tier: string; trust_score: number } | null;
+}
+
+// RLS: chủ tin thấy mọi báo giá; bên báo giá chỉ thấy báo giá của mình; người khác thấy rỗng.
+async function getQuotes(listingId: string): Promise<QuoteRow[]> {
+  if (!SUPABASE_URL) return [];
+  try {
+    const supa = createSupabaseServer();
+    const { data } = await supa
+      .from('quotes')
+      .select('id, company_id, amount, message, status, created_at, companies ( id, name, slug, logo_url, verified_tier, trust_score )')
+      .eq('listing_id', listingId)
+      .neq('status', 'withdrawn')
+      .order('amount', { ascending: true, nullsFirst: false });
+    return (data ?? []) as unknown as QuoteRow[];
+  } catch {
+    return [];
+  }
+}
+
+async function countOpenListings(companyId: string): Promise<number> {
+  if (!SUPABASE_URL) return 0;
+  try {
+    const { count } = await createSupabaseServer()
+      .from('marketplace_listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('company_id', companyId)
+      .eq('status', 'open')
+      .is('deleted_at', null);
+    return count ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const l = await getListing(params.id);
   if (!l) return { title: 'Không tìm thấy tin đăng' };
   return { title: l.title, description: l.description?.slice(0, 160) ?? undefined };
 }
 
-// Mock quotes for demo (real: fetch from quotes table filtered by listing_id + is_owner)
-const MOCK_QUOTES = [
-  { initials: 'HB', bg: '#12439c', name: 'Xây dựng Hòa Bình', verified: true, rating: 4.9, amt: '52.000.000.000 ₫', time: '18 tháng', note: 'Hòa Bình có kinh nghiệm 35 năm thi công nhà cao tầng. Cam kết tiến độ và chất lượng.' },
-  { initials: 'CT', bg: '#111', name: 'Coteccons', verified: true, rating: 4.8, amt: '49.000.000.000 ₫', time: '20 tháng', note: 'Coteccons đề xuất phương án tối ưu chi phí vật liệu với nhà cung cấp chiến lược.' },
-  { initials: 'DL', bg: '#17479e', name: 'Delta Group', verified: false, rating: 4.5, amt: '55.500.000.000 ₫', time: '16 tháng', note: 'Delta tập trung tiến độ nhanh, đội ngũ 500 kỹ sư sẵn sàng triển khai ngay.' },
-];
-
 export default async function MarketplaceDetailPage({ params }: { params: { id: string } }) {
   const l = await getListing(params.id);
   if (!l) notFound();
 
-  const similar = await getSimilar(params.id, l.type);
+  const [similar, quotes, me, listingCount] = await Promise.all([
+    getSimilar(params.id, l.type),
+    getQuotes(params.id),
+    getMe(),
+    countOpenListings(l.company_id),
+  ]);
+  const isOwner = me.companies.some((c) => c.id === l.company_id);
+  const chatHref = `/chat?to=${l.company_id}&listing=${l.id}`;
   const company = l.companies;
   const dl = daysLeft(l.deadline);
   const typeLabel = TYPE_LABEL[l.type] ?? l.type;
   const ini = company ? company.name.split(' ').slice(-2).map((w: string) => w[0]?.toUpperCase()).join('') : '??';
   const quoteCount = l.quote_count ?? 0;
-  const showQuotes = quoteCount > 0;
+  const showQuotes = quotes.length > 0;
 
   return (
     <>
@@ -177,7 +222,6 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
 
               {/* View count */}
               <div className="row" style={{ gap: 16, fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-                <span><svg className="ic" style={{ width: 14, height: 14 }}><use href="#ic-eye" /></svg> 342 lượt xem</span>
                 <span><svg className="ic" style={{ width: 14, height: 14 }}><use href="#ic-file-text" /></svg> {quoteCount} báo giá đã nhận</span>
               </div>
 
@@ -191,80 +235,55 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
                 </>
               )}
 
-              {/* Attachments */}
-              <h2 style={{ marginTop: 20, marginBottom: 12 }}>Tài liệu đính kèm</h2>
-              <div>
-                <div className="att-row">
-                  <span className="ic-b"><svg className="ic"><use href="#ic-file-text" /></svg></span>
-                  <div>
-                    <h4>Hồ sơ mời thầu.pdf</h4>
-                    <small>PDF · 4.2 MB · Tải về</small>
-                  </div>
-                  <a className="btn btn-outline btn-sm" style={{ marginLeft: 'auto' }}>
-                    <svg className="ic"><use href="#ic-download" /></svg>
-                  </a>
-                </div>
-                <div className="att-row">
-                  <span className="ic-b" style={{ background: '#eaf7ee', color: 'var(--green)' }}>
-                    <svg className="ic"><use href="#ic-image" /></svg>
-                  </span>
-                  <div>
-                    <h4>Phối cảnh dự án.jpg</h4>
-                    <small>Hình ảnh · 1.8 MB</small>
-                  </div>
-                  <a className="btn btn-outline btn-sm" style={{ marginLeft: 'auto' }}>
-                    <svg className="ic"><use href="#ic-download" /></svg>
-                  </a>
-                </div>
-              </div>
             </div>
 
             {/* Quote form */}
-            <div className="card-block">
-              <h2>Gửi báo giá của bạn</h2>
-              <QuoteForm listingId={l.id} />
-            </div>
+            {l.status === 'open' ? (
+              <div className="card-block">
+                <h2>Gửi báo giá của bạn</h2>
+                <QuoteForm listingId={l.id} ownerCompanyId={l.company_id} />
+              </div>
+            ) : (
+              <div className="card-block"><p className="muted">Tin này đã đóng nhận báo giá.</p></div>
+            )}
 
             {/* Quotes received */}
             {showQuotes && (
               <div className="card-block">
                 <div className="between mb-16">
-                  <h2 style={{ margin: 0 }}>Báo giá đã nhận ({quoteCount})</h2>
-                  <span className="muted" style={{ fontSize: 13 }}>Chỉ chủ tin nhìn thấy đầy đủ</span>
+                  <h2 style={{ margin: 0 }}>{isOwner ? `Báo giá đã nhận (${quotes.length})` : 'Báo giá của bạn'}</h2>
+                  {isOwner && <span className="muted" style={{ fontSize: 13 }}>Chỉ chủ tin nhìn thấy đầy đủ</span>}
                 </div>
-                {MOCK_QUOTES.slice(0, Math.min(3, quoteCount > 0 ? 3 : 0)).map((q, i) => (
-                  <div key={i} className="quote-item">
-                    <span className="qa" style={{ background: q.bg }}>{q.initials}</span>
-                    <div style={{ flex: 1 }}>
-                      <h4>
-                        {q.name}
-                        {q.verified && <svg className="ic" style={{ width: 15, height: 15, color: 'var(--green)' }}><use href="#ic-shield-check" /></svg>}
-                        <span className="stars-row">
-                          <span className="star">★</span> {q.rating}
-                        </span>
-                      </h4>
-                      <div className="row" style={{ gap: 16, fontSize: 13, color: 'var(--muted)' }}>
-                        <span className="amt">{q.amt}</span>
-                        <span>· {q.time}</span>
-                      </div>
-                      <p>{q.note}</p>
-                      <div className="qactions">
-                        <a className="btn btn-navy btn-sm" href="/chat">
-                          <svg className="ic"><use href="#ic-chat" /></svg> Nhắn tin
-                        </a>
-                        <a className="btn btn-outline btn-sm">
-                          <svg className="ic"><use href="#ic-check" /></svg> Shortlist
-                        </a>
+                {quotes.map((q) => {
+                  const co = q.companies;
+                  const name = co?.name ?? 'Doanh nghiệp';
+                  return (
+                    <div key={q.id} className="quote-item">
+                      {co?.logo_url ? (
+                        <img src={co.logo_url} alt={name} className="qa" style={{ objectFit: 'cover' }} />
+                      ) : (
+                        <span className="qa" style={{ background: colorFor(co?.id ?? name) }}>{initials(name)}</span>
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <h4>
+                          <a href={co ? `/cong-ty/${co.slug}` : '#'} style={{ color: 'inherit', textDecoration: 'none' }}>{name}</a>
+                          {co && co.verified_tier !== 'none' && <svg className="ic" style={{ width: 15, height: 15, color: 'var(--green)' }}><use href="#ic-shield-check" /></svg>}
+                          {co && <span className="stars-row">Trust {Math.round(co.trust_score ?? 0)}</span>}
+                        </h4>
+                        <div className="row" style={{ gap: 16, fontSize: 13, color: 'var(--muted)' }}>
+                          <span className="amt">{q.amount != null ? `${q.amount.toLocaleString('vi-VN')} ₫` : 'Thương lượng'}</span>
+                          {q.amount != null && <span>· {fmtMoney(q.amount)}</span>}
+                        </div>
+                        {q.message && <p style={{ whiteSpace: 'pre-line' }}>{q.message}</p>}
+                        {isOwner ? (
+                          <QuoteActions quoteId={q.id} status={q.status} chatHref={`/chat?to=${q.company_id}&listing=${l.id}`} />
+                        ) : (
+                          <span className="badge gray">{q.status === 'sent' ? 'Đã gửi' : q.status}</span>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
-                {quoteCount <= 0 && (
-                  <div className="pill-note">
-                    <svg className="ic"><use href="#ic-lock" /></svg>
-                    <span>Danh sách báo giá chỉ hiển thị với chủ doanh nghiệp đã đăng tin sau khi đăng nhập.</span>
-                  </div>
-                )}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -295,12 +314,12 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
                     <br /><small className="muted">Trust Score</small>
                   </div>
                   <div>
-                    <b style={{ color: 'var(--navy)', fontSize: 18 }}>12</b>
-                    <br /><small className="muted">Tin đã đăng</small>
+                    <b style={{ color: 'var(--navy)', fontSize: 18 }}>{listingCount}</b>
+                    <br /><small className="muted">Tin đang mở</small>
                   </div>
                 </div>
                 <div className="stack" style={{ gap: 8 }}>
-                  <a className="btn btn-navy btn-block" href="/chat">
+                  <a className="btn btn-navy btn-block" href={chatHref}>
                     <svg className="ic"><use href="#ic-chat" /></svg> Nhắn tin
                   </a>
                   <a className="btn btn-outline btn-block" href={`/cong-ty/${company.slug}`}>
@@ -311,7 +330,7 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
             ) : (
               <div className="infobox" style={{ textAlign: 'center' }}>
                 <p className="muted">Chủ đầu tư ẩn danh</p>
-                <a className="btn btn-navy btn-block mt-8" href="/chat">
+                <a className="btn btn-navy btn-block mt-8" href={chatHref}>
                   <svg className="ic"><use href="#ic-chat" /></svg> Nhắn tin
                 </a>
               </div>

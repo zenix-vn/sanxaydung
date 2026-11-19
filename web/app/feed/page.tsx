@@ -1,38 +1,121 @@
 import type { Metadata } from 'next';
+import { createSupabaseServer } from '@/lib/supabase/server';
+import { SUPABASE_URL } from '@/lib/env';
+import { colorFor, initials, timeAgo } from '@/lib/ui';
+import FeedComposer from './FeedComposer';
+import LikeButton from './LikeButton';
 
 export const metadata: Metadata = { title: 'Tin tức ngành' };
+export const dynamic = 'force-dynamic';
 
-const POSTS = [
-  {
-    initials: 'HB', bg: '#12439c',
-    name: 'Xây dựng Hòa Bình',
-    time: '2 giờ trước',
-    type: { label: 'Dự án hoàn thành', cls: 'green', icon: 'ic-check' },
-    body: '🎉 Hòa Bình chính thức bàn giao <b>Landmark Tower — 42 tầng</b> tại TP.HCM, vượt tiến độ 15 ngày! Cảm ơn chủ đầu tư đã tin tưởng đồng hành. Công trình đạt chứng nhận an toàn lao động xuất sắc.',
-    img: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&w=1000&q=75',
-    likes: 214, comments: 32, shares: 12,
-  },
-  {
-    initials: 'AP', bg: '#c0392b',
-    name: 'An Phong Construction',
-    time: '5 giờ trước',
-    type: { label: 'Tuyển dụng', cls: 'orange', icon: 'ic-people' },
-    body: '📢 <b>TUYỂN GẤP:</b> 05 Kỹ sư giám sát M&E và 02 Chỉ huy trưởng cho dự án khách sạn tại Đà Nẵng. Lương cạnh tranh 20–35 triệu + phụ cấp công trình. Inbox hoặc gửi CV qua nền tảng.',
-    img: '',
-    likes: 48, comments: 15, shares: 0,
-  },
-  {
-    initials: 'TC', bg: '#0d6b3f',
-    name: 'Vật liệu Thành Công',
-    time: 'Hôm qua',
-    type: { label: 'Chứng nhận', cls: '', icon: 'ic-award' },
-    body: '🏆 Chúng tôi vừa đạt <b>chứng nhận ISO 9001:2015</b> cho hệ thống quản lý chất lượng vật liệu xây dựng. Cam kết cung cấp sản phẩm đạt chuẩn cho mọi công trình.',
-    img: '',
-    likes: 96, comments: 8, shares: 0,
-  },
-];
+const POST_TYPE_MAP: Record<string, { label: string; cls: string; icon: string }> = {
+  news:               { label: 'Tin tức',           cls: '',       icon: 'ic-layers' },
+  new_project:        { label: 'Dự án mới',         cls: 'blue',   icon: 'ic-building' },
+  completed_project:  { label: 'Dự án hoàn thành',  cls: 'green',  icon: 'ic-check' },
+  recruitment:        { label: 'Tuyển dụng',        cls: 'orange', icon: 'ic-people' },
+  equipment:          { label: 'Thiết bị',           cls: '',       icon: 'ic-gear' },
+  certificate:        { label: 'Chứng nhận',        cls: '',       icon: 'ic-award' },
+  promotion:          { label: 'Khuyến mãi',        cls: 'orange', icon: 'ic-tag' },
+  activity:           { label: 'Hoạt động',         cls: '',       icon: 'ic-activity' },
+};
 
-export default function FeedPage() {
+interface PostRow {
+  id: string;
+  company_id: string;
+  author_id: string | null;
+  type: string;
+  title: string | null;
+  body: string | null;
+  status: string;
+  like_count: number;
+  comment_count: number;
+  created_at: string;
+  companies: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_url: string | null;
+    verified_tier: string;
+  } | null;
+  media?: { url: string; kind: string }[];
+}
+
+const PAGE_SIZE = 15;
+
+async function getPosts(type?: string, before?: string): Promise<{ posts: PostRow[]; liked: Set<string>; hasMore: boolean }> {
+  if (!SUPABASE_URL) return { posts: [], liked: new Set(), hasMore: false };
+  try {
+    const supa = createSupabaseServer();
+    let q = supa
+      .from('posts')
+      .select(`
+        id, company_id, author_id, type, title, body, status,
+        like_count, comment_count, created_at,
+        companies ( id, name, slug, logo_url, verified_tier )
+      `)
+      .eq('status', 'published')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(PAGE_SIZE + 1);
+    if (type && POST_TYPE_MAP[type]) q = q.eq('type', type);
+    if (before) q = q.lt('created_at', before); // keyset theo created_at
+    const { data } = await q;
+    const rows = (data ?? []) as unknown as PostRow[];
+    const hasMore = rows.length > PAGE_SIZE;
+    const posts = rows.slice(0, PAGE_SIZE);
+    if (!posts.length) return { posts, liked: new Set(), hasMore };
+
+    const ids = posts.map((p) => p.id);
+    // Ảnh: bảng media dùng owner_type/owner_id (không có FK tới posts)
+    const { data: med } = await supa
+      .from('media')
+      .select('owner_id, url, kind, sort_order')
+      .eq('owner_type', 'post')
+      .in('owner_id', ids)
+      .order('sort_order');
+    const byPost = new Map<string, { url: string; kind: string }[]>();
+    for (const m of (med ?? []) as { owner_id: string; url: string; kind: string }[]) {
+      byPost.set(m.owner_id, [...(byPost.get(m.owner_id) ?? []), { url: m.url, kind: m.kind }]);
+    }
+    posts.forEach((p) => (p.media = byPost.get(p.id) ?? []));
+
+    const liked = new Set<string>();
+    const { data: { user } } = await supa.auth.getUser();
+    if (user) {
+      const { data: rx } = await supa.from('post_reactions').select('post_id').eq('user_id', user.id).in('post_id', ids);
+      (rx ?? []).forEach((r: { post_id: string }) => liked.add(r.post_id));
+    }
+    return { posts, liked, hasMore };
+  } catch {
+    return { posts: [], liked: new Set(), hasMore: false };
+  }
+}
+
+async function getSuggestions() {
+  if (!SUPABASE_URL) return [];
+  try {
+    const supa = createSupabaseServer();
+    const { data } = await supa
+      .from('companies')
+      .select('id, name, slug, logo_url, verified_tier, trust_score')
+      .eq('status', 'published')
+      .is('deleted_at', null)
+      .order('trust_score', { ascending: false })
+      .limit(4);
+    return (data ?? []) as { id: string; name: string; slug: string; logo_url: string | null; verified_tier: string; trust_score: number }[];
+  } catch {
+    return [];
+  }
+}
+
+export default async function FeedPage({ searchParams }: { searchParams: { type?: string; before?: string } }) {
+  const type = searchParams.type && POST_TYPE_MAP[searchParams.type] ? searchParams.type : undefined;
+  const [{ posts, liked, hasMore }, suggestions] = await Promise.all([getPosts(type, searchParams.before), getSuggestions()]);
+  const nextHref = posts.length
+    ? `/feed?${type ? `type=${type}&` : ''}before=${encodeURIComponent(posts[posts.length - 1].created_at)}`
+    : '';
+  const navCls = (t?: string) => (t === type ? 'active' : '');
+
   return (
     <>
       <style>{`
@@ -73,148 +156,163 @@ export default function FeedPage() {
         .sugg .ava-s{width:38px;height:38px;border-radius:9px;font-weight:800;color:#fff;display:grid;place-items:center;font-size:13px;flex:none}
         .sugg h5{font-size:13px;font-weight:700;color:var(--navy)}
         .sugg small{font-size:11.5px;color:var(--muted)}
+        .empty-feed{text-align:center;padding:48px 24px;color:var(--muted)}
+        .empty-feed svg{width:48px;height:48px;opacity:.3;margin-bottom:12px}
         @media(max-width:1024px){.feed-grid{grid-template-columns:1fr}.feed-grid aside{display:none}}
       `}</style>
 
       <div className="container" style={{ padding: '24px 20px 48px' }}>
         <div className="feed-grid">
-          {/* LEFT NAV */}
+
+          {/* LEFT sidebar */}
           <aside>
-            <div className="side-card side-nav">
-              <a className="active" href="/feed">
-                <svg className="ic"><use href="#ic-layers" /></svg> Tất cả tin
-              </a>
-              <a href="/feed?type=project">
-                <svg className="ic"><use href="#ic-building" /></svg> Công trình mới
-              </a>
-              <a href="/feed?type=done">
-                <svg className="ic"><use href="#ic-check" /></svg> Dự án hoàn thành
-              </a>
-              <a href="/feed?type=hiring">
-                <svg className="ic"><use href="#ic-people" /></svg> Tuyển dụng
-              </a>
-              <a href="/feed?type=cert">
-                <svg className="ic"><use href="#ic-award" /></svg> Chứng nhận
-              </a>
-              <a href="/feed?type=promo">
-                <svg className="ic"><use href="#ic-tag" /></svg> Khuyến mại
-              </a>
-              <a href="/feed?type=following">
-                <svg className="ic"><use href="#ic-heart" /></svg> Đang theo dõi
-              </a>
+            <div className="side-card">
+              <nav className="side-nav">
+                <a className={navCls(undefined)} href="/feed">
+                  <svg className="ic"><use href="#ic-layers" /></svg> Tất cả bài viết
+                </a>
+                <a className={navCls('completed_project')} href="/feed?type=completed_project">
+                  <svg className="ic"><use href="#ic-building" /></svg> Dự án
+                </a>
+                <a className={navCls('recruitment')} href="/feed?type=recruitment">
+                  <svg className="ic"><use href="#ic-people" /></svg> Tuyển dụng
+                </a>
+                <a className={navCls('certificate')} href="/feed?type=certificate">
+                  <svg className="ic"><use href="#ic-award" /></svg> Chứng nhận
+                </a>
+                <a href="/marketplace">
+                  <svg className="ic"><use href="#ic-briefcase" /></svg> Marketplace
+                </a>
+                <a href="/directory">
+                  <svg className="ic"><use href="#ic-search" /></svg> Tìm đối tác
+                </a>
+              </nav>
+            </div>
+            <div className="side-card" style={{ background: 'linear-gradient(135deg,#021e48,#12439c)', color: '#fff', border: 'none' }}>
+              <h4 style={{ color: '#fff', fontSize: 14, marginBottom: 8 }}>Đăng bài doanh nghiệp</h4>
+              <p style={{ fontSize: 13, color: '#c6d3e2', marginBottom: 14 }}>Chia sẻ dự án, thông báo tuyển dụng, chứng nhận và cơ hội hợp tác.</p>
+              <a className="btn btn-orange btn-block btn-sm" href="#composer">Đăng bài →</a>
             </div>
           </aside>
 
-          {/* FEED */}
+          {/* MAIN feed */}
           <div>
-            {/* Composer */}
-            <div className="composer">
-              <div className="top">
-                <span className="post .head .ava" style={{ width: 42, height: 42, borderRadius: 10, background: '#12439c', color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 14, flexShrink: 0 }}>HB</span>
-                <input placeholder="Chia sẻ cập nhật của Hòa Bình: công trình mới, tin tuyển dụng…" />
-              </div>
-              <div className="acts">
-                <span className="a"><svg className="ic" style={{ color: '#22a06b' }}><use href="#ic-image" /></svg> Ảnh</span>
-                <span className="a"><svg className="ic" style={{ color: '#e0455e' }}><use href="#ic-video" /></svg> Video</span>
-                <span className="a"><svg className="ic" style={{ color: '#2a5a9e' }}><use href="#ic-building" /></svg> Dự án</span>
-                <span className="a"><svg className="ic" style={{ color: '#d97706' }}><use href="#ic-people" /></svg> Tuyển dụng</span>
-                <button className="btn btn-orange btn-sm" style={{ marginLeft: 'auto' }}>Đăng bài</button>
-              </div>
-            </div>
+            <div id="composer"><FeedComposer /></div>
 
-            {/* Posts */}
-            {POSTS.map((post, i) => (
-              <article key={i} className="post">
-                <div className="head">
-                  <span className="ava" style={{ width: 46, height: 46, borderRadius: 11, background: post.bg, color: '#fff', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 15, flexShrink: 0 }}>
-                    {post.initials}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <h4>
-                      {post.name}
-                      <svg className="ic" style={{ width: 15, height: 15, color: 'var(--green)' }}><use href="#ic-shield-check" /></svg>
-                    </h4>
-                    <small>
-                      {post.time} ·{' '}
-                      <svg className="ic" style={{ width: 12, height: 12, verticalAlign: -1 }}><use href="#ic-globe" /></svg>{' '}
-                      Công khai
-                    </small>
-                  </div>
-                  <a className="btn btn-icon btn-outline" style={{ border: 'none' }}>
-                    <svg className="ic"><use href="#ic-dots" /></svg>
-                  </a>
-                </div>
-                <div className="ptype">
-                  <span className={`badge ${post.type.cls}`}>
-                    <svg className="ic"><use href={`#${post.type.icon}`} /></svg> {post.type.label}
-                  </span>
-                </div>
-                <div className="body">
-                  <p dangerouslySetInnerHTML={{ __html: post.body }} />
-                </div>
-                {post.img && <img className="pimg" src={post.img} alt="" />}
-                <div className="stats">
-                  <span>
-                    <svg className="ic fill" style={{ width: 14, height: 14, color: 'var(--orange)', verticalAlign: -2 }}><use href="#ic-thumb" /></svg> {post.likes}
-                  </span>
-                  {post.comments > 0 && <span>{post.comments} bình luận</span>}
-                  {post.shares > 0 && <span>{post.shares} chia sẻ</span>}
-                </div>
-                <div className="actions">
-                  <a><svg className="ic"><use href="#ic-thumb" /></svg> Thích</a>
-                  <a><svg className="ic"><use href="#ic-chat" /></svg> Bình luận</a>
-                  <a><svg className="ic"><use href="#ic-link" /></svg> Chia sẻ</a>
-                </div>
-              </article>
-            ))}
+            {/* Post list */}
+            {posts.length === 0 ? (
+              <div className="empty-feed">
+                <svg className="ic"><use href="#ic-layers" /></svg>
+                <p>Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!</p>
+              </div>
+            ) : (
+              posts.map((post) => {
+                const co = post.companies;
+                const typeInfo = POST_TYPE_MAP[post.type] ?? POST_TYPE_MAP.news;
+                const ini = co ? initials(co.name) : '?';
+                const bg = co ? colorFor(co.id) : '#555';
+                const imgs = (post.media ?? []).filter((m) => m.kind === 'image').map((m) => m.url);
+
+                return (
+                  <article key={post.id} className="post">
+                    <div className="head">
+                      <a href={co ? `/cong-ty/${co.slug}` : '#'} style={{ textDecoration: 'none' }}>
+                        {co?.logo_url ? (
+                          <img
+                            src={co.logo_url}
+                            alt={co.name}
+                            style={{ width: 46, height: 46, borderRadius: 11, objectFit: 'cover', flexShrink: 0 }}
+                          />
+                        ) : (
+                          <span className="ava" style={{ background: bg }}>{ini}</span>
+                        )}
+                      </a>
+                      <div style={{ flex: 1 }}>
+                        <h4>
+                          <a href={co ? `/cong-ty/${co.slug}` : '#'} style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {co?.name ?? 'Doanh nghiệp'}
+                          </a>
+                          {co?.verified_tier !== 'none' && (
+                            <svg className="ic" style={{ width: 15, height: 15, color: 'var(--green)' }}><use href="#ic-shield-check" /></svg>
+                          )}
+                        </h4>
+                        <small>
+                          {timeAgo(post.created_at)} ·{' '}
+                          <svg className="ic" style={{ width: 12, height: 12, verticalAlign: -1 }}><use href="#ic-globe" /></svg>{' '}
+                          Công khai
+                        </small>
+                      </div>
+                      <a className="btn btn-icon btn-outline" style={{ border: 'none' }}>
+                        <svg className="ic"><use href="#ic-dots" /></svg>
+                      </a>
+                    </div>
+
+                    <div className="ptype">
+                      <span className={`badge ${typeInfo.cls}`}>
+                        <svg className="ic"><use href={`#${typeInfo.icon}`} /></svg> {typeInfo.label}
+                      </span>
+                    </div>
+
+                    <div className="body">
+                      {post.title && <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>{post.title}</h3>}
+                      {post.body && <p>{post.body}</p>}
+                    </div>
+
+                    {imgs.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: imgs.length > 1 ? '1fr 1fr' : '1fr', gap: 2 }}>
+                        {imgs.map((u) => <img key={u} className="pimg" src={u} alt="" loading="lazy" style={{ marginTop: 0, maxHeight: imgs.length > 1 ? 220 : 360, height: imgs.length > 1 ? 220 : undefined }} />)}
+                      </div>
+                    )}
+
+                    {post.comment_count > 0 && (
+                      <div className="stats"><span>{post.comment_count} bình luận</span></div>
+                    )}
+
+                    <div className="actions">
+                      <LikeButton postId={post.id} initialLiked={liked.has(post.id)} initialCount={post.like_count} />
+                      <a><svg className="ic"><use href="#ic-chat" /></svg> Bình luận</a>
+                      <a><svg className="ic"><use href="#ic-link" /></svg> Chia sẻ</a>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+            {hasMore && (
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <a className="btn btn-outline" href={nextHref}>Xem bài cũ hơn</a>
+              </div>
+            )}
+            {searchParams.before && (
+              <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                <a href={type ? `/feed?type=${type}` : '/feed'} style={{ color: 'var(--orange)', fontWeight: 600 }}>← Về bài mới nhất</a>
+              </div>
+            )}
           </div>
 
-          {/* RIGHT */}
+          {/* RIGHT sidebar */}
           <aside>
-            <div className="side-card">
-              <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>Xu hướng ngành</h4>
-              <div className="trend">
-                <a href="#">
-                  <span><b>Giá thép tăng 3%</b><br /><span>Chỉ số giá vật liệu</span></span>
-                  <svg className="ic" style={{ width: 16, height: 16, color: 'var(--green)' }}><use href="#ic-trending" /></svg>
-                </a>
-                <a href="#"><span><b>#DauThauOnline</b><br /><span>1.2k thảo luận</span></span></a>
-                <a href="#"><span><b>#ChungChiNangLuc</b><br /><span>860 thảo luận</span></span></a>
-                <a href="#"><span><b>#XanhHoaCongTrinh</b><br /><span>540 thảo luận</span></span></a>
+            {suggestions.length > 0 && (
+              <div className="side-card">
+                <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>Doanh nghiệp uy tín</h4>
+                {suggestions.map((c) => (
+                  <div className="sugg" key={c.id}>
+                    {c.logo_url ? (
+                      <img src={c.logo_url} alt={c.name} style={{ width: 38, height: 38, borderRadius: 9, objectFit: 'cover', flex: 'none' }} />
+                    ) : (
+                      <span className="ava-s" style={{ background: colorFor(c.id) }}>{initials(c.name)}</span>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h5>{c.name}</h5>
+                      <small>Trust Score {Math.round(c.trust_score ?? 0)}</small>
+                    </div>
+                    <a className="btn btn-outline btn-sm" href={`/cong-ty/${c.slug}`}>Xem</a>
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="side-card">
-              <h4 style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>Gợi ý theo dõi</h4>
-              <div className="sugg">
-                <span className="ava-s" style={{ background: '#111' }}>CT</span>
-                <div style={{ flex: 1 }}>
-                  <h5>Coteccons</h5>
-                  <small>Nhà thầu · TP.HCM</small>
-                </div>
-                <a className="btn btn-outline btn-sm">Theo dõi</a>
-              </div>
-              <div className="sugg">
-                <span className="ava-s" style={{ background: '#17479e' }}>DL</span>
-                <div style={{ flex: 1 }}>
-                  <h5>Delta Group</h5>
-                  <small>Nhà thầu · Hà Nội</small>
-                </div>
-                <a className="btn btn-outline btn-sm">Theo dõi</a>
-              </div>
-              <div className="sugg">
-                <span className="ava-s" style={{ background: '#0d6b3f' }}>HP</span>
-                <div style={{ flex: 1 }}>
-                  <h5>Thép Hòa Phát</h5>
-                  <small>Nhà cung cấp</small>
-                </div>
-                <a className="btn btn-outline btn-sm">Theo dõi</a>
-              </div>
-            </div>
+            )}
             <div className="side-card" style={{ background: 'linear-gradient(135deg,#021e48,#12439c)', color: '#fff', border: 'none' }}>
               <h4 style={{ color: '#fff', fontSize: 15 }}>Nâng cấp hồ sơ nổi bật</h4>
-              <p style={{ fontSize: 13, color: '#c6d3e2', margin: '8px 0 14px' }}>
-                Bài viết &amp; hồ sơ của bạn hiển thị ưu tiên với gói Professional.
-              </p>
+              <p style={{ fontSize: 13, color: '#c6d3e2', margin: '8px 0 14px' }}>Bài viết &amp; hồ sơ của bạn hiển thị ưu tiên với gói Professional.</p>
               <a className="btn btn-orange btn-block" href="/pricing">Xem gói →</a>
             </div>
           </aside>
