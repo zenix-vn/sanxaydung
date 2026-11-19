@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { SUPABASE_URL } from '@/lib/env';
 import type { Company } from '@/lib/types';
 
@@ -46,46 +46,50 @@ type SP = {
   page?: string;
 };
 
+const fetchSearch = cachedPublic(async (sp: SP): Promise<Company[]> => {
+  const supa = createSupabasePublic();
+  let categoryId: string | null = null;
+  if (sp.category) {
+    const { data, error } = await supa.from('categories').select('id').eq('slug', sp.category).maybeSingle();
+    if (error) throw error;
+    categoryId = data?.id ?? null;
+  } else if (sp.group) {
+    const { data, error } = await supa.from('categories').select('id').eq('group_key', sp.group).limit(1).maybeSingle();
+    if (error) throw error;
+    categoryId = data?.id ?? null;
+  }
+  const page = Math.max(1, parseInt(sp.page ?? '1'));
+  const { data, error } = await supa.rpc('search_companies', {
+    q: sp.q || null,
+    _category: categoryId,
+    _province: sp.province || null,
+    _verified_only: sp.verified === 'true',
+    _limit: 20,
+    _offset: (page - 1) * 20,
+  });
+  if (error) throw error;
+  return (data ?? []) as Company[];
+}, 'dir-search', 60);
+
 async function search(sp: SP): Promise<Company[]> {
   if (!SUPABASE_URL) return [];
   try {
-    const supa = createSupabaseServer();
-
-    let categoryId: string | null = null;
-    if (sp.category) {
-      const { data } = await supa.from('categories').select('id').eq('slug', sp.category).maybeSingle();
-      categoryId = data?.id ?? null;
-    } else if (sp.group) {
-      const { data } = await supa
-        .from('categories')
-        .select('id')
-        .eq('group_key', sp.group)
-        .limit(1)
-        .maybeSingle();
-      categoryId = data?.id ?? null;
-    }
-
-    const page = Math.max(1, parseInt(sp.page ?? '1'));
-    const { data } = await supa.rpc('search_companies', {
-      q: sp.q || null,
-      _category: categoryId,
-      _province: sp.province || null,
-      _verified_only: sp.verified === 'true',
-      _limit: 20,
-      _offset: (page - 1) * 20,
-    });
-    return (data ?? []) as Company[];
+    return await fetchSearch(sp);
   } catch {
     return [];
   }
 }
 
+const fetchProvinces = cachedPublic(async () => {
+  const { data, error } = await createSupabasePublic().from('provinces').select('code, name').order('name').limit(63);
+  if (error) throw error;
+  return data ?? [];
+}, 'provinces', 3600);
+
 async function getProvinces() {
   if (!SUPABASE_URL) return [];
   try {
-    const supa = createSupabaseServer();
-    const { data } = await supa.from('provinces').select('code, name').order('name').limit(63);
-    return data ?? [];
+    return await fetchProvinces();
   } catch {
     return [];
   }

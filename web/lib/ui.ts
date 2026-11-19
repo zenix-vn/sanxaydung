@@ -52,3 +52,9 @@ export function parseMoney(input: string): number | null {
 }
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sanxaydung.vn').replace(/\/$/, '');
+
+/** Ảnh logo từ Google (lh3) mặc định tải bản gốc rất lớn → yêu cầu bản vuông nhỏ. */
+export function thumb(url: string | null | undefined, size = 160): string | undefined {
+  if (!url) return undefined;
+  return /^https:\/\/lh3\.googleusercontent\.com\/d\/[\w-]+$/.test(url) ? `${url}=s${size}` : url;
+}

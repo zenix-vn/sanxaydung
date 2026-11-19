@@ -1,4 +1,5 @@
 import type { Company } from '@/lib/types';
+import { thumb } from '@/lib/ui';
 
 type CompanyWithRel = Company & {
   company_categories?: { categories: { name: string } | null }[];
@@ -22,7 +23,7 @@ export default function CompanyCard({ c }: { c: CompanyWithRel }) {
       <div className="comp-top">
         <div className="comp-logo">
           {c.logo_url ? (
-            <img src={c.logo_url} alt={c.name} />
+            <img src={thumb(c.logo_url)} alt={c.name} loading="lazy" decoding="async" width={62} height={62} />
           ) : (
             <svg className="ic" style={{ width: 34, height: 34 }}>
               <use href="#ic-building" />

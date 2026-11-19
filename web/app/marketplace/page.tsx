@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { SUPABASE_URL } from '@/lib/env';
 import type { Listing } from '@/lib/types';
 
@@ -50,21 +50,25 @@ function daysLeft(deadline: string | null): { label: string; urgent: boolean } |
   return { label: `Còn ${diff} ngày`, urgent: false };
 }
 
+const fetchListings = cachedPublic(async (type: string): Promise<Listing[]> => {
+  let q = createSupabasePublic()
+    .from('marketplace_listings')
+    .select('*')
+    .eq('status', 'open')
+    .is('deleted_at', null)
+    .order('is_featured', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (type) q = q.eq('type', type);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as Listing[];
+}, 'listings', 30);
+
 async function getListings(type?: string): Promise<Listing[]> {
   if (!SUPABASE_URL) return [];
   try {
-    const supa = createSupabaseServer();
-    let q = supa
-      .from('marketplace_listings')
-      .select('*')
-      .eq('status', 'open')
-      .is('deleted_at', null)
-      .order('is_featured', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(30);
-    if (type) q = q.eq('type', type);
-    const { data } = await q;
-    return (data ?? []) as Listing[];
+    return await fetchListings(type ?? '');
   } catch {
     return [];
   }

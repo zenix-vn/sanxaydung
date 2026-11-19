@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/env';
+import { serverFetch } from './internal-fetch';
 
 type CookieItem = { name: string; value: string; options: CookieOptions };
 
@@ -8,6 +9,7 @@ type CookieItem = { name: string; value: string; options: CookieOptions };
 export function createSupabaseServer() {
   const cookieStore = cookies();
   return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { fetch: serverFetch },
     cookies: {
       getAll() {
         return cookieStore.getAll();

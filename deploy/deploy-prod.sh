@@ -39,7 +39,7 @@ web() {
     docker build -q -t sxd-web:new --build-arg NEXT_PUBLIC_SUPABASE_URL=https://$DOMAIN --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=\"\$K\" . && \
     docker tag sxd-web:new sxd-web:latest && \
     (docker rm -f sxd-web >/dev/null 2>&1 || true) && \
-    docker run -d --name sxd-web --restart unless-stopped -p 127.0.0.1:3020:3000 --add-host $DOMAIN:host-gateway --memory 768m sxd-web:latest"
+    docker run -d --name sxd-web --restart unless-stopped --network sxd_default -p 127.0.0.1:3020:3000 -e SUPABASE_INTERNAL_URL=http://sxd-kong:8000 --add-host $DOMAIN:host-gateway --memory 768m sxd-web:latest"
 }
 
 backup() {

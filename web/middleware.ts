@@ -3,9 +3,10 @@ import type { NextRequest } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { CORS_HEADERS } from '@/lib/http';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/env';
+import { serverFetch } from '@/lib/supabase/internal-fetch';
 
 // Route cần đăng nhập
-const PROTECTED = ['/dashboard'];
+const PROTECTED = ['/dashboard', '/admin'];
 
 export async function middleware(req: NextRequest) {
   // CORS preflight cho API
@@ -24,6 +25,7 @@ export async function middleware(req: NextRequest) {
   const isProtected = PROTECTED.some((p) => req.nextUrl.pathname.startsWith(p));
   if (isProtected && SUPABASE_URL && SUPABASE_ANON_KEY) {
     const supa = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { fetch: serverFetch },
       cookies: {
         getAll() {
           return req.cookies.getAll();
@@ -50,5 +52,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/dashboard/:path*'],
+  matcher: ['/api/:path*', '/dashboard/:path*', '/admin/:path*'],
 };

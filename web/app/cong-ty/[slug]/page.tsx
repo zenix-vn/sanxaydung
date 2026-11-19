@@ -3,6 +3,7 @@ import ReportButton from './ReportButton';
 import type { CSSProperties } from 'react';
 import { notFound } from 'next/navigation';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { SUPABASE_URL } from '@/lib/env';
 import type { CompanyDetail } from '@/lib/types';
 import { getMe, canAdmin } from '@/lib/me';
@@ -60,11 +61,9 @@ function maskTaxCode(code: string | null) {
   return code.slice(0, 4) + '●'.repeat(code.length - 5) + code.slice(-1);
 }
 
-async function getCompany(slug: string): Promise<CompanyDetail | null> {
-  if (!SUPABASE_URL) return null;
-  try {
-    const supa = createSupabaseServer();
-    const { data } = await supa
+const fetchCompany = cachedPublic(async (slug: string): Promise<CompanyDetail | null> => {
+    const supa = createSupabasePublic();
+    const { data, error } = await supa
       .from('companies')
       .select(
         `*,
@@ -88,7 +87,14 @@ async function getCompany(slug: string): Promise<CompanyDetail | null> {
       .eq('reviews.status', 'published')
       .order('created_at', { referencedTable: 'reviews', ascending: false })
       .maybeSingle();
+    if (error) throw error;
     return (data as CompanyDetail) ?? null;
+}, 'company', 30);
+
+async function getCompany(slug: string): Promise<CompanyDetail | null> {
+  if (!SUPABASE_URL) return null;
+  try {
+    return await fetchCompany(slug);
   } catch {
     return null;
   }

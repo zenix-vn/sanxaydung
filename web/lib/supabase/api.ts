@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, assertSupabaseEnv } from '@/lib/env';
+import { serverFetch } from './internal-fetch';
 
 /**
  * Supabase client cho Route Handlers (API dùng chung web + mobile).
@@ -14,7 +15,7 @@ export function supabaseFromRequest(req: Request) {
     global: {
       headers: authorization ? { Authorization: authorization } : {},
       // Tắt cache fetch của Next để API luôn trả dữ liệu mới nhất (web + mobile)
-      fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+      fetch: (input, init) => serverFetch(input, { ...init, cache: 'no-store' }),
     },
   });
 }

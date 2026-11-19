@@ -1,4 +1,4 @@
-import { createSupabaseServer } from '@/lib/supabase/server';
+import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { SUPABASE_URL } from '@/lib/env';
 import CompanyCard from '@/components/CompanyCard';
 
@@ -15,18 +15,23 @@ const CATEGORIES = [
   { icon: 'ic-grid', name: 'Dịch vụ khác', href: '/directory?group=service' },
 ];
 
-async function getTopCompanies() {
-  if (!SUPABASE_URL) return [];
-  try {
-    const supa = createSupabaseServer();
-    const { data } = await supa
+const fetchTop = cachedPublic(async () => {
+    const supa = createSupabasePublic();
+    const { data, error } = await supa
       .from('companies')
       .select('*, company_categories ( categories (name) ), company_locations ( provinces (name) )')
       .eq('status', 'published')
       .is('deleted_at', null)
       .order('trust_score', { ascending: false })
       .limit(4);
+    if (error) throw error;
     return data ?? [];
+}, 'home-top', 120);
+
+async function getTopCompanies() {
+  if (!SUPABASE_URL) return [];
+  try {
+    return await fetchTop();
   } catch {
     return [];
   }
