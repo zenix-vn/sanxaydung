@@ -172,3 +172,17 @@ select public.promote_registration('<registration_id>');
 -- hoặc promote hàng loạt sau khi đã lọc
 select public.promote_registration(id) from partner_registrations where status='pending';
 ```
+
+---
+
+## Nhập vào production (zenix-server)
+
+```bash
+./deploy/import-prod.sh "https://docs.google.com/spreadsheets/d/<ID>/edit?gid=<GID>" --dry-run   # xem trước
+./deploy/import-prod.sh "https://docs.google.com/spreadsheets/d/<ID>/edit?gid=<GID>"             # ghi thật
+```
+
+- Sheet phải chia sẻ **"Bất kỳ ai có đường liên kết"** (quyền xem) để tải CSV.
+- Script tự **làm sạch**: năm thành lập (`"25/10/2024"` → 2024, `"14 năm"` → bỏ), website (`abc.vn` → `https://abc.vn`, chữ tự do → bỏ), chứng chỉ (`Không có` → bỏ), logo (link Drive → ảnh công khai, chỉ giữ khi thực sự là ảnh). Giá trị gốc lưu trong `partner_registrations.payload.raw`.
+- Chạy lại nhiều lần an toàn: upsert theo SĐT; hồ sơ đã được chủ claim không bị ghi đè. Tự sao lưu `public` vào `/opt/sxd-supabase/backups/` trước khi ghi.
+- Lần nhập 2026-11-19: 54 dòng → 53 hồ sơ mới (1 SĐT trùng), tổng 68 công ty. Ảnh công trình (`payload.project_photos`) chưa hiển thị.

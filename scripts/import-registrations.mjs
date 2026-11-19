@@ -61,6 +61,41 @@ const normPhone = (s) => {
 const splitMulti = (s) => (s || '').split(',').map((x) => x.trim()).filter(Boolean);
 const toInt = (s) => { const n = parseInt((s || '').replace(/\D/g, ''), 10); return Number.isFinite(n) ? n : null; };
 
+// ---------- Làm sạch dữ liệu nhập tay ----------
+// Năm thành lập: lấy năm 4 chữ số hợp lệ ("25/10/2024" -> 2024); "14 năm", "14" -> null
+const cleanYear = (s) => {
+  const m = (s || '').match(/\b(19|20)\d{2}\b/);
+  const y = m ? Number(m[0]) : null;
+  return y && y <= new Date().getFullYear() ? y : null;
+};
+// Website/Fanpage: giữ URL http(s); "abc.vn" -> https://abc.vn; chữ tự do ("Nội thất X - 09...") -> null
+const cleanWebsite = (s) => {
+  const v = (s || '').trim();
+  if (!v) return null;
+  if (/^https?:\/\/\S+$/i.test(v)) return v;
+  return /^[^\s@\/]+\.[a-z]{2,}(\/\S*)?$/i.test(v) ? 'https://' + v : null;
+};
+// Chứng chỉ: "Không có", "không" -> null
+const cleanCapability = (s) => {
+  const v = (s || '').trim();
+  return !v || ['khong', 'khong co', 'none', 'k'].includes(norm(v)) ? null : v;
+};
+// Logo: link Google Drive -> URL ảnh công khai (lh3); URL ảnh trực tiếp giữ nguyên; còn lại null.
+// Sau đó main() kiểm tra HEAD thật sự trả về image/* mới giữ (file Drive không công khai sẽ bị bỏ).
+function logoCandidate(s) {
+  const v = (s || '').trim();
+  if (!/^https?:\/\//i.test(v)) return null;
+  const m = v.match(/drive\.google\.com\/.*?\/d\/([\w-]+)|[?&]id=([\w-]+)/);
+  if (m) return `https://lh3.googleusercontent.com/d/${m[1] || m[2]}`;
+  return /\.(png|jpe?g|webp|gif|svg)(\?|$)/i.test(v) ? v : null;
+}
+async function isImage(url) {
+  try {
+    const r = await fetch(url, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(15000) });
+    return r.ok && (r.headers.get('content-type') || '').startsWith('image/');
+  } catch { return false; }
+}
+
 // tìm giá trị theo từ khóa trong tiêu đề cột (không phân biệt dấu/hoa thường)
 function pick(row, keyword) {
   const k = norm(keyword);
@@ -92,17 +127,19 @@ function mapRow(row) {
     category_slugs: category_slugs.length ? category_slugs : null,
     province_codes: provinceMatched.length ? provinceMatched : null,
     address: (pick(row, 'dia chi') || '').trim() || null,
-    website: (pick(row, 'website') || '').trim() || null,
+    website: cleanWebsite(pick(row, 'website')),
     intro: (pick(row, 'gioi thieu') || '').trim() || null,
-    logo_url: (pick(row, 'logo') || '').trim() || null,
-    founded_year: toInt(pick(row, 'nam thanh lap')),
+    logo_url: logoCandidate(pick(row, 'logo')),   // main() sẽ xác minh là ảnh thật
+    founded_year: cleanYear(pick(row, 'nam thanh lap')),
     size_range: (pick(row, 'quy mo') || '').trim() || null,
-    capability_class: (pick(row, 'chung chi') || '').trim() || null,
+    capability_class: cleanCapability(pick(row, 'chung chi')),
     source: 'google_form',
     payload: {
       email_google: pick(row, 'email') || null,
       experience_years: toInt(pick(row, 'kinh nghiem')),
       project_photos: pick(row, 'anh cong trinh') || null,
+      // giá trị gốc khách nhập (đã làm sạch ở các cột chính)
+      raw: { founded: pick(row, 'nam thanh lap') || null, website: pick(row, 'website') || null, logo: pick(row, 'logo') || null, capability: pick(row, 'chung chi') || null },
       province_raw: provinceRaw.length ? provinceRaw : undefined,
     },
   };
@@ -122,6 +159,14 @@ const mapped = rows.map(mapRow);
 const invalid = mapped.filter((r) => !r.company_name || !r.phone);
 if (invalid.length) console.warn(`⚠️  ${invalid.length} dòng thiếu tên/SĐT — sẽ bỏ qua.`);
 const valid = mapped.filter((r) => r.company_name && r.phone);
+
+// Chỉ giữ logo thực sự là ảnh truy cập công khai (Drive không public trả HTML → bỏ)
+let logoKept = 0, logoDropped = 0;
+for (const r of valid) {
+  if (!r.logo_url) continue;
+  if (await isImage(r.logo_url)) logoKept++; else { r.logo_url = null; logoDropped++; }
+}
+if (logoKept || logoDropped) console.log(`Logo: giữ ${logoKept}, bỏ ${logoDropped} (không phải ảnh công khai)`);
 
 if (dryRun) {
   for (const r of valid.slice(0, 5)) console.dir(r, { depth: null });

@@ -1,125 +1,34 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toE164VN, toLocalVN, safeRedirect } from '@/lib/phone';
+import { safeRedirect } from '@/lib/phone';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [tab, setTab] = useState<'login' | 'register'>('login');
-  const [method, setMethod] = useState<'phone' | 'email'>('phone');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [sent, setSent] = useState(false);
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
   const [redirectTo, setRedirectTo] = useState('/dashboard');
 
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     setRedirectTo(safeRedirect(q.get('redirect')));
-    if (q.get('error')) setError('Liên kết đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng thử lại.');
+    if (q.get('error')) setError('Đăng nhập không thành công hoặc phiên đã hết hạn. Vui lòng thử lại.');
     if (window.location.hash === '#register') setTab('register');
   }, []);
 
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [cooldown]);
-
-  function switchMethod(m: 'phone' | 'email') {
-    setMethod(m);
-    setSent(false);
-    setError(null);
-  }
-
+  // Chỉ hỗ trợ đăng nhập bằng Google (đăng ký lần đầu cũng qua Google).
   async function oauth(provider: 'google') {
     setError(null);
+    setLoading(true);
     const supa = createSupabaseBrowser();
     const { error } = await supa.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/login/callback?redirect=${encodeURIComponent(redirectTo)}` },
     });
-    if (error) setError('Đăng nhập Google chưa được bật: ' + error.message);
-  }
-
-  async function sendEmail(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const supa = createSupabaseBrowser();
-      const { error } = await supa.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: `${window.location.origin}/login/callback?redirect=${encodeURIComponent(redirectTo)}` },
-      });
-      if (error) throw error;
-      setSent(true);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
+    if (error) {
       setLoading(false);
+      setError('Không thể bắt đầu đăng nhập Google: ' + error.message);
     }
-  }
-
-  async function sendPhone() {
-    setError(null);
-    const e164 = toE164VN(phone);
-    if (!e164) return setError('Số điện thoại không hợp lệ (ví dụ 0912345678).');
-    setLoading(true);
-    try {
-      const supa = createSupabaseBrowser();
-      const { error } = await supa.auth.signInWithOtp({ phone: e164 });
-      if (error) throw error;
-      setSent(true);
-      setCooldown(60);
-      setOtp(['', '', '', '', '', '']);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function verifyPhone() {
-    const token = otp.join('');
-    const e164 = toE164VN(phone);
-    if (token.length !== 6 || !e164) return setError('Nhập đủ 6 số của mã OTP.');
-    setLoading(true);
-    setError(null);
-    try {
-      const supa = createSupabaseBrowser();
-      const { data, error } = await supa.auth.verifyOtp({ phone: e164, token, type: 'sms' });
-      if (error) throw error;
-      if (data.user) {
-        // Bảo đảm có profile (trigger đã tạo; upsert chỉ phòng hờ)
-        await supa.from('profiles').upsert({ id: data.user.id, phone: toLocalVN(phone) }, { onConflict: 'id', ignoreDuplicates: true });
-      }
-      router.replace(redirectTo);
-      router.refresh();
-    } catch (err) {
-      setError('Mã OTP không đúng hoặc đã hết hạn.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleOtpInput(idx: number, val: string) {
-    const digits = val.replace(/\D/g, '');
-    if (digits.length > 2) {
-      // dán cả mã
-      const next = digits.slice(0, 6).split('');
-      setOtp([...next, ...Array(6 - next.length).fill('')]);
-      document.getElementById(`otp-${Math.min(next.length, 5)}`)?.focus();
-      return;
-    }
-    const next = [...otp];
-    next[idx] = digits.slice(-1);
-    setOtp(next);
-    if (digits && idx < 5) document.getElementById(`otp-${idx + 1}`)?.focus();
   }
 
   return (
@@ -142,21 +51,11 @@ export default function LoginPage() {
         .seg{display:flex;background:#f1f4f7;border-radius:10px;padding:4px;margin-bottom:22px}
         .seg button{flex:1;text-align:center;padding:10px;font-size:14px;font-weight:600;color:var(--muted);border-radius:8px;cursor:pointer;border:none;background:transparent}
         .seg button.active{background:#fff;color:var(--navy);box-shadow:var(--shadow-sm)}
-        .method{display:flex;gap:8px;margin-bottom:18px}
-        .method button{flex:1;text-align:center;padding:9px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;background:#fff}
-        .method button.active{border-color:var(--orange);color:var(--orange);background:var(--orange-soft)}
-        .method button svg{width:16px;height:16px}
-        .oauth{display:flex;gap:10px;margin:18px 0}
-        .oauth a{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border:1px solid var(--line);border-radius:9px;font-size:13.5px;font-weight:600;color:var(--text);text-decoration:none}
-        .oauth a:hover{background:#f6f8fb}
-        .divider-or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12.5px;margin:6px 0 18px}
-        .divider-or::before,.divider-or::after{content:"";flex:1;height:1px;background:var(--line)}
-        .otp-boxes{display:flex;gap:8px;justify-content:space-between}
-        .otp-boxes input{width:100%;aspect-ratio:1;text-align:center;font-size:22px;font-weight:700;border:1px solid var(--line);border-radius:10px;outline:none}
-        .otp-boxes input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(241,138,28,.12)}
+        .google-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:15px;font-weight:700;color:var(--navy);cursor:pointer;box-shadow:var(--shadow-sm)}
+        .google-btn:hover:not(:disabled){background:#f6f8fb;border-color:#cfd8e3}
+        .google-btn:disabled{opacity:.7;cursor:wait}
         .fineprint{font-size:12px;color:var(--muted);margin-top:16px;text-align:center;line-height:1.6}
         .fineprint a{color:var(--orange);font-weight:600}
-        .hint{font-size:12px;color:var(--muted);margin-top:5px}
         @media(max-width:900px){.auth-wrap{grid-template-columns:1fr}.auth-left{display:none}.auth-right{min-height:calc(100vh - 70px)}}
       `}</style>
 
@@ -200,101 +99,22 @@ export default function LoginPage() {
                 : 'Đăng ký miễn phí — bắt đầu xây dựng hồ sơ năng lực số.'}
             </p>
 
-            {/* OAuth */}
-            <div className="oauth">
-              <a href="#" onClick={(e) => { e.preventDefault(); oauth('google'); }}>
-                <svg viewBox="0 0 24 24" style={{ width: 18, height: 18 }}>
-                  <path fill="#4285F4" d="M22.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-2 3.3-4.9 3.3-7.8z"/>
-                  <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.3 1.1-3.7 1.1-2.8 0-5.2-1.9-6-4.5H2.3v2.8A11 11 0 0 0 12 23z"/>
-                  <path fill="#FBBC05" d="M6 14.2a6.6 6.6 0 0 1 0-4.2V7.2H2.3a11 11 0 0 0 0 9.8L6 14.2z"/>
-                  <path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.2L6 10c.8-2.6 3.2-4.6 6-4.6z"/>
-                </svg>
-                Google
-              </a>
-            </div>
-            <div className="divider-or">hoặc dùng</div>
-
-            {/* Method switcher */}
-            <div className="method">
-              <button className={method === 'phone' ? 'active' : ''} onClick={() => switchMethod('phone')}>
-                <svg className="ic"><use href="#ic-phone" /></svg> Số điện thoại (OTP)
-              </button>
-              <button className={method === 'email' ? 'active' : ''} onClick={() => switchMethod('email')}>
-                <svg className="ic"><use href="#ic-mail" /></svg> Email
-              </button>
-            </div>
-
-            {/* Phone OTP flow */}
-            {method === 'phone' && (
-              <div>
-                <div className="field-group">
-                  <label>Số điện thoại</label>
-                  <input
-                    className="input"
-                    placeholder="09xx xxx xxx"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                  <div className="hint">Chúng tôi sẽ gửi mã OTP gồm 6 số qua SMS/Zalo.</div>
-                </div>
-                <button className="btn btn-orange btn-block btn-lg" disabled={loading || cooldown > 0} onClick={sendPhone}>
-                  {loading && !sent ? 'Đang gửi…' : sent ? 'Gửi lại mã OTP' : 'Gửi mã OTP'}
-                </button>
-                {error && method === 'phone' && <p style={{ color: '#c0392b', fontSize: 13, marginTop: 10 }}>{error}</p>}
-                {sent && (
-                  <div style={{ marginTop: 22 }}>
-                    <label style={{ display: 'block', fontSize: 13.5, fontWeight: 600, color: 'var(--navy)', marginBottom: 8 }}>
-                      Nhập mã OTP đã gửi đến {phone || '09xx xxx xxx'}
-                    </label>
-                    <div className="otp-boxes">
-                      {otp.map((v, i) => (
-                        <input
-                          key={i}
-                          id={`otp-${i}`}
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          value={v}
-                          onChange={(e) => handleOtpInput(i, e.target.value)}
-                        />
-                      ))}
-                    </div>
-                    <div className="between mt-16">
-                      <span className="hint" style={{ margin: 0 }}>
-                        {cooldown > 0 ? <>Gửi lại mã sau <b style={{ color: 'var(--navy)' }}>{cooldown}s</b></> : 'Chưa nhận được mã? Bấm “Gửi lại mã OTP”.'}
-                      </span>
-                      <button className="btn btn-navy btn-sm" disabled={loading} onClick={verifyPhone}>Xác nhận</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Email magic link flow */}
-            {method === 'email' && (
-              sent ? (
-                <div className="notice">
-                  Đã gửi liên kết đăng nhập tới <b>{email}</b>. Kiểm tra hộp thư của bạn.
-                </div>
-              ) : (
-                <form onSubmit={sendEmail} style={{ display: 'grid', gap: 14 }}>
-                  <div className="field-group" style={{ marginBottom: 0 }}>
-                    <label>Email doanh nghiệp</label>
-                    <input
-                      className="input"
-                      type="email"
-                      required
-                      placeholder="tenban@congty.vn"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <button className="btn btn-orange btn-block btn-lg" disabled={loading} type="submit">
-                    {loading ? 'Đang gửi…' : 'Gửi liên kết đăng nhập'}
-                  </button>
-                  {error && <p style={{ color: '#c0392b', fontSize: 13 }}>{error}</p>}
-                </form>
-              )
-            )}
+            {/* Đăng nhập Google */}
+            <button
+              type="button"
+              className="google-btn"
+              disabled={loading}
+              onClick={() => oauth('google')}
+            >
+              <svg viewBox="0 0 24 24" style={{ width: 20, height: 20 }}>
+                <path fill="#4285F4" d="M22.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-2 3.3-4.9 3.3-7.8z"/>
+                <path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.7c-1 .7-2.3 1.1-3.7 1.1-2.8 0-5.2-1.9-6-4.5H2.3v2.8A11 11 0 0 0 12 23z"/>
+                <path fill="#FBBC05" d="M6 14.2a6.6 6.6 0 0 1 0-4.2V7.2H2.3a11 11 0 0 0 0 9.8L6 14.2z"/>
+                <path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.2L6 10c.8-2.6 3.2-4.6 6-4.6z"/>
+              </svg>
+              {loading ? 'Đang chuyển tới Google…' : 'Tiếp tục với Google'}
+            </button>
+            {error && <p style={{ color: '#c0392b', fontSize: 13, marginTop: 12, textAlign: 'center' }}>{error}</p>}
 
             <p className="fineprint">
               Bằng việc tiếp tục, bạn đồng ý với <a href="#">Điều khoản</a> &amp; <a href="#">Chính sách bảo mật</a> (Nghị định 13/2023/NĐ-CP).
