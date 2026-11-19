@@ -33,6 +33,8 @@ export default function NewListingForm({
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [locationText, setLocationText] = useState('');
+  const [startDate, setStartDate] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -81,6 +83,8 @@ export default function NewListingForm({
         budget_from: bf,
         budget_to: bt,
         deadline: deadline || null,
+        location_text: locationText.trim() || null,
+        start_date: startDate || null,
       })
       .select('id')
       .single();
@@ -140,8 +144,18 @@ export default function NewListingForm({
         </div>
       </div>
       <div className="field-group">
-        <label>Hạn nhận báo giá</label>
-        <input className="input" type="date" value={deadline} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} />
+        <label>Địa điểm công trình</label>
+        <input className="input" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="vd. Quận 7, TP.HCM" maxLength={200} />
+      </div>
+      <div className="form-row" style={{ marginBottom: 16 }}>
+        <div className="field-group" style={{ marginBottom: 0 }}>
+          <label>Hạn nhận báo giá</label>
+          <input className="input" type="date" value={deadline} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} />
+        </div>
+        <div className="field-group" style={{ marginBottom: 0 }}>
+          <label>Dự kiến khởi công</label>
+          <input className="input" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        </div>
       </div>
       {err && <div className="notice" style={{ background: '#fdecea', color: '#a12622', marginBottom: 14 }}>{err}</div>}
       <button className="btn btn-orange btn-lg" type="submit" disabled={busy}>

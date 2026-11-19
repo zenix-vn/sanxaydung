@@ -222,6 +222,7 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
 
               {/* View count */}
               <div className="row" style={{ gap: 16, fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
+                {(l.view_count ?? 0) > 0 && <span><svg className="ic" style={{ width: 14, height: 14 }}><use href="#ic-eye" /></svg> {l.view_count} lượt xem</span>}
                 <span><svg className="ic" style={{ width: 14, height: 14 }}><use href="#ic-file-text" /></svg> {quoteCount} báo giá đã nhận</span>
               </div>
 
