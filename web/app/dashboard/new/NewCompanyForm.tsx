@@ -4,11 +4,6 @@ import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 import { toLocalVN } from '@/lib/phone';
 
-function slugify(s: string) {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-}
-
 export default function NewCompanyForm({ userId, defaultPhone }: { userId: string; defaultPhone: string }) {
   const router = useRouter();
   const supa = useMemo(() => createSupabaseBrowser(), []);
@@ -29,23 +24,12 @@ export default function NewCompanyForm({ userId, defaultPhone }: { userId: strin
     if (tax && !/^\d{10}(-?\d{3})?$/.test(tax.trim())) return setErr('Mã số thuế gồm 10 hoặc 13 chữ số (có thể để trống).');
     setBusy(true);
     try {
-      // SĐT là khóa chống trùng: nếu đã có hồ sơ cùng SĐT → hướng sang "nhận hồ sơ"
-      const { data: existing } = await supa.from('companies').select('id').eq('phone', local).limit(1);
-      if (existing && existing.length > 0) { setDup(true); return; }
-
-      const id = crypto.randomUUID();
-      const base = slugify(name) || 'doanh-nghiep';
-      let slug = base;
-      for (let i = 0; i < 4; i++) {
-        const { error } = await supa.from('companies').insert({
-          id, slug, name: name.trim(), phone: local, tax_code: tax.trim() || null, owner_id: userId, status: 'draft',
-        });
-        if (!error) break;
-        if (error.code === '23505' && i < 3) { slug = `${base}-${Math.random().toString(36).slice(2, 6)}`; continue; }
+      // RPC tạo công ty + thành viên owner atomic; SĐT trùng → 23505 → gợi ý nhận hồ sơ
+      const { error } = await supa.rpc('create_company', { _name: name.trim(), _phone: local, _tax_code: tax.trim() || null });
+      if (error) {
+        if (error.code === '23505') { setDup(true); return; }
         throw error;
       }
-      const { error: e2 } = await supa.from('company_members').insert({ company_id: id, user_id: userId, role: 'owner', status: 'active' });
-      if (e2) throw e2;
       router.replace('/dashboard/company-edit');
       router.refresh();
     } catch (e) {
