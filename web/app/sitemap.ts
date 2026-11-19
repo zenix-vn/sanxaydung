@@ -3,8 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/env';
 import { SITE_URL } from '@/lib/ui';
 
-// Sitemap động: trang tĩnh + doanh nghiệp đã công khai + tin đăng đang mở. Làm mới mỗi giờ.
-export const revalidate = 3600;
+// Sitemap động: trang tĩnh + doanh nghiệp đã công khai + tin đăng đang mở.
+// force-dynamic: nếu prerender lúc build thì container build không gọi được API → sitemap thiếu dữ liệu.
+export const dynamic = 'force-dynamic';
 
 const STATIC: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] }[] = [
   { path: '/', priority: 1, changeFrequency: 'daily' },
