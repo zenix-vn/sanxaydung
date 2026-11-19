@@ -45,3 +45,30 @@ supabase db push       # đẩy migrations lên project đã link
 - Edge Functions: `verify-company`, `recompute-trust`, `notify-dispatch`, `payment-webhook`, `generate-sitemap`.
 - Seed đầy đủ danh mục tỉnh/thành theo đơn vị hành chính hiện hành.
 - Script seed 500–1.000 doanh nghiệp cho chiến lược cold-start.
+
+## Migration bổ sung (AI-1)
+
+| File | Nội dung |
+|------|----------|
+| `20260728090000_missing_features.sql` | trigger completeness / verified_tier / like_count / last_message, Realtime, `export_my_data`, `delete_my_account` |
+| `20261119090000_business_rpcs.sql` | RPC nghiệp vụ, claim công ty, thông báo tự động, sửa trigger đếm & quyền hàm nội bộ |
+| `20261119090100_storage_hardening.sql` | giới hạn dung lượng/MIME, bucket `avatars`, policy đọc file chat |
+| `20261119090200_webhooks_cron_sitemap.sql` | `dispatch_edge` (webhook → Edge Function), `sitemap_entries()`, cron dọn thông báo |
+| `20261119090300_account_deletion.sql` | `delete_my_account` khóa đăng nhập |
+| `20261119090400_quotes_listings_chat_notify.sql` | `set_quote_status`, cột listing, thông báo tin nhắn |
+| `20261119090500_fix_chat_rls_recursion.sql` | sửa đệ quy vô hạn RLS của chat |
+
+**Webhook → Edge Function** chỉ chạy khi đặt (mỗi môi trường, không commit giá trị thật):
+```sql
+alter database postgres set app.edge_function_url = 'https://<ref>.supabase.co/functions/v1';
+alter database postgres set app.service_role_key  = '<service_role_key>';
+```
+Chưa đặt hoặc thiếu `pg_net` → no-op, không ảnh hưởng ghi dữ liệu.
+
+**Edge Function** (`functions/`): `verify-company`, `recompute-trust`, `notify-dispatch`, `payment-webhook` (khung). Mọi function (trừ `payment-webhook` dùng HMAC) chỉ nhận `service_role` qua `_shared/auth.ts`. Env: `RESEND_API_KEY`, `EMAIL_FROM`, `SITE_URL`, `ZALO_OA_TOKEN`, `PAYMENT_WEBHOOK_SECRET`, `MST_LOOKUP_API_URL/KEY`.
+
+## Test
+
+```bash
+supabase test db        # chạy supabase/tests/*.test.sql (pgTAP)
+```

@@ -156,11 +156,11 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+site_url = "http://127.0.0.1:3010"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = ["http://127.0.0.1:3010/**", "http://localhost:3010/**", "https://demo.sanxaydung.vn/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -256,7 +256,7 @@ otp_expiry = 3600
 
 [auth.sms]
 # Allow/disallow new user signups via SMS to your project.
-enable_signup = false
+enable_signup = true
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = false
 # Template for sending OTP to users
@@ -265,8 +265,11 @@ template = "Your code is {{ `{{ .Code }}` }}"
 max_frequency = "5s"
 
 # Use pre-defined map of phone number to OTP for testing.
-# [auth.sms.test_otp]
-# 4152127777 = "123456"
+# CHỈ DÙNG LOCAL/DEV: số test → mã cố định, không gửi SMS thật. Định dạng: mã quốc gia + số, không dấu +.
+# Ví dụ 0900000001 (VN) → 84900000001. Production phải bật 1 provider thật ([auth.sms.twilio]...) và BỎ khối này.
+[auth.sms.test_otp]
+84900000001 = "123456"
+84900000002 = "123456"
 
 # Configure logged in session timeouts.
 # [auth.sessions]
@@ -319,6 +322,18 @@ max_frequency = "5s"
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
+# Google (đăng nhập bằng Google). Để bật:
+#   1) Tạo OAuth client trên Google Cloud, Authorized redirect URI = <API_URL>/auth/v1/callback
+#      (local: http://127.0.0.1:54421/auth/v1/callback)
+#   2) export SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=... SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=...
+#   3) đổi enabled = true rồi `supabase stop && supabase start`
+# Để enabled=false khi chưa có biến môi trường, nếu không `supabase start` sẽ báo lỗi.
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = true
+
 [auth.external.apple]
 enabled = false
 client_id = ""
