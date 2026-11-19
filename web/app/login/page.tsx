@@ -117,7 +117,7 @@ export default function LoginPage() {
             {error && <p style={{ color: '#c0392b', fontSize: 13, marginTop: 12, textAlign: 'center' }}>{error}</p>}
 
             <p className="fineprint">
-              Bằng việc tiếp tục, bạn đồng ý với <a href="#">Điều khoản</a> &amp; <a href="#">Chính sách bảo mật</a> (Nghị định 13/2023/NĐ-CP).
+              Bằng việc tiếp tục, bạn đồng ý với <a href="/dieu-khoan" target="_blank">Điều khoản</a> &amp; <a href="/chinh-sach-bao-mat" target="_blank">Chính sách bảo mật</a> (Nghị định 13/2023/NĐ-CP).
             </p>
 
             {tab === 'register' && (

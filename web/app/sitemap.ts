@@ -13,6 +13,12 @@ const STATIC: { path: string; priority: number; changeFrequency: MetadataRoute.S
   { path: '/marketplace', priority: 0.9, changeFrequency: 'hourly' },
   { path: '/feed', priority: 0.7, changeFrequency: 'hourly' },
   { path: '/pricing', priority: 0.5, changeFrequency: 'monthly' },
+  { path: '/huong-dan', priority: 0.4, changeFrequency: 'monthly' },
+  { path: '/cau-hoi-thuong-gap', priority: 0.4, changeFrequency: 'monthly' },
+  { path: '/trust-score', priority: 0.4, changeFrequency: 'monthly' },
+  { path: '/lien-he', priority: 0.3, changeFrequency: 'yearly' },
+  { path: '/dieu-khoan', priority: 0.2, changeFrequency: 'yearly' },
+  { path: '/chinh-sach-bao-mat', priority: 0.2, changeFrequency: 'yearly' },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

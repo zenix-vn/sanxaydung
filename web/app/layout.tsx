@@ -76,22 +76,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div>
                 <h4>Hỗ trợ</h4>
                 <ul>
-                  <li><a href="#">Hướng dẫn sử dụng</a></li>
+                  <li><a href="/huong-dan">Hướng dẫn sử dụng</a></li>
                   <li><a href="/pricing">Bảng giá</a></li>
-                  <li><a href="#">Câu hỏi thường gặp</a></li>
-                  <li><a href="#">Liên hệ</a></li>
+                  <li><a href="/cau-hoi-thuong-gap">Câu hỏi thường gặp</a></li>
+                  <li><a href="/lien-he">Liên hệ</a></li>
                 </ul>
               </div>
               <div>
                 <h4>Liên hệ</h4>
                 <ul>
-                  <li><svg className="ic"><use href="#ic-phone" /></svg> 1900 xxxx</li>
                   <li><svg className="ic"><use href="#ic-mail" /></svg> hotro@sanxaydung.vn</li>
                   <li><svg className="ic"><use href="#ic-pin" /></svg> Hà Nội, Việt Nam</li>
                 </ul>
               </div>
             </div>
-            <div className="foot-bottom">© 2026 Sàn Xây Dựng. Bản quyền thuộc về nền tảng Sàn Xây Dựng.</div>
+            <div className="foot-bottom">© 2026 Sàn Xây Dựng. Bản quyền thuộc về nền tảng Sàn Xây Dựng. · <a href="/dieu-khoan">Điều khoản</a> · <a href="/chinh-sach-bao-mat">Chính sách bảo mật</a></div>
           </div>
         </footer>
       </body>

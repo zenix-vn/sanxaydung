@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import ReportButton from './ReportButton';
 import type { CSSProperties } from 'react';
 import { notFound } from 'next/navigation';
 import { createSupabaseServer } from '@/lib/supabase/server';
@@ -164,7 +165,8 @@ function fmtPrice(from: number | null, to: number | null, unit: string | null): 
   return s;
 }
 
-export default async function CompanyPage({ params }: { params: { slug: string } }) {
+export default async function CompanyPage({ params, searchParams }: { params: { slug: string }; searchParams: { all?: string } }) {
+  const showAll = searchParams?.all === '1';
   const c = await getCompany(params.slug);
   if (!c) notFound();
   const rel = await getRelation(c.id);
@@ -362,7 +364,7 @@ export default async function CompanyPage({ params }: { params: { slug: string }
             <div className="card-block" id="gioithieu">
               <h2>
                 Giới thiệu
-                <a href="#" style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600 }}>Báo cáo</a>
+                <ReportButton companyId={c.id} />
               </h2>
               {c.intro || c.description ? (
                 <p className="prose">{c.intro ?? c.description}</p>
@@ -396,14 +398,14 @@ export default async function CompanyPage({ params }: { params: { slug: string }
               <div className="card-block" id="duan">
                 <h2>
                   Dự án tiêu biểu
-                  {c.projects!.length > 6 && (
-                    <a href="#" style={{ fontSize: 13, color: 'var(--orange)', fontWeight: 600 }}>
+                  {c.projects!.length > 6 && !showAll && (
+                    <a href={`?all=1#duan`} style={{ fontSize: 13, color: 'var(--orange)', fontWeight: 600 }}>
                       Xem tất cả {c.projects!.length} →
                     </a>
                   )}
                 </h2>
                 <div className="proj-grid">
-                  {c.projects!.slice(0, 6).map((p) => (
+                  {(showAll ? c.projects! : c.projects!.slice(0, 6)).map((p) => (
                     <div className="proj" key={p.id}>
                       <div
                         className="img"
@@ -493,7 +495,7 @@ export default async function CompanyPage({ params }: { params: { slug: string }
                     <svg className="ic"><use href="#ic-shield-check" /></svg>
                     <span>Chỉ doanh nghiệp có <b>kết nối đã hoàn tất</b> trên sàn mới được đánh giá — chống review ảo.</span>
                   </div>
-                  {reviews.slice(0, 5).map((r) => {
+                  {(showAll ? reviews : reviews.slice(0, 5)).map((r) => {
                     const rco = r.reviewer_company;
                     const rName = rco?.name ?? 'Doanh nghiệp';
                     const rIni = initials(rName);
@@ -523,8 +525,8 @@ export default async function CompanyPage({ params }: { params: { slug: string }
                       </div>
                     );
                   })}
-                  {reviewCount > 5 && (
-                    <a className="btn btn-outline btn-block mt-16" href="#">
+                  {reviewCount > 5 && !showAll && (
+                    <a className="btn btn-outline btn-block mt-16" href="?all=1#danhgia">
                       Xem tất cả {reviewCount} đánh giá
                     </a>
                   )}
@@ -668,7 +670,7 @@ export default async function CompanyPage({ params }: { params: { slug: string }
                   <p className="muted" style={{ fontSize: 12.5 }}>Chưa có dữ liệu chấm điểm cho doanh nghiệp này.</p>
                 )}
               </div>
-              <a href="#" style={{ fontSize: 12.5, color: 'var(--orange)', fontWeight: 600 }}>
+              <a href="/trust-score" style={{ fontSize: 12.5, color: 'var(--orange)', fontWeight: 600 }}>
                 Trust Score được tính thế nào?
               </a>
             </div>
