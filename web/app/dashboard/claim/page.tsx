@@ -31,11 +31,35 @@ export default async function ClaimPage({ searchParams }: { searchParams: { phon
   }
   const phoneVerified = !!user.phone && !!local && toLocalVN(user.phone) === local;
 
+  // Hồ sơ khớp email Google đã xác thực (email người điền form đăng ký) → nhận ngay, không cần duyệt
+  const { data: mineRaw } = await supa.rpc('my_claimable_companies');
+  const mine = (mineRaw ?? []) as { id: string; name: string; slug: string; address: string | null; verified_tier: string }[];
+
   return (
     <div style={{ maxWidth: 640, margin: '48px auto', padding: '0 20px' }}>
       <div className="crumb"><a href="/dashboard">Bảng điều khiển</a><svg className="ic"><use href="#ic-chevron-right" /></svg> Nhận hồ sơ</div>
       <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy)', margin: '10px 0 6px' }}>Nhận hồ sơ doanh nghiệp</h1>
-      <p className="muted mb-16">Hồ sơ doanh nghiệp có thể đã được tạo sẵn từ dữ liệu đăng ký. Nhập số điện thoại đã đăng ký để tìm và nhận quyền quản lý.</p>
+      <p className="muted mb-16">Hồ sơ doanh nghiệp có thể đã được tạo sẵn từ dữ liệu đăng ký. Nếu bạn đăng nhập bằng đúng email đã dùng khi đăng ký, hồ sơ sẽ hiện ngay bên dưới.</p>
+
+      {mine.length > 0 && (
+        <div className="card-block" style={{ marginBottom: 16, borderColor: 'var(--orange)' }}>
+          <div className="pill-note mb-16">
+            <svg className="ic"><use href="#ic-shield-check" /></svg>
+            <span>Email <b>{user.email}</b> khớp với email đăng ký của {mine.length === 1 ? 'hồ sơ sau' : `${mine.length} hồ sơ sau`} — bạn có thể nhận quyền quản lý ngay.</span>
+          </div>
+          {mine.map((c) => (
+            <div key={c.id} className="act-row" style={{ gap: 14 }}>
+              <div style={{ flex: 1 }}>
+                <b style={{ color: 'var(--navy)' }}>{c.name}</b>
+                <div className="muted" style={{ fontSize: 12.5 }}>{c.address ?? 'Chưa có địa chỉ'}</div>
+              </div>
+              <ClaimButton companyId={c.id} note={`Nhận hồ sơ theo email Google ${user.email}`} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)', margin: '20px 0 10px' }}>Hoặc tìm theo số điện thoại</h2>
 
       <form method="get" className="card-block" style={{ display: 'flex', gap: 10, alignItems: 'end' }}>
         <div className="field-group" style={{ flex: 1, marginBottom: 0 }}>
@@ -51,7 +75,7 @@ export default async function ClaimPage({ searchParams }: { searchParams: { phon
           {!phoneVerified && results.length > 0 && (
             <div className="pill-note mb-16">
               <svg className="ic"><use href="#ic-shield" /></svg>
-              <span>Số này chưa được xác thực OTP với tài khoản của bạn nên yêu cầu sẽ được đội ngũ duyệt thủ công. Muốn nhận ngay, hãy đăng nhập bằng OTP gửi tới đúng số này.</span>
+              <span>Yêu cầu nhận hồ sơ theo số điện thoại sẽ được đội ngũ Sàn Xây Dựng duyệt thủ công. Muốn nhận ngay, hãy đăng nhập Google bằng đúng email đã dùng khi đăng ký.</span>
             </div>
           )}
           {results.length === 0 ? (
@@ -66,7 +90,7 @@ export default async function ClaimPage({ searchParams }: { searchParams: { phon
                   <b style={{ color: 'var(--navy)' }}>{c.name}</b>
                   <div className="muted" style={{ fontSize: 12.5 }}>{c.address ?? 'Chưa có địa chỉ'}</div>
                 </div>
-                <ClaimButton companyId={c.id} phone={local} />
+                <ClaimButton companyId={c.id} note={`Yêu cầu nhận hồ sơ theo SĐT ${local}`} />
               </div>
             ))
           )}

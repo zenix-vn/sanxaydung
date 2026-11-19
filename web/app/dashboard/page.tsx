@@ -157,6 +157,9 @@ export default async function DashboardPage() {
 
   // Nếu chưa có công ty → hiển thị trang onboarding
   if (!company) {
+    // Có hồ sơ khớp email Google → đưa thẳng tới trang nhận hồ sơ
+    const { data: claimable } = await createSupabaseServer().rpc('my_claimable_companies');
+    if ((claimable ?? []).length > 0) redirect('/dashboard/claim');
     return (
       <div style={{ maxWidth: 560, margin: '80px auto', padding: '0 24px', textAlign: 'center' }}>
         <svg className="ic" style={{ width: 64, height: 64, color: 'var(--navy)', opacity: 0.2, marginBottom: 20 }}><use href="#ic-building" /></svg>

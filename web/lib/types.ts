@@ -271,6 +271,7 @@ export interface RpcFunctions {
   start_conversation:   { args: { _as_company: string; _target: string; _context_type?: 'listing' | 'project' | 'company'; _context_id?: string | null }; returns: string };
   list_conversations:   { args: { _as_company: string }; returns: ConversationSummary[] };
   mark_read:            { args: { _conversation: string; _as_company: string }; returns: void };
+  my_claimable_companies: { args: Record<string, never>; returns: { id: string; name: string; slug: string; address: string | null; verified_tier: string }[] };
   claim_company:        { args: { _company: string; _note?: string | null }; returns: 'claimed' | 'pending' };
   export_my_data:       { args: Record<string, never>; returns: Record<string, unknown> };
   delete_my_account:    { args: Record<string, never>; returns: void };

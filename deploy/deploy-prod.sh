@@ -3,6 +3,7 @@
 # Deploy SanXayDung lên zenix-server (sanxaydung.vn)
 #   ./deploy/deploy-prod.sh web        build lại image web trên server + chạy lại container
 #   ./deploy/deploy-prod.sh db         áp migration CHƯA áp (theo bảng public._sxd_migrations)
+#   ./deploy/deploy-prod.sh backup     cài sao lưu hằng ngày (cron 03:30, giữ 14 bản) rồi chạy thử 1 lần
 #   ./deploy/deploy-prod.sh all        db rồi web
 #
 # Kiến trúc trên server (/opt):
@@ -41,7 +42,17 @@ web() {
     docker run -d --name sxd-web --restart unless-stopped -p 127.0.0.1:3020:3000 --add-host $DOMAIN:host-gateway --memory 768m sxd-web:latest"
 }
 
+backup() {
+  echo "==> Cài sao lưu hằng ngày"
+  scp -q "$ROOT/deploy/sxd-supabase/backup.sh" zenix-server:/opt/sxd-supabase/backup.sh
+  $SSH 'chmod 750 /opt/sxd-supabase/backup.sh
+    echo "30 3 * * * root /opt/sxd-supabase/backup.sh >>/opt/sxd-supabase/backups/cron.log 2>&1" > /etc/cron.d/sxd-backup
+    chmod 644 /etc/cron.d/sxd-backup
+    /opt/sxd-supabase/backup.sh && tail -1 /opt/sxd-supabase/backups/backup.log && ls -la /etc/cron.d/sxd-backup'
+}
+
 case "${1:-}" in
+  backup) backup ;;
   db) db ;;
   web) web ;;
   all) db; web ;;

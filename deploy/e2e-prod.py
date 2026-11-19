@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke test đầu-cuối cho sanxaydung.vn (35 kiểm tra), chạy TRÊN SERVER production.
+"""Smoke test đầu-cuối cho sanxaydung.vn (39 kiểm tra), chạy TRÊN SERVER production.
 
 Dùng GoTrue admin tạo 2 user thử → chạy các luồng chính qua domain thật (OpenLiteSpeed → Kong →
 GoTrue/PostgREST/Storage) → tự dọn dữ liệu thử. Khóa đọc từ /opt/sxd-supabase/.env, không in ra.
@@ -96,6 +96,27 @@ try:
     seed = sql("select id from companies where owner_id is null and slug not like 'zz-e2e-%' limit 1").stdout.strip()
     st, cl = call("POST", "/rest/v1/rpc/claim_company", {"_company": seed, "_note": "e2e"}, token=tb)
     check("claim công ty → 'pending' (email không khớp)", st == 200 and cl == "pending", f"{st} {cl}")
+    # Nhận hồ sơ qua email đăng ký (dữ liệu thử, không đụng hồ sơ thật)
+    reg_email = f"e2e-claim-{tag}@example.com"
+    fake_phone = "090" + str(int(tag, 16) % 10**7).zfill(7)
+    sql(f"""insert into companies(slug,name,status,phone) values ('zz-e2e-claim-{tag}','E2E Claim {tag}','published','{fake_phone}');
+            insert into partner_registrations(phone,company_name,status,company_id,payload)
+              select phone,'E2E Claim {tag}','approved',id,jsonb_build_object('email_google','{reg_email}') from companies where slug='zz-e2e-claim-{tag}';""")
+    claim_id = sql(f"select id from companies where slug='zz-e2e-claim-{tag}'").stdout.strip()
+    st, ucl = call("POST", "/auth/v1/admin/users", {"email": reg_email, "password": pw, "email_confirm": True}, key=SERVICE)
+    users["c"] = (ucl["id"], None)
+    st, tk = call("POST", "/auth/v1/token?grant_type=password", {"email": reg_email, "password": pw})
+    tc = tk["access_token"]
+    st, mine = call("POST", "/rest/v1/rpc/my_claimable_companies", {}, token=tc)
+    check("my_claimable_companies: email Google khớp email đăng ký", st == 200 and len(mine) == 1 and mine[0]["id"] == claim_id, f"{st} {mine}")
+    st, none = call("POST", "/rest/v1/rpc/my_claimable_companies", {}, token=ta)
+    check("user khác email → không thấy hồ sơ nào", st == 200 and none == [], f"{st} {none}")
+    st, _ = call("POST", "/rest/v1/rpc/my_claimable_companies", {})
+    check("anon KHÔNG gọi được my_claimable_companies", st in (401, 403), st)
+    st, cl2 = call("POST", "/rest/v1/rpc/claim_company", {"_company": claim_id}, token=tc)
+    check("claim_company → 'claimed' ngay (email khớp)", st == 200 and cl2 == "claimed", f"{st} {cl2}")
+    companies["claim"] = claim_id
+
     # Gói/Quyền hàm nội bộ
     st, _ = call("POST", "/rest/v1/rpc/compute_trust_score", {"_company": Bc}, token=tb)
     check("authenticated KHÔNG gọi được compute_trust_score", st in (401, 403), st)
@@ -132,6 +153,7 @@ finally:
       delete from notifications where user_id in ({uids});
       delete from company_claims where user_id in ({uids});
       delete from audit_log where actor_id in ({uids});
+      delete from partner_registrations where company_id in ({ids});
       delete from conversations where id in (select conversation_id from conversation_participants where company_id in ({ids}));
       delete from companies where id in ({ids});
       select (select count(*) from companies where slug like 'zz-e2e-%') || ' công ty thử còn lại, ' || (select count(*) from auth.users where email like 'e2e-%@example.com') || ' user thử còn lại';

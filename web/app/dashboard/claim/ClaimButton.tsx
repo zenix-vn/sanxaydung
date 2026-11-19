@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 
-export default function ClaimButton({ companyId, phone }: { companyId: string; phone: string }) {
+export default function ClaimButton({ companyId, note }: { companyId: string; note: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -13,10 +13,10 @@ export default function ClaimButton({ companyId, phone }: { companyId: string; p
     if (!confirm('Xác nhận bạn là đại diện của doanh nghiệp này?')) return;
     setBusy(true);
     setErr(null);
-    const { data, error } = await createSupabaseBrowser().rpc('claim_company', { _company: companyId, _note: `Yêu cầu nhận hồ sơ theo SĐT ${phone}` });
+    const { data, error } = await createSupabaseBrowser().rpc('claim_company', { _company: companyId, _note: note });
     setBusy(false);
     if (error) return setErr(error.message);
-    if (data === 'pending') return setPending(true); // chưa khớp SĐT/email đã xác thực → chờ admin duyệt
+    if (data === 'pending') return setPending(true); // chưa khớp email/SĐT đã xác thực → chờ admin duyệt
     router.replace('/dashboard');
     router.refresh();
   }
