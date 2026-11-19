@@ -255,8 +255,8 @@ otp_expiry = 3600
 # content_path = "./templates/password_changed_notification.html"
 
 [auth.sms]
-# Allow/disallow new user signups via SMS to your project.
-enable_signup = true
+# Allow/disallow new user signups via SMS to your project. (Đã bỏ đăng nhập OTP SĐT — chỉ dùng Google)
+enable_signup = false
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = false
 # Template for sending OTP to users
