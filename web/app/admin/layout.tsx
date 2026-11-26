@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: { default: 'Quản trị', template: 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { supa, name, email } = await requireAdmin();
+  const { supa, name, email, role } = await requireAdmin();
   const { data } = await supa.rpc('admin_stats');
   const s = (data ?? {}) as Partial<AdminStats>;
   const counts = {
@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     registrations_pending: s.registrations_pending ?? 0,
   };
   return (
-    <AdminShell counts={counts} name={name} email={email}>
+    <AdminShell counts={counts} name={name} email={email} role={role}>
       {children}
     </AdminShell>
   );

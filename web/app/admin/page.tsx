@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { requireAdmin, fmtDate, type AdminStats } from '@/lib/admin';
+import { requireAdmin, fmtDate, hasRole, type AdminStats } from '@/lib/admin';
 
 const KPI: { k: keyof AdminStats; label: string; icon: string; tone?: string; sub?: (s: AdminStats) => string | null }[] = [
   { k: 'companies_total', label: 'Doanh nghiệp', icon: 'ic-building', sub: (s) => `${s.companies_published} công khai · ${s.companies_verified} đã xác minh` },
@@ -23,10 +23,13 @@ const ACTION_LABEL: Record<string, string> = {
   'company.status_suspended': 'Đình chỉ doanh nghiệp', 'company.status_published': 'Công khai doanh nghiệp',
   'moderation.hide': 'Ẩn nội dung', 'moderation.restore': 'Khôi phục nội dung',
   'subscription.granted': 'Cấp gói', 'subscription.cancelled': 'Hủy gói',
+  'user.role_owner': 'Cấp quyền Chủ sở hữu', 'user.role_admin': 'Cấp quyền Quản trị viên', 'user.role_moderator': 'Cấp quyền Kiểm duyệt viên', 'user.role_member': 'Thu hồi quyền quản trị',
+  'user.banned': 'Khóa tài khoản', 'user.unbanned': 'Mở khóa tài khoản',
 };
 
 export default async function AdminHome() {
-  const { supa } = await requireAdmin();
+  const { supa, role } = await requireAdmin();
+  const canAudit = hasRole(role, 'admin');
   const [{ data }, { data: logs }] = await Promise.all([
     supa.rpc('admin_stats'),
     supa.from('audit_log').select('id, action, entity_type, created_at, profiles:actor_id ( full_name )').order('created_at', { ascending: false }).limit(8),
@@ -94,8 +97,10 @@ export default async function AdminHome() {
           </div>
         </div>
         <div className="adm-card">
-          <div className="hd"><h2>Hoạt động gần đây</h2><Link href="/admin/audit" style={{ color: 'var(--orange)', fontWeight: 600, fontSize: 13 }}>Xem tất cả</Link></div>
-          {(logs ?? []).length === 0 ? (
+          <div className="hd"><h2>Hoạt động gần đây</h2>{canAudit && <Link href="/admin/audit" style={{ color: 'var(--orange)', fontWeight: 600, fontSize: 13 }}>Xem tất cả</Link>}</div>
+          {!canAudit ? (
+            <div className="adm-empty">Nhật ký hoạt động chỉ dành cho quản trị viên.</div>
+          ) : (logs ?? []).length === 0 ? (
             <div className="adm-empty">Chưa có hoạt động nào.</div>
           ) : (
             <ul className="adm-log">

@@ -11,7 +11,7 @@ type Row = {
 };
 
 export default async function CompaniesPage({ searchParams }: { searchParams: { q?: string; status?: string; tier?: string; owner?: string; page?: string } }) {
-  const { supa } = await requireAdmin('/admin/companies');
+  const { supa } = await requireAdmin('/admin/companies', 'admin');
   const q = (searchParams.q ?? '').trim().replace(/[%,()]/g, '');
   const { status = '', tier = '', owner = '' } = searchParams;
   const { page, from, to } = pageOf(searchParams);

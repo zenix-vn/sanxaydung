@@ -3,8 +3,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AdminProvider } from '@/components/admin/ui';
+import { hasRole, ROLE_LABEL, type PlatformRole } from '@/lib/admin-roles';
 
-const NAV: { h?: string; items: { href: string; label: string; icon: string; badge?: 'verifications_pending' | 'claims_pending' | 'reports_open' | 'registrations_pending' }[] }[] = [
+const NAV: { h?: string; items: { href: string; label: string; icon: string; badge?: 'verifications_pending' | 'claims_pending' | 'reports_open' | 'registrations_pending'; min?: PlatformRole }[] }[] = [
   { items: [{ href: '/admin', label: 'Tổng quan', icon: 'ic-grid' }] },
   {
     h: 'Cần xử lý',
@@ -18,19 +19,20 @@ const NAV: { h?: string; items: { href: string; label: string; icon: string; bad
   {
     h: 'Quản lý',
     items: [
-      { href: '/admin/companies', label: 'Doanh nghiệp', icon: 'ic-building' },
-      { href: '/admin/users', label: 'Người dùng', icon: 'ic-users' },
-      { href: '/admin/subscriptions', label: 'Gói & thanh toán', icon: 'ic-coin' },
-      { href: '/admin/audit', label: 'Nhật ký hoạt động', icon: 'ic-file-text' },
+      { href: '/admin/companies', label: 'Doanh nghiệp', icon: 'ic-building', min: 'admin' },
+      { href: '/admin/users', label: 'Người dùng & phân quyền', icon: 'ic-users', min: 'admin' },
+      { href: '/admin/subscriptions', label: 'Gói & thanh toán', icon: 'ic-coin', min: 'admin' },
+      { href: '/admin/audit', label: 'Nhật ký hoạt động', icon: 'ic-file-text', min: 'admin' },
     ],
   },
 ];
 
-export default function AdminShell({ counts, name, email, children }: { counts: Record<string, number>; name: string; email: string; children: React.ReactNode }) {
+export default function AdminShell({ counts, name, email, role, children }: { counts: Record<string, number>; name: string; email: string; role: PlatformRole; children: React.ReactNode }) {
+  const nav = NAV.map((g) => ({ ...g, items: g.items.filter((i) => !i.min || hasRole(role, i.min)) })).filter((g) => g.items.length);
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const on = (href: string) => (href === '/admin' ? path === '/admin' : path.startsWith(href));
-  const current = NAV.flatMap((g) => g.items).find((i) => on(i.href));
+  const current = nav.flatMap((g) => g.items).find((i) => on(i.href));
   const ini = name.split(' ').filter(Boolean).slice(-2).map((w) => w[0].toUpperCase()).join('');
 
   return (
@@ -42,7 +44,7 @@ export default function AdminShell({ counts, name, email, children }: { counts: 
             <div><b>SÀN XÂY DỰNG</b><small>Trang quản trị</small></div>
           </Link>
           <nav className="adm-nav">
-            {NAV.map((g, i) => (
+            {nav.map((g, i) => (
               <div key={i}>
                 {g.h && <div className="adm-nav-h">{g.h}</div>}
                 {g.items.map((it) => {
@@ -69,7 +71,7 @@ export default function AdminShell({ counts, name, email, children }: { counts: 
             <button className="adm-burger" onClick={() => setOpen(true)} aria-label="Mở menu"><svg className="ic" style={{ width: 20, height: 20 }}><use href="#ic-dots" /></svg></button>
             <div className="crumb">Quản trị / <b>{current?.label ?? 'Tổng quan'}</b></div>
             <div className="adm-user">
-              <div className="nm">{name}<small>{email}</small></div>
+              <div className="nm">{name}<small>{ROLE_LABEL[role]} · {email}</small></div>
               <div className="av">{ini || 'A'}</div>
             </div>
           </header>

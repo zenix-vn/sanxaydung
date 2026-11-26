@@ -1,6 +1,8 @@
 import { notFound, redirect } from 'next/navigation';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { SUPABASE_URL } from '@/lib/env';
+import { hasRole, type PlatformRole } from '@/lib/admin-roles';
+export { hasRole, ROLE_LABEL, type PlatformRole } from '@/lib/admin-roles';
 
 export interface AdminStats {
   companies_total: number; companies_published: number; companies_suspended: number;
@@ -11,18 +13,20 @@ export interface AdminStats {
   series: { day: string; users: number; companies: number; listings: number }[];
 }
 
-/** Chặn truy cập: chưa đăng nhập → /login; không phải admin → 404 (không lộ sự tồn tại của /admin). */
-export async function requireAdmin(redirectTo = '/admin') {
+/** Chặn truy cập: chưa đăng nhập → /login; không đủ quyền → 404 (không lộ sự tồn tại của /admin). */
+export async function requireAdmin(redirectTo = '/admin', min: PlatformRole = 'moderator') {
   if (!SUPABASE_URL) notFound();
   const supa = createSupabaseServer();
   const { data: { user } } = await supa.auth.getUser();
   if (!user) redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
-  const { data: ok } = await supa.rpc('is_platform_admin');
-  if (ok !== true) notFound();
+  const { data: r } = await supa.rpc('platform_role');
+  const role = (r as PlatformRole | null) ?? null;
+  if (!role || !hasRole(role, min)) notFound();
   const { data: profile } = await supa.from('profiles').select('full_name, avatar_url').eq('id', user.id).maybeSingle();
   return {
     supa,
     user,
+    role,
     name: (profile as { full_name: string | null } | null)?.full_name || user.email || 'Quản trị viên',
     email: user.email ?? '',
   };

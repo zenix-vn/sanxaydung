@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: 'Gói & thanh toán' };
 type Row = { id: string; plan_id: string | null; status: string; started_at: string; expires_at: string | null; companies: { id: string; name: string; slug: string; logo_url: string | null } | null; plans: { name: string | null; price_month: number | null } | null };
 
 export default async function SubscriptionsPage({ searchParams }: { searchParams: { status?: string; page?: string } }) {
-  const { supa } = await requireAdmin('/admin/subscriptions');
+  const { supa } = await requireAdmin('/admin/subscriptions', 'admin');
   const status = ['active', 'cancelled', 'past_due'].includes(searchParams.status ?? '') ? searchParams.status! : 'active';
   const { page, from, to } = pageOf(searchParams);
   const [{ data, count }, { data: plans }] = await Promise.all([
