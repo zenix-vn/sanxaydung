@@ -36,7 +36,7 @@ export default function SaveButton({ kind, itemId, className = 'btn btn-outline'
 
   const label = saved ? 'Đã lưu' : 'Lưu';
   return (
-    <button type="button" className={className} onClick={toggle} disabled={busy || uid === undefined} aria-pressed={saved} title={saved ? 'Bỏ lưu' : 'Lưu để xem lại'}>
+    <button type="button" className={className} onClick={toggle} disabled={busy || uid === undefined} aria-pressed={saved} aria-label={saved ? 'Bỏ lưu' : 'Lưu để xem lại'} title={saved ? 'Đã lưu — bấm để bỏ lưu' : 'Lưu để xem lại'}>
       <svg className="ic" style={saved ? { color: 'var(--orange)', fill: 'currentColor' } : undefined}><use href="#ic-heart" /></svg>
       {!compact && <> {label}</>}
     </button>

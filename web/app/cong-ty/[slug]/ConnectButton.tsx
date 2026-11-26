@@ -1,67 +1,104 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 
 export interface MyCo { id: string; name: string; role: string }
 export interface ExistingConn { id: string; status: string; mineId: string; iAmTarget: boolean }
 
-// Gửi yêu cầu kết nối (create_connection) hoặc xác nhận hoàn tất (complete_connection) để mở khóa đánh giá.
-export default function ConnectButton({ targetId, mine, existing }: { targetId: string; mine: MyCo[]; existing: ExistingConn | null }) {
+const isEditor = (c: MyCo) => ['owner', 'admin', 'editor'].includes(c.role);
+const isAdmin = (c: MyCo) => ['owner', 'admin'].includes(c.role);
+
+// Kết nối hợp tác giữa hai doanh nghiệp: gửi → (bên nhận) chấp nhận/từ chối → hoàn tất → mở đánh giá.
+export default function ConnectButton({ targetId, mine, existing, loggedIn }: { targetId: string; mine: MyCo[]; existing: ExistingConn | null; loggedIn: boolean }) {
   const router = useRouter();
-  const [as, setAs] = useState(mine[0]?.id ?? '');
+  const path = usePathname();
+  const editors = mine.filter(isEditor);
+  const [as, setAs] = useState(editors[0]?.id ?? '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const editors = mine.filter((c) => ['owner', 'admin', 'editor'].includes(c.role));
-  const admin = existing ? mine.find((c) => c.id === existing.mineId && ['owner', 'admin'].includes(c.role)) : null;
+  const myCo = existing ? mine.find((c) => c.id === existing.mineId) : undefined;
+  const admin = myCo && isAdmin(myCo) ? myCo : null;
+  const editor = myCo && isEditor(myCo) ? myCo : null;
 
-  async function run(fn: () => PromiseLike<{ error: { message: string } | null }>) {
+  async function run(fn: string, args: Record<string, unknown>, ask?: string) {
+    if (busy || (ask && !confirm(ask))) return;
     setBusy(true);
     setErr(null);
-    const { error } = await fn();
+    const { error } = await createSupabaseBrowser().rpc(fn, args);
     setBusy(false);
     if (error) return setErr(error.message);
     router.refresh();
   }
 
+  const error = err && <small role="alert" style={{ color: '#a12622', width: '100%' }}>{err}</small>;
+
   if (existing && existing.status !== 'cancelled') {
-    if (existing.status === 'completed') return <span className="badge green">Đã hợp tác</span>;
-    const rpc = (fn: string, args: Record<string, unknown>) => () => createSupabaseBrowser().rpc(fn, args);
+    if (existing.status === 'completed') return <span className="conn-state ok"><svg className="ic"><use href="#ic-check" /></svg> Đã hợp tác</span>;
+
+    if (existing.status === 'pending' && existing.iAmTarget) {
+      if (!admin) return <span className="conn-state">Có yêu cầu kết nối · chờ quản trị viên phản hồi</span>;
+      return (
+        <>
+          <button type="button" className="btn btn-orange" disabled={busy} onClick={() => run('respond_connection', { _connection: existing.id, _as_company: admin.id, _accept: true })}>
+            <svg className="ic"><use href="#ic-check" /></svg> {busy ? 'Đang lưu…' : 'Chấp nhận kết nối'}
+          </button>
+          <button type="button" className="btn btn-outline" disabled={busy} onClick={() => run('respond_connection', { _connection: existing.id, _as_company: admin.id, _accept: false }, 'Từ chối yêu cầu kết nối này?')}>
+            Từ chối
+          </button>
+          {error}
+        </>
+      );
+    }
+
+    if (existing.status === 'pending') {
+      return (
+        <>
+          <span className="conn-state">
+            <svg className="ic"><use href="#ic-clock" /></svg> Đã gửi kết nối · chờ phản hồi
+            {editor && (
+              <button type="button" className="conn-cancel" disabled={busy} onClick={() => run('cancel_connection', { _connection: existing.id, _as_company: editor.id }, 'Hủy yêu cầu kết nối đã gửi?')}>
+                {busy ? 'Đang hủy…' : 'Hủy'}
+              </button>
+            )}
+          </span>
+          {error}
+        </>
+      );
+    }
+
+    // accepted
     return (
       <>
-        {existing.status === 'pending' && existing.iAmTarget && admin && (
-          <>
-            <a className="btn btn-orange" onClick={() => !busy && run(rpc('respond_connection', { _connection: existing.id, _as_company: admin.id, _accept: true }))}>
-              <svg className="ic"><use href="#ic-check" /></svg> {busy ? 'Đang lưu…' : 'Chấp nhận kết nối'}
-            </a>
-            <a className="btn btn-outline" onClick={() => !busy && run(rpc('respond_connection', { _connection: existing.id, _as_company: admin.id, _accept: false }))}>Từ chối</a>
-          </>
+        <span className="conn-state ok"><svg className="ic"><use href="#ic-people" /></svg> Đang hợp tác</span>
+        {admin && (
+          <button
+            type="button"
+            className="btn btn-outline"
+            title="Xác nhận hai bên đã hợp tác xong để mở đánh giá"
+            disabled={busy}
+            onClick={() => run('complete_connection', { _connection: existing.id, _as_company: admin.id }, 'Xác nhận đã hoàn tất hợp tác? Sau đó hai bên có thể đánh giá lẫn nhau.')}
+          >
+            <svg className="ic"><use href="#ic-check" /></svg> {busy ? 'Đang lưu…' : 'Hoàn tất hợp tác'}
+          </button>
         )}
-        {existing.status === 'pending' && !existing.iAmTarget && <span className="badge gray" style={{ alignSelf: 'center' }}>Đã gửi kết nối · chờ phản hồi</span>}
-        {existing.status === 'pending' && existing.iAmTarget && !admin && <span className="badge gray" style={{ alignSelf: 'center' }}>Có yêu cầu kết nối · chờ admin phản hồi</span>}
-        {existing.status === 'accepted' && (
-          <>
-            <span className="badge green" style={{ alignSelf: 'center' }}>Đã kết nối</span>
-            {admin && (
-              <a
-                className="btn btn-outline"
-                title="Xác nhận hai bên đã hợp tác xong để mở đánh giá"
-                onClick={() => !busy && run(rpc('complete_connection', { _connection: existing.id, _as_company: admin.id }))}
-              >
-                <svg className="ic"><use href="#ic-check" /></svg> {busy ? 'Đang lưu…' : 'Xác nhận hoàn tất hợp tác'}
-              </a>
-            )}
-          </>
-        )}
-        {err && <small style={{ color: '#a12622', width: '100%' }}>{err}</small>}
+        {error}
       </>
+    );
+  }
+
+  if (!loggedIn) {
+    return (
+      <a className="btn btn-orange" href={`/login?redirect=${encodeURIComponent(path)}`}>
+        <svg className="ic"><use href="#ic-plus" /></svg> Kết nối
+      </a>
     );
   }
 
   if (editors.length === 0) {
     return (
-      <a className="btn btn-orange" href="/login?redirect=/directory">
+      <a className="btn btn-orange" href="/dashboard" title={mine.length ? 'Cần vai trò Biên tập trở lên trong doanh nghiệp của bạn' : 'Tạo hoặc nhận hồ sơ doanh nghiệp để kết nối'}>
         <svg className="ic"><use href="#ic-plus" /></svg> Kết nối
       </a>
     );
@@ -70,17 +107,14 @@ export default function ConnectButton({ targetId, mine, existing }: { targetId: 
   return (
     <>
       {editors.length > 1 && (
-        <select className="input" style={{ width: 'auto' }} value={as} onChange={(e) => setAs(e.target.value)}>
+        <select className="input" style={{ width: 'auto' }} value={as} onChange={(e) => setAs(e.target.value)} aria-label="Kết nối với tư cách">
           {editors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       )}
-      <a
-        className="btn btn-orange"
-        onClick={() => !busy && run(() => createSupabaseBrowser().rpc('create_connection', { _target: targetId, _as_company: as || editors[0].id }))}
-      >
+      <button type="button" className="btn btn-orange" disabled={busy} onClick={() => run('create_connection', { _target: targetId, _as_company: as || editors[0].id })}>
         <svg className="ic"><use href="#ic-plus" /></svg> {busy ? 'Đang gửi…' : 'Kết nối'}
-      </a>
-      {err && <small style={{ color: '#a12622', width: '100%' }}>{err}</small>}
+      </button>
+      {error}
     </>
   );
 }

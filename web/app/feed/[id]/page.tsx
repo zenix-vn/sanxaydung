@@ -6,7 +6,7 @@ import { getMe, canAdmin } from '@/lib/me';
 import { POST_TYPES } from '@/lib/format';
 import { SITE_URL, colorFor, initials, thumb, timeAgo } from '@/lib/ui';
 import LikeButton from '../LikeButton';
-import ShareButton from '../ShareButton';
+import ShareButton from '@/components/ShareButton';
 import Comments, { type Comment } from './Comments';
 
 export const dynamic = 'force-dynamic';

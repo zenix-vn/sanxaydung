@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import ReportButton from './ReportButton';
 import SaveButton from '@/components/SaveButton';
+import ShareButton from '@/components/ShareButton';
 import { TrackView, ContactLink } from '@/components/Track';
 import type { CSSProperties } from 'react';
 import { notFound } from 'next/navigation';
@@ -360,14 +361,18 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
 
             {/* Actions */}
             <div className="ph-actions">
-              {!rel.isMember && <SaveButton kind="company" itemId={c.id} className="btn btn-outline btn-icon" compact />}
-              <a className="btn btn-outline" href={`mailto:?subject=${encodeURIComponent(c.name)}&body=${encodeURIComponent(`${SITE_URL}/cong-ty/${c.slug}`)}`}>
-                <svg className="ic"><use href="#ic-link" /></svg> Chia sẻ
-              </a>
-              <ContactLink companyId={c.id} className="btn btn-outline" href={`/chat?to=${c.id}`}>
-                <svg className="ic"><use href="#ic-chat" /></svg> Nhắn tin
-              </ContactLink>
-              {!rel.isMember && <ConnectButton targetId={c.id} mine={rel.mine} existing={rel.existing} />}
+              {!rel.isMember && <SaveButton kind="company" itemId={c.id} className="btn btn-outline btn-icon btn-square" compact />}
+              <ShareButton path={`/cong-ty/${c.slug}`} title={c.name} className="btn btn-outline" />
+              {rel.isMember ? (
+                <a className="btn btn-outline" href="/dashboard/company-edit">
+                  <svg className="ic"><use href="#ic-edit" /></svg> Sửa hồ sơ
+                </a>
+              ) : (
+                <ContactLink companyId={c.id} className="btn btn-outline" href={`/chat?to=${c.id}`}>
+                  <svg className="ic"><use href="#ic-chat" /></svg> Nhắn tin
+                </ContactLink>
+              )}
+              {!rel.isMember && <ConnectButton targetId={c.id} mine={rel.mine} existing={rel.existing} loggedIn={rel.loggedIn} />}
             </div>
           </div>
         </div>

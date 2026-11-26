@@ -4,7 +4,7 @@ import { SUPABASE_URL } from '@/lib/env';
 import { colorFor, initials, timeAgo } from '@/lib/ui';
 import FeedComposer from './FeedComposer';
 import LikeButton from './LikeButton';
-import ShareButton from './ShareButton';
+import ShareButton from '@/components/ShareButton';
 import { POST_TYPES } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Tin tức ngành' };

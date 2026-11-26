@@ -383,7 +383,7 @@ export default function ChatClient() {
         <div>
           <h2 style={{ color: 'var(--navy)', marginBottom: 8 }}>Đăng nhập để nhắn tin</h2>
           <p style={{ marginBottom: 16 }}>Tin nhắn được gửi giữa các doanh nghiệp trên sàn.</p>
-          <a className="btn btn-orange" href="/login?redirect=/chat">Đăng nhập</a>
+          <a className="btn btn-orange" href={`/login?redirect=${encodeURIComponent(`/chat${typeof window !== 'undefined' ? window.location.search : ''}`)}`}>Đăng nhập</a>
         </div>
       </div>
     );
