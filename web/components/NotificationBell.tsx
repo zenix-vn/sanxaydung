@@ -119,6 +119,7 @@ export default function NotificationBell() {
         .noti-pop .it b{display:block;font-size:13px;color:var(--navy)}
         .noti-pop .it span{display:block;font-size:12.5px;color:#31414f;margin-top:2px}
         .noti-pop .it small{font-size:11px;color:var(--muted)}
+        .noti-pop .ft{display:block;text-align:center;padding:10px;border-top:1px solid var(--line-2);font-size:12.5px;font-weight:600;color:var(--orange);text-decoration:none}
         .noti-pop .empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:13px}
       `}</style>
       <button className="bell-btn" aria-label={`Thông báo${unread ? ` (${unread} chưa đọc)` : ''}`} onClick={() => setOpen((o) => !o)}>
@@ -144,6 +145,7 @@ export default function NotificationBell() {
               ))
             )}
           </div>
+          <a className="ft" href="/dashboard/notifications">Xem tất cả &amp; cài đặt thông báo</a>
         </div>
       )}
     </div>

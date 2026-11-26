@@ -1,10 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 
 export default function ClaimButton({ companyId, note }: { companyId: string; note: string }) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -17,8 +15,7 @@ export default function ClaimButton({ companyId, note }: { companyId: string; no
     setBusy(false);
     if (error) return setErr(error.message);
     if (data === 'pending') return setPending(true); // chưa khớp email/SĐT đã xác thực → chờ admin duyệt
-    router.replace('/dashboard');
-    router.refresh();
+    window.location.assign(`/dashboard/switch?to=${companyId}`);
   }
 
   if (pending) return <span className="badge orange">Đã gửi — chờ duyệt thủ công</span>;

@@ -1,11 +1,9 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 import { toLocalVN } from '@/lib/phone';
 
 export default function NewCompanyForm({ userId, defaultPhone }: { userId: string; defaultPhone: string }) {
-  const router = useRouter();
   const supa = useMemo(() => createSupabaseBrowser(), []);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState(defaultPhone);
@@ -25,13 +23,13 @@ export default function NewCompanyForm({ userId, defaultPhone }: { userId: strin
     setBusy(true);
     try {
       // RPC tạo công ty + thành viên owner atomic; SĐT trùng → 23505 → gợi ý nhận hồ sơ
-      const { error } = await supa.rpc('create_company', { _name: name.trim(), _phone: local, _tax_code: tax.trim() || null });
+      const { data: newId, error } = await supa.rpc('create_company', { _name: name.trim(), _phone: local, _tax_code: tax.trim() || null });
       if (error) {
         if (error.code === '23505') { setDup(true); return; }
         throw error;
       }
-      router.replace('/dashboard/company-edit');
-      router.refresh();
+      // Đặt công ty vừa tạo làm công ty đang làm việc rồi chuyển tới trang hoàn thiện hồ sơ
+      window.location.assign(`/dashboard/switch?to=${newId}&next=/dashboard/company-edit`);
     } catch (e) {
       setErr((e as Error).message);
     } finally {

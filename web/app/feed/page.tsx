@@ -4,20 +4,13 @@ import { SUPABASE_URL } from '@/lib/env';
 import { colorFor, initials, timeAgo } from '@/lib/ui';
 import FeedComposer from './FeedComposer';
 import LikeButton from './LikeButton';
+import ShareButton from './ShareButton';
+import { POST_TYPES } from '@/lib/format';
 
 export const metadata: Metadata = { title: 'Tin tức ngành' };
 export const dynamic = 'force-dynamic';
 
-const POST_TYPE_MAP: Record<string, { label: string; cls: string; icon: string }> = {
-  news:               { label: 'Tin tức',           cls: '',       icon: 'ic-layers' },
-  new_project:        { label: 'Dự án mới',         cls: 'blue',   icon: 'ic-building' },
-  completed_project:  { label: 'Dự án hoàn thành',  cls: 'green',  icon: 'ic-check' },
-  recruitment:        { label: 'Tuyển dụng',        cls: 'orange', icon: 'ic-people' },
-  equipment:          { label: 'Thiết bị',           cls: '',       icon: 'ic-gear' },
-  certificate:        { label: 'Chứng nhận',        cls: '',       icon: 'ic-award' },
-  promotion:          { label: 'Khuyến mãi',        cls: 'orange', icon: 'ic-tag' },
-  activity:           { label: 'Hoạt động',         cls: '',       icon: 'ic-activity' },
-};
+const POST_TYPE_MAP = POST_TYPES;
 
 interface PostRow {
   id: string;
@@ -160,6 +153,7 @@ export default async function FeedPage({ searchParams }: { searchParams: { type?
         .empty-feed svg{width:48px;height:48px;opacity:.3;margin-bottom:12px}
         @media(max-width:1024px){.feed-grid{grid-template-columns:1fr}.feed-grid aside{display:none}}
       `}</style>
+      <h1 className="sr-only">Tin tức ngành xây dựng</h1>
 
       <div className="container" style={{ padding: '24px 20px 48px' }}>
         <div className="feed-grid">
@@ -242,7 +236,7 @@ export default async function FeedPage({ searchParams }: { searchParams: { type?
                           Công khai
                         </small>
                       </div>
-                      <a className="btn btn-icon btn-outline" style={{ border: 'none' }}>
+                      <a className="btn btn-icon btn-outline" style={{ border: 'none' }} href={`/feed/${post.id}`} title="Xem bài viết" aria-label="Xem bài viết">
                         <svg className="ic"><use href="#ic-dots" /></svg>
                       </a>
                     </div>
@@ -254,7 +248,7 @@ export default async function FeedPage({ searchParams }: { searchParams: { type?
                     </div>
 
                     <div className="body">
-                      {post.title && <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}>{post.title}</h3>}
+                      {post.title && <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', marginBottom: 6 }}><a href={`/feed/${post.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>{post.title}</a></h3>}
                       {post.body && <p>{post.body}</p>}
                     </div>
 
@@ -265,13 +259,13 @@ export default async function FeedPage({ searchParams }: { searchParams: { type?
                     )}
 
                     {post.comment_count > 0 && (
-                      <div className="stats"><span>{post.comment_count} bình luận</span></div>
+                      <div className="stats"><a href={`/feed/${post.id}#comments`} style={{ color: 'inherit' }}>{post.comment_count} bình luận</a></div>
                     )}
 
                     <div className="actions">
                       <LikeButton postId={post.id} initialLiked={liked.has(post.id)} initialCount={post.like_count} />
-                      <a><svg className="ic"><use href="#ic-chat" /></svg> Bình luận</a>
-                      <a><svg className="ic"><use href="#ic-link" /></svg> Chia sẻ</a>
+                      <a href={`/feed/${post.id}#comments`}><svg className="ic"><use href="#ic-chat" /></svg> Bình luận</a>
+                      <ShareButton path={`/feed/${post.id}`} title={post.title ?? post.companies?.name ?? 'Bài viết'} />
                     </div>
                   </article>
                 );

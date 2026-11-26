@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { SUPABASE_URL } from '@/lib/env';
+import { cookies } from 'next/headers';
 import NewListingForm from './NewListingForm';
+import { ACTIVE_CO_COOKIE } from '@/lib/supabase/company';
 
 export const metadata: Metadata = { title: 'Đăng nhu cầu / tin đăng' };
 export const dynamic = 'force-dynamic';
@@ -39,7 +41,7 @@ export default async function NewListingPage() {
       <section className="block" style={{ background: 'var(--bg)', paddingTop: 26 }}>
         <div className="container" style={{ maxWidth: 780 }}>
           <div className="card-block">
-            <NewListingForm categories={categories} provinces={provinces} />
+            <NewListingForm categories={categories} provinces={provinces} defaultCompanyId={cookies().get(ACTIVE_CO_COOKIE)?.value} />
           </div>
         </div>
       </section>

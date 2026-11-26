@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/env';
 import { SITE_URL } from '@/lib/ui';
+import { slugifyVi } from '@/lib/slug';
 
 // Sitemap động: trang tĩnh + doanh nghiệp đã công khai + tin đăng đang mở.
 // force-dynamic: nếu prerender lúc build thì container build không gọi được API → sitemap thiếu dữ liệu.
@@ -12,6 +13,8 @@ const STATIC: { path: string; priority: number; changeFrequency: MetadataRoute.S
   { path: '/directory', priority: 0.9, changeFrequency: 'daily' },
   { path: '/marketplace', priority: 0.9, changeFrequency: 'hourly' },
   { path: '/feed', priority: 0.7, changeFrequency: 'hourly' },
+  { path: '/ban-do', priority: 0.6, changeFrequency: 'weekly' },
+  { path: '/linh-vuc', priority: 0.7, changeFrequency: 'weekly' },
   { path: '/pricing', priority: 0.5, changeFrequency: 'monthly' },
   { path: '/huong-dan', priority: 0.4, changeFrequency: 'monthly' },
   { path: '/cau-hoi-thuong-gap', priority: 0.4, changeFrequency: 'monthly' },
@@ -38,6 +41,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: e.updated_at ?? undefined,
         changeFrequency: e.kind === 'company' ? 'weekly' : 'daily',
         priority: e.kind === 'company' ? 0.8 : 0.6,
+      }),
+    );
+    // Trang SEO lĩnh vực × tỉnh (chỉ cặp có ≥ 1 doanh nghiệp)
+    const { data: pairs } = await supa.rpc('landing_pairs');
+    ((pairs ?? []) as { category: string; province_name: string; total: number }[]).forEach((p) =>
+      out.push({
+        url: `${SITE_URL}/linh-vuc/${p.category}/${slugifyVi(p.province_name)}`,
+        changeFrequency: 'weekly',
+        priority: p.total >= 5 ? 0.7 : 0.5,
       }),
     );
   } catch {

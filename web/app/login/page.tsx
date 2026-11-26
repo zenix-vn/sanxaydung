@@ -33,7 +33,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         body{background:var(--navy)}
         .auth-wrap{min-height:calc(100vh - 70px);display:grid;grid-template-columns:1fr 480px}
         .auth-left{background:linear-gradient(150deg,rgba(2,30,72,.92),rgba(2,30,72,.72)),url("https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1200&q=80") center/cover;color:#fff;padding:48px;display:flex;flex-direction:column;justify-content:space-between}
@@ -57,7 +57,7 @@ export default function LoginPage() {
         .fineprint{font-size:12px;color:var(--muted);margin-top:16px;text-align:center;line-height:1.6}
         .fineprint a{color:var(--orange);font-weight:600}
         @media(max-width:900px){.auth-wrap{grid-template-columns:1fr}.auth-left{display:none}.auth-right{min-height:calc(100vh - 70px)}}
-      `}</style>
+      ` }} />
 
       <div className="auth-wrap">
         {/* LEFT panel */}

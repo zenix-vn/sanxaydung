@@ -11,14 +11,13 @@ const nextConfig = {
       { source: '/icon.png', headers: [{ key: 'Cache-Control', value: day }] },
       { source: '/apple-icon.png', headers: [{ key: 'Cache-Control', value: day }] },
       { source: '/favicon.ico', headers: [{ key: 'Cache-Control', value: day }] },
+      // Service worker phải luôn lấy bản mới để cập nhật kịp thời
+      { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache' }, { key: 'Service-Worker-Allowed', value: '/' }] },
     ];
   },
-  // Cho phép ảnh từ Supabase Storage & nguồn demo
-  images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: '*.supabase.co' },
-      { protocol: 'https', hostname: 'images.unsplash.com' },
-    ],
-  },
+  // Không dùng next/image → tắt Image Optimization API (/_next/image) để thu hẹp bề mặt tấn công
+  // (Next 14 còn lỗ hổng RCE/DoS ở API này; middleware cũng chặn đường dẫn đó).
+  images: { unoptimized: true, remotePatterns: [] },
+
 };
 export default nextConfig;

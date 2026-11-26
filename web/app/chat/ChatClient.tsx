@@ -32,7 +32,7 @@ interface Msg {
   body: string | null;
   kind: string;
   attachment_url: string | null;
-  meta: { amount?: number; currency?: string; title?: string } | null;
+  meta: { amount?: number; currency?: string; title?: string; name?: string; size?: number; type?: string } | null;
   read_by: string[] | null;
   created_at: string;
 }
@@ -59,8 +59,47 @@ function listTime(iso?: string | null) {
 }
 function preview(m: { body: string | null; kind: string; meta?: Msg['meta'] }) {
   if (m.kind === 'quote') return `Báo giá ${fmtMoney(m.meta?.amount)} ₫`;
-  if (m.kind === 'file') return 'Đã gửi tệp đính kèm';
+  if (m.kind === 'file') return `📎 ${m.meta?.name ?? 'Tệp đính kèm'}`;
   return m.body ?? '';
+}
+
+const MAX_FILE = 20 * 1024 * 1024;
+
+/** Tệp đính kèm lưu ở bucket riêng tư → tạo signed URL khi hiển thị (RLS: thành viên các bên trong hội thoại). */
+function Attachment({ path, meta }: { path: string; meta: Msg['meta'] }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const isImg = (meta?.type ?? '').startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(path);
+  useEffect(() => {
+    let alive = true;
+    createSupabaseBrowser().storage.from('message-attachments').createSignedUrl(path, 3600).then(({ data, error }) => {
+      if (!alive) return;
+      if (error || !data) setFailed(true);
+      else setUrl(data.signedUrl);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [path]);
+  const name = meta?.name ?? path.split('/').pop() ?? 'Tệp';
+  if (failed) return <div className="qline">📎 {name} (không mở được)</div>;
+  if (isImg && url) {
+    return (
+      <a href={url} target="_blank" rel="noopener" className="att-img">
+        <img src={url} alt={name} />
+      </a>
+    );
+  }
+  return (
+    <a className="att-file" href={url ?? undefined} target="_blank" rel="noopener" aria-disabled={!url}>
+      <svg className="ic"><use href="#ic-file-text" /></svg>
+      <span>
+        <b>{name}</b>
+        {meta?.size ? <small>{(meta.size / 1048576).toFixed(1)} MB</small> : null}
+      </span>
+      <svg className="ic"><use href="#ic-download" /></svg>
+    </a>
+  );
 }
 
 function Ava({ co, cls = '', size }: { co: Co | null; cls?: string; size?: number }) {
@@ -90,6 +129,9 @@ export default function ChatClient() {
   const [q, setQ] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [listingTitle, setListingTitle] = useState<string | null>(null);
+  const [findOpen, setFindOpen] = useState(false);
+  const [find, setFind] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const selRef = useRef<string | null>(null);
   const startedRef = useRef(false);
@@ -303,6 +345,35 @@ export default function ChatClient() {
     setText('');
   }
 
+  async function sendFile(f: File) {
+    if (!sel || !uid || !sel.mineId) return;
+    if (f.size > MAX_FILE) return setErr('Tệp tối đa 20MB.');
+    setSending(true);
+    setErr(null);
+    const ext = (f.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const path = `${sel.mineId}/${sel.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const up = await supa.storage.from('message-attachments').upload(path, f, { contentType: f.type || undefined });
+    if (up.error) {
+      setSending(false);
+      return setErr(`Không tải được tệp: ${up.error.message}`);
+    }
+    const { error } = await supa.from('messages').insert({
+      conversation_id: sel.id,
+      sender_company_id: sel.mineId,
+      sender_user_id: uid,
+      body: text.trim() || null,
+      kind: 'file',
+      attachment_url: path,
+      meta: { name: f.name.slice(0, 200), size: f.size, type: f.type },
+    });
+    setSending(false);
+    if (error) return setErr(`Không gửi được: ${error.message}`);
+    setText('');
+  }
+
+  const findQ = find.trim().toLowerCase();
+  const shownMsgs = findQ ? msgs.filter((m) => (m.body ?? '').toLowerCase().includes(findQ) || (m.meta?.name ?? '').toLowerCase().includes(findQ)) : msgs;
+
   const filtered = convs.filter((c) => !q.trim() || (c.other?.name ?? '').toLowerCase().includes(q.trim().toLowerCase()));
 
   // ---------- Trạng thái chưa đăng nhập / chưa có công ty ----------
@@ -381,6 +452,17 @@ export default function ChatClient() {
                 )}
               </h3>
             </div>
+            <button
+              type="button"
+              className="btn btn-icon btn-outline"
+              style={{ border: 'none' }}
+              title="Tìm trong hội thoại"
+              aria-label="Tìm trong hội thoại"
+              aria-pressed={findOpen}
+              onClick={() => { setFindOpen((v) => !v); setFind(''); }}
+            >
+              <svg className="ic"><use href="#ic-search" /></svg>
+            </button>
             {sel.other && (
               <a className="btn btn-icon btn-outline" style={{ border: 'none' }} href={`/cong-ty/${sel.other.slug}`} title="Xem hồ sơ">
                 <svg className="ic"><use href="#ic-eye" /></svg>
@@ -396,9 +478,17 @@ export default function ChatClient() {
             </div>
           )}
 
+          {findOpen && (
+            <div className="ctx-bar">
+              <input className="input" autoFocus placeholder="Tìm tin nhắn, tên tệp…" value={find} onChange={(e) => setFind(e.target.value)} style={{ flex: 1, padding: '6px 10px' }} />
+              {findQ && <small className="muted" style={{ marginLeft: 8, whiteSpace: 'nowrap' }}>{shownMsgs.length} kết quả</small>}
+            </div>
+          )}
+
           <div className="msgs">
             {msgs.length === 0 && <div className="day">Hãy gửi lời chào đầu tiên 👋</div>}
-            {msgs.map((m) => {
+            {findQ && shownMsgs.length === 0 && <div className="day">Không tìm thấy tin nhắn phù hợp</div>}
+            {shownMsgs.map((m) => {
               const d = dayLabel(m.created_at);
               const showDay = d !== lastDay;
               lastDay = d;
@@ -420,7 +510,7 @@ export default function ChatClient() {
                   ) : (
                     <div className={`msg ${mine ? 'me' : 'them'}`}>
                       {m.body}
-                      {m.attachment_url && <div className="qline">📎 Tệp đính kèm</div>}
+                      {m.attachment_url && <Attachment path={m.attachment_url} meta={m.meta} />}
                       <div className="t">
                         {hhmm(m.created_at)}
                         {mine && (m.read_by ?? []).some((u) => u !== uid) ? ' · Đã xem' : ''}
@@ -435,6 +525,12 @@ export default function ChatClient() {
 
           {err && <div className="notice" style={{ margin: '0 16px 8px', background: '#fdecea', color: '#a12622' }}>{err}</div>}
           <form className="composer2" onSubmit={send}>
+            <div className="tools">
+              <a role="button" tabIndex={0} title="Đính kèm tệp" aria-label="Đính kèm tệp" onClick={() => !sending && fileRef.current?.click()} onKeyDown={(e) => e.key === 'Enter' && fileRef.current?.click()}>
+                <svg className="ic"><use href="#ic-link" /></svg>
+              </a>
+            </div>
+            <input ref={fileRef} type="file" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) sendFile(f); e.target.value = ''; }} />
             <input placeholder="Nhập tin nhắn…" value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} />
             <button className="btn btn-orange btn-icon" type="submit" disabled={sending || !text.trim()} aria-label="Gửi">
               <svg className="ic"><use href="#ic-send" /></svg>

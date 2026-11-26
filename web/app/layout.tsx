@@ -4,6 +4,8 @@ import { Be_Vietnam_Pro } from 'next/font/google';
 import { SITE_URL } from '@/lib/ui';
 import IconSprite from '@/components/IconSprite';
 import NavMenu from '@/components/NavMenu';
+import RegisterSW from '@/components/RegisterSW';
+import Analytics from '@/components/Analytics';
 
 const bvp = Be_Vietnam_Pro({ subsets: ['vietnamese', 'latin'], weight: ['400', '500', '600', '700', '800'], display: 'swap' });
 
@@ -30,6 +32,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="vi">
       <body className={bvp.className}>
         <IconSprite />
+        <RegisterSW />
+        <Analytics />
 
         {/* ===== Header ===== */}
         <header>
@@ -76,6 +80,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <li><a href="/directory?group=supplier">Nhà cung cấp</a></li>
                   <li><a href="/marketplace">Nhu cầu / Báo giá</a></li>
                   <li><a href="/feed">Tin tức ngành</a></li>
+                  <li><a href="/ban-do">Bản đồ doanh nghiệp</a></li>
+                  <li><a href="/linh-vuc">Theo lĩnh vực &amp; tỉnh</a></li>
                 </ul>
               </div>
               <div>

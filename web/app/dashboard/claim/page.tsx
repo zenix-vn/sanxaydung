@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { requireUserCompany } from '@/lib/supabase/company';
 import { toE164VN, toLocalVN } from '@/lib/phone';
 import ClaimButton from './ClaimButton';
@@ -8,8 +7,7 @@ export const metadata: Metadata = { title: 'Nhận hồ sơ doanh nghiệp' };
 export const dynamic = 'force-dynamic';
 
 export default async function ClaimPage({ searchParams }: { searchParams: { phone?: string } }) {
-  const { supa, user, company } = await requireUserCompany('/dashboard/claim');
-  if (company) redirect('/dashboard');
+  const { supa, user } = await requireUserCompany('/dashboard/claim');
 
   // SĐT mặc định: SĐT đã xác thực khi đăng nhập
   const raw = searchParams.phone ?? (user.phone ? `0${user.phone.replace(/^\+?84/, '')}` : '');

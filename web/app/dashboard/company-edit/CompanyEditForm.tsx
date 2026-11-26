@@ -1,11 +1,12 @@
 'use client';
-import { useMemo, useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { ProjectPhotos, ServicesEditor, StaffEditor, EquipmentEditor, type Photo } from './PortfolioEditor';
 
 type Company = Record<string, any>;
 type Cat = { id: string; name: string; group_key: string };
 type Prov = { code: string; name: string };
-type Project = { id: string; title: string; role: string | null; year: number | null; province_code: string | null };
+type Project = { id: string; title: string; role: string | null; year: number | null; province_code: string | null; cover_url: string | null };
 type Doc = { id: string; title: string; file_url: string; visibility: 'public' | 'members' | 'connections'; size_bytes: number | null };
 
 const SIZES = ['1–10 người', '11–50 người', '51–200 người', 'Trên 200 người'];
@@ -22,6 +23,7 @@ const ext = (f: File) => (f.name.split('.').pop() || 'bin').toLowerCase().replac
 export default function CompanyEditForm(props: {
   company: Company; canEdit: boolean; categories: Cat[]; provinces: Prov[];
   initialCategoryIds: string[]; initialProvinceCodes: string[]; initialProjects: Project[]; initialDocs: Doc[];
+  services: any[]; staff: any[]; equipment: any[]; projectPhotos: (Photo & { owner_id: string })[];
 }) {
   const supa = useMemo(() => createSupabaseBrowser(), []);
   const co = props.company;
@@ -43,6 +45,8 @@ export default function CompanyEditForm(props: {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [np, setNp] = useState({ title: '', role: '', year: '', province_code: '' });
+  const [photosOpen, setPhotosOpen] = useState<string | null>(null);
+  const [pphotos, setPphotos] = useState(props.projectPhotos);
   const logoRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
@@ -128,13 +132,15 @@ export default function CompanyEditForm(props: {
     const { data, error } = await supa.from('projects').insert({
       company_id: co.id, title: np.title.trim(), role: np.role.trim() || null,
       year: year && !isNaN(year) ? year : null, province_code: np.province_code || null,
-    }).select('id, title, role, year, province_code').single();
+    }).select('id, title, role, year, province_code, cover_url').single();
     if (error) return setMsg({ ok: false, text: error.message });
     setProjects((p) => [data as Project, ...p]);
     setNp({ title: '', role: '', year: '', province_code: '' });
+    setPhotosOpen((data as Project).id);
   }
   async function delProject(id: string) {
     if (!confirm('Xóa dự án này?')) return;
+    await supa.from('media').delete().eq('owner_type', 'project').eq('owner_id', id);
     const { error } = await supa.from('projects').delete().eq('id', id);
     if (error) return setMsg({ ok: false, text: error.message });
     setProjects((p) => p.filter((x) => x.id !== id));
@@ -243,6 +249,8 @@ export default function CompanyEditForm(props: {
               <a href="#field"><svg className="ic"><use href="#ic-briefcase" /></svg> Lĩnh vực &amp; khu vực</a>
               <a href="#intro"><svg className="ic"><use href="#ic-file-text" /></svg> Giới thiệu</a>
               <a href="#projects"><svg className="ic"><use href="#ic-clipboard" /></svg> Dự án</a>
+              <a href="#services"><svg className="ic"><use href="#ic-tag" /></svg> Dịch vụ</a>
+              <a href="#staff"><svg className="ic"><use href="#ic-users" /></svg> Nhân sự &amp; thiết bị</a>
               <a href="#docs"><svg className="ic"><use href="#ic-folder" /></svg> Hồ sơ năng lực</a>
               <a href="#contact"><svg className="ic"><use href="#ic-phone" /></svg> Liên hệ</a>
             </nav>
@@ -367,13 +375,44 @@ export default function CompanyEditForm(props: {
                 <table className="table">
                   <thead><tr><th>Dự án</th><th>Vai trò</th><th>Năm</th><th>Khu vực</th><th></th></tr></thead>
                   <tbody>
-                    {projects.map((p) => (
-                      <tr key={p.id}>
-                        <td><b style={{ color: 'var(--navy)' }}>{p.title}</b></td>
+                    {projects.map((p) => {
+                      const n = pphotos.filter((x) => x.owner_id === p.id).length;
+                      return (
+                      <Fragment key={p.id}>
+                      <tr>
+                        <td>
+                          <div className="row" style={{ gap: 10 }}>
+                            <span className="pthumb" style={p.cover_url ? { backgroundImage: `url(${p.cover_url})` } : undefined} />
+                            <b style={{ color: 'var(--navy)' }}>{p.title}</b>
+                          </div>
+                        </td>
                         <td>{p.role ?? '—'}</td><td>{p.year ?? '—'}</td><td>{provName(p.province_code)}</td>
-                        <td><button type="button" disabled={disabled} onClick={() => delProject(p.id)} title="Xóa"><svg className="ic" style={{ width: 16, height: 16, color: 'var(--muted)' }}><use href="#ic-x" /></svg></button></td>
+                        <td style={{ whiteSpace: 'nowrap' }}>
+                          <button type="button" className="btn-link" onClick={() => setPhotosOpen(photosOpen === p.id ? null : p.id)} style={{ marginRight: 10 }}>
+                            Ảnh{n ? ` (${n})` : ''}
+                          </button>
+                          <button type="button" disabled={disabled} onClick={() => delProject(p.id)} title="Xóa"><svg className="ic" style={{ width: 16, height: 16, color: 'var(--muted)' }}><use href="#ic-x" /></svg></button>
+                        </td>
                       </tr>
-                    ))}
+                      {photosOpen === p.id && (
+                        <tr>
+                          <td colSpan={5} style={{ background: '#fafbfc' }}>
+                            <ProjectPhotos
+                              companyId={co.id}
+                              projectId={p.id}
+                              cover={p.cover_url}
+                              photos={pphotos.filter((x) => x.owner_id === p.id)}
+                              onChange={(list) => setPphotos((all) => [...all.filter((x) => x.owner_id !== p.id), ...list.map((x) => ({ ...x, owner_id: p.id }))])}
+                              disabled={disabled}
+                              onMsg={setMsg}
+                              onCover={(url) => setProjects((ps) => ps.map((x) => (x.id === p.id ? { ...x, cover_url: url } : x)))}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
@@ -392,6 +431,19 @@ export default function CompanyEditForm(props: {
                   <button type="button" className="btn btn-outline btn-sm" onClick={addProject} style={{ marginBottom: 16 }}><svg className="ic"><use href="#ic-plus" /></svg> Thêm</button>
                 </div>
               )}
+            </div>
+
+            <div className="card-block" id="services">
+              <h2>Dịch vụ cung cấp</h2>
+              <p className="muted mb-16">Hiển thị ở mục “Dịch vụ cung cấp” trên hồ sơ công khai. Mỗi mục lưu ngay khi bấm Lưu.</p>
+              <ServicesEditor companyId={co.id} rows={props.services} disabled={!props.canEdit} onMsg={setMsg} />
+            </div>
+
+            <div className="card-block" id="staff">
+              <h2>Nhân sự chủ chốt</h2>
+              <StaffEditor companyId={co.id} rows={props.staff} disabled={!props.canEdit} onMsg={setMsg} />
+              <h2 style={{ marginTop: 24 }}>Máy móc &amp; thiết bị</h2>
+              <EquipmentEditor companyId={co.id} rows={props.equipment} disabled={!props.canEdit} onMsg={setMsg} />
             </div>
 
             <div className="card-block" id="docs">

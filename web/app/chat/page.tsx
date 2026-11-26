@@ -41,6 +41,13 @@ export default function ChatPage() {
         .quote-msg .qb{padding:12px 14px}
         .quote-msg .amt{font-size:20px;font-weight:800;color:var(--green)}
         .quote-msg .row2{display:flex;gap:8px;margin-top:10px}
+        .att-img{display:block;margin-top:6px}
+        .att-img img{max-width:240px;max-height:220px;border-radius:10px;display:block}
+        .att-file{display:flex;align-items:center;gap:10px;margin-top:6px;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.18);border:1px solid rgba(0,0,0,.08);color:inherit;text-decoration:none;min-width:200px}
+        .att-file span{flex:1;min-width:0}
+        .att-file b{display:block;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .att-file small{font-size:11px;opacity:.75}
+        .att-file svg{width:18px;height:18px;flex:none}
         .composer2{border-top:1px solid var(--line);padding:12px 16px;display:flex;gap:10px;align-items:center}
         .composer2 .tools{display:flex;gap:4px}
         .composer2 .tools a{width:38px;height:38px;border-radius:9px;display:grid;place-items:center;color:var(--muted);cursor:pointer}

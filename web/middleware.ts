@@ -14,6 +14,11 @@ export async function middleware(req: NextRequest) {
     return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
   }
 
+  // Chặn Image Optimization API (không dùng; xem next.config.mjs)
+  if (req.nextUrl.pathname.startsWith('/_next/image')) {
+    return new NextResponse('Not found', { status: 404 });
+  }
+
   const res = NextResponse.next();
 
   // Thêm CORS header cho mọi /api/*
@@ -52,5 +57,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/dashboard/:path*', '/admin/:path*'],
+  matcher: ['/api/:path*', '/dashboard/:path*', '/admin/:path*', '/_next/image'],
 };

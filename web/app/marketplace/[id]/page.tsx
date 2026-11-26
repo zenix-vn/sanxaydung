@@ -8,6 +8,11 @@ import QuoteActions from './QuoteActions';
 import { getMe } from '@/lib/me';
 import { colorFor, initials, fmtMoney } from '@/lib/ui';
 
+import { TIER_LABELS, QUOTE_STATUS } from '@/lib/format';
+import SaveButton from '@/components/SaveButton';
+import { BoqTable, cleanBoq } from '@/components/Boq';
+import SuggestPartners from './SuggestPartners';
+
 export const dynamic = 'force-dynamic';
 
 const TYPE_LABEL: Record<string, string> = {
@@ -80,6 +85,7 @@ interface QuoteRow {
   message: string | null;
   status: string;
   created_at: string;
+  items: { i: number; unit_price: number | null }[] | null;
   companies: { id: string; name: string; slug: string; logo_url: string | null; verified_tier: string; trust_score: number } | null;
 }
 
@@ -90,7 +96,7 @@ async function getQuotes(listingId: string): Promise<QuoteRow[]> {
     const supa = createSupabaseServer();
     const { data } = await supa
       .from('quotes')
-      .select('id, company_id, amount, message, status, created_at, companies ( id, name, slug, logo_url, verified_tier, trust_score )')
+      .select('id, company_id, amount, message, status, created_at, items, companies ( id, name, slug, logo_url, verified_tier, trust_score )')
       .eq('listing_id', listingId)
       .neq('status', 'withdrawn')
       .order('amount', { ascending: true, nullsFirst: false });
@@ -133,6 +139,8 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
   ]);
   const isOwner = me.companies.some((c) => c.id === l.company_id);
   const chatHref = `/chat?to=${l.company_id}&listing=${l.id}`;
+  const boq = cleanBoq((l as unknown as { boq?: unknown }).boq);
+  const canInvite = isOwner && l.status === 'open' && me.companies.some((c) => c.id === l.company_id && ['owner', 'admin', 'editor'].includes(c.role));
   const company = l.companies;
   const dl = daysLeft(l.deadline);
   const typeLabel = TYPE_LABEL[l.type] ?? l.type;
@@ -236,25 +244,69 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
                 </>
               )}
 
+              {boq.length > 0 && (
+                <>
+                  <h2 style={{ marginTop: 20, marginBottom: 10 }}>Bảng khối lượng ({boq.length} hạng mục)</h2>
+                  <BoqTable items={boq} />
+                </>
+              )}
+
             </div>
 
             {/* Quote form */}
             {l.status === 'open' ? (
               <div className="card-block">
                 <h2>Gửi báo giá của bạn</h2>
-                <QuoteForm listingId={l.id} ownerCompanyId={l.company_id} />
+                <QuoteForm listingId={l.id} ownerCompanyId={l.company_id} boq={boq} />
               </div>
             ) : (
               <div className="card-block"><p className="muted">Tin này đã đóng nhận báo giá.</p></div>
             )}
 
+            {canInvite && (
+              <div className="card-block">
+                <h2>Đối tác phù hợp</h2>
+                <p className="muted mb-16" style={{ fontSize: 13 }}>Gợi ý theo lĩnh vực, khu vực và mức xác minh. Mời để họ nhận thông báo báo giá cho tin này.</p>
+                <SuggestPartners listingId={l.id} />
+              </div>
+            )}
+
             {/* Quotes received */}
             {showQuotes && (
-              <div className="card-block">
+              <div className="card-block" id="quotes">
                 <div className="between mb-16">
                   <h2 style={{ margin: 0 }}>{isOwner ? `Báo giá đã nhận (${quotes.length})` : 'Báo giá của bạn'}</h2>
                   {isOwner && <span className="muted" style={{ fontSize: 13 }}>Chỉ chủ tin nhìn thấy đầy đủ</span>}
                 </div>
+                {isOwner && quotes.length >= 2 && (() => {
+                  const priced = quotes.filter((q) => q.amount != null).map((q) => q.amount as number);
+                  const min = priced.length ? Math.min(...priced) : null;
+                  return (
+                    <div className="table-wrap mb-16">
+                      <table className="table">
+                        <thead><tr><th>So sánh</th><th>Xác minh</th><th>Trust</th><th>Giá</th><th>Chênh lệch</th><th>Trạng thái</th></tr></thead>
+                        <tbody>
+                          {quotes.map((q) => (
+                            <tr key={q.id}>
+                              <td>{q.companies ? <a href={`/cong-ty/${q.companies.slug}`}>{q.companies.name}</a> : '—'}</td>
+                              <td>{q.companies && q.companies.verified_tier !== 'none' ? <span className="badge green">{TIER_LABELS[q.companies.verified_tier] ?? 'Đã xác minh'}</span> : <span className="muted">—</span>}</td>
+                              <td>{Math.round(q.companies?.trust_score ?? 0)}</td>
+                              <td style={{ whiteSpace: 'nowrap' }}><b>{q.amount != null ? `${fmtMoney(q.amount)} ₫` : 'Thương lượng'}</b></td>
+                              <td style={{ whiteSpace: 'nowrap' }}>
+                                {q.amount != null && min != null
+                                  ? q.amount === min
+                                    ? <span className="badge green">Thấp nhất</span>
+                                    : `+${(((q.amount - min) / min) * 100).toFixed(0)}%`
+                                  : '—'}
+                              </td>
+                              <td><span className={`badge ${QUOTE_STATUS[q.status]?.cls ?? 'gray'}`}>{QUOTE_STATUS[q.status]?.label ?? q.status}</span></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
                 {quotes.map((q) => {
                   const co = q.companies;
                   const name = co?.name ?? 'Doanh nghiệp';
@@ -276,10 +328,16 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
                           {q.amount != null && <span>· {fmtMoney(q.amount)}</span>}
                         </div>
                         {q.message && <p style={{ whiteSpace: 'pre-line' }}>{q.message}</p>}
+                        {boq.length > 0 && (q.items?.length ?? 0) > 0 && (
+                          <details style={{ margin: '6px 0 10px' }}>
+                            <summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--orange)', fontWeight: 600 }}>Xem đơn giá theo BOQ</summary>
+                            <BoqTable items={boq} prices={boq.map((_, i) => q.items!.find((x) => x.i === i)?.unit_price ?? null)} />
+                          </details>
+                        )}
                         {isOwner ? (
                           <QuoteActions quoteId={q.id} status={q.status} chatHref={`/chat?to=${q.company_id}&listing=${l.id}`} />
                         ) : (
-                          <span className="badge gray">{q.status === 'sent' ? 'Đã gửi' : q.status}</span>
+                          <span className={`badge ${QUOTE_STATUS[q.status]?.cls ?? 'gray'}`}>{QUOTE_STATUS[q.status]?.label ?? q.status}</span>
                         )}
                       </div>
                     </div>
@@ -326,6 +384,7 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
                   <a className="btn btn-outline btn-block" href={`/cong-ty/${company.slug}`}>
                     Xem hồ sơ doanh nghiệp
                   </a>
+                  {!isOwner && <SaveButton kind="listing" itemId={l.id} className="btn btn-outline btn-block" />}
                 </div>
               </div>
             ) : (

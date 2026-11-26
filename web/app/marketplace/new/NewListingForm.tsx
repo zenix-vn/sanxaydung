@@ -5,6 +5,7 @@ import { createSupabaseBrowser } from '@/lib/supabase/client';
 import { useMe } from '@/lib/me-client';
 import { canEdit } from '@/lib/roles';
 import { parseMoney } from '@/lib/ui';
+import { BoqEditor, cleanBoq, type BoqItem } from '@/components/Boq';
 
 const TYPES: [string, string][] = [
   ['need_contractor', 'Tìm nhà thầu'],
@@ -15,31 +16,46 @@ const TYPES: [string, string][] = [
   ['opportunity', 'Cơ hội khác'],
 ];
 
+/** Dữ liệu tin có sẵn → form chạy ở chế độ sửa. */
+export type ListingInit = {
+  id: string; company_id: string; type: string; title: string; description: string | null; category_id: string | null;
+  province_code: string | null; budget_from: number | null; budget_to: number | null; deadline: string | null;
+  location_text: string | null; start_date: string | null; boq?: unknown;
+};
+
+const money = (n: number | null) => (n == null ? '' : n.toLocaleString('vi-VN'));
+
 export default function NewListingForm({
   categories,
   provinces,
+  initial,
+  defaultCompanyId,
 }: {
   categories: { id: string; name: string }[];
   provinces: { code: string; name: string }[];
+  initial?: ListingInit;
+  defaultCompanyId?: string;
 }) {
   const me = useMe();
   const router = useRouter();
-  const [companyId, setCompanyId] = useState('');
-  const [type, setType] = useState('need_contractor');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [province, setProvince] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [deadline, setDeadline] = useState('');
-  const [locationText, setLocationText] = useState('');
-  const [startDate, setStartDate] = useState('');
+  const [companyId, setCompanyId] = useState(initial?.company_id ?? defaultCompanyId ?? '');
+  const [type, setType] = useState(initial?.type ?? 'need_contractor');
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [categoryId, setCategoryId] = useState(initial?.category_id ?? '');
+  const [province, setProvince] = useState(initial?.province_code ?? '');
+  const [from, setFrom] = useState(money(initial?.budget_from ?? null));
+  const [to, setTo] = useState(money(initial?.budget_to ?? null));
+  const [deadline, setDeadline] = useState(initial?.deadline ?? '');
+  const [locationText, setLocationText] = useState(initial?.location_text ?? '');
+  const [startDate, setStartDate] = useState(initial?.start_date ?? '');
+  const [boq, setBoq] = useState<BoqItem[]>(cleanBoq(initial?.boq));
+  const [showBoq, setShowBoq] = useState(cleanBoq(initial?.boq).length > 0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const editable = me.companies.filter(canEdit);
-  const cid = companyId || editable[0]?.id || '';
+  const cid = initial?.company_id ?? (editable.some((c) => c.id === companyId) ? companyId : editable[0]?.id ?? '');
 
   if (!me.ready) return <p className="muted">Đang tải…</p>;
   if (!me.userId) {
@@ -68,13 +84,11 @@ export default function NewListingForm({
     const bt = to ? parseMoney(to) : null;
     if ((from && bf == null) || (to && bt == null)) return setErr('Ngân sách chưa đúng định dạng (vd. 500.000.000, 5 tỷ, 800tr).');
     if (bf != null && bt != null && bf > bt) return setErr('Ngân sách “từ” phải nhỏ hơn hoặc bằng “đến”.');
+    const items = boq.map((r) => ({ ...r, name: r.name.trim(), unit: r.unit.trim() })).filter((r) => r.name);
+    if (items.some((r) => r.qty != null && r.qty < 0)) return setErr('Khối lượng không được âm.');
     setBusy(true);
     const supa = createSupabaseBrowser();
-    const { data, error } = await supa
-      .from('marketplace_listings')
-      .insert({
-        company_id: cid,
-        author_id: me.userId,
+    const fields = {
         type,
         title: title.trim(),
         description: description.trim() || null,
@@ -85,7 +99,19 @@ export default function NewListingForm({
         deadline: deadline || null,
         location_text: locationText.trim() || null,
         start_date: startDate || null,
-      })
+        boq: showBoq ? items : [],
+    };
+    if (initial) {
+      const { error } = await supa.from('marketplace_listings').update(fields).eq('id', initial.id);
+      setBusy(false);
+      if (error) return setErr(error.message);
+      router.push('/dashboard/listings');
+      router.refresh();
+      return;
+    }
+    const { data, error } = await supa
+      .from('marketplace_listings')
+      .insert({ ...fields, company_id: cid, author_id: me.userId })
       .select('id')
       .single();
     setBusy(false);
@@ -95,7 +121,7 @@ export default function NewListingForm({
 
   return (
     <form onSubmit={submit}>
-      {editable.length > 1 && (
+      {!initial && editable.length > 1 && (
         <div className="field-group">
           <label>Đăng với tư cách</label>
           <select className="input" value={cid} onChange={(e) => setCompanyId(e.target.value)}>
@@ -150,16 +176,23 @@ export default function NewListingForm({
       <div className="form-row" style={{ marginBottom: 16 }}>
         <div className="field-group" style={{ marginBottom: 0 }}>
           <label>Hạn nhận báo giá</label>
-          <input className="input" type="date" value={deadline} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} />
+          <input className="input" type="date" value={deadline} min={initial ? undefined : new Date().toISOString().slice(0, 10)} onChange={(e) => setDeadline(e.target.value)} />
         </div>
         <div className="field-group" style={{ marginBottom: 0 }}>
           <label>Dự kiến khởi công</label>
           <input className="input" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
       </div>
+      <div className="field-group">
+        <label className="row" style={{ gap: 8, cursor: 'pointer' }}>
+          <input type="checkbox" checked={showBoq} onChange={(e) => setShowBoq(e.target.checked)} style={{ accentColor: 'var(--orange)' }} />
+          Đính kèm bảng khối lượng (BOQ) — nhà thầu báo đơn giá theo từng hạng mục, dễ so sánh
+        </label>
+        {showBoq && <BoqEditor value={boq} onChange={setBoq} />}
+      </div>
       {err && <div className="notice" style={{ background: '#fdecea', color: '#a12622', marginBottom: 14 }}>{err}</div>}
       <button className="btn btn-orange btn-lg" type="submit" disabled={busy}>
-        {busy ? 'Đang đăng…' : 'Đăng tin'}
+        {busy ? 'Đang lưu…' : initial ? 'Lưu thay đổi' : 'Đăng tin'}
       </button>
     </form>
   );

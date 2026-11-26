@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 import NotificationBell from './NotificationBell';
 
@@ -24,6 +25,12 @@ export default function NavMenu() {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  // Điều hướng phía client không tải lại trang → tự đóng menu di động (checkbox #navtoggle)
+  useEffect(() => {
+    const t = document.getElementById('navtoggle') as HTMLInputElement | null;
+    if (t) t.checked = false;
+  }, [pathname]);
+
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
     return pathname.startsWith(href);
@@ -33,9 +40,9 @@ export default function NavMenu() {
     <div className="nav-menu-wrap">
       <nav className="menu">
         {LINKS.map((l) => (
-          <a key={l.href} href={l.href} className={isActive(l.href, l.exact) ? 'active' : ''}>
+          <Link key={l.href} href={l.href} className={isActive(l.href, l.exact) ? 'active' : ''}>
             {l.label}
-          </a>
+          </Link>
         ))}
       </nav>
       <div className="nav-actions">
@@ -45,7 +52,7 @@ export default function NavMenu() {
         <NotificationBell />
         {loggedIn === true && (
           <>
-            <a className="btn btn-ghost" href="/dashboard">Bảng điều khiển</a>
+            <Link className="btn btn-ghost" href="/dashboard">Bảng điều khiển</Link>
             <form action="/login/signout" method="post" style={{ display: 'inline' }}>
               <button className="btn btn-outline" type="submit">Đăng xuất</button>
             </form>

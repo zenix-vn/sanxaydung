@@ -1,52 +1,18 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createSupabaseServer } from '@/lib/supabase/server';
+import { requireUserCompany } from '@/lib/supabase/company';
+import { TIER_COLORS, ROLE_LABELS, LISTING_TYPE_LABEL, LISTING_STATUS, QUOTE_STATUS } from '@/lib/format';
+import { initials } from '@/lib/ui';
 
 export const metadata: Metadata = { title: 'Bảng điều khiển' };
 export const dynamic = 'force-dynamic';
 
-const NAV_TRUST = [
-  { href: '/dashboard/verify', icon: 'ic-shield', label: 'Xác minh' },
-  { href: '/pricing', icon: 'ic-award', label: 'Gói thành viên' },
-  { href: '#', icon: 'ic-users', label: 'Thành viên & phân quyền' },
-  { href: '/dashboard/settings', icon: 'ic-settings', label: 'Cài đặt & quyền riêng tư' },
-  { href: '/login/signout', icon: 'ic-logout', label: 'Đăng xuất' },
-];
-
-function initials(name: string) {
-  return name.split(' ').filter((w) => w.length > 1).slice(-2).map((w) => w[0].toUpperCase()).join('');
-}
-
-const TIER_LABELS: Record<string, string> = {
-  gold: 'Đối tác vàng',
-  capability: 'Có chứng chỉ năng lực',
-  legal: 'Đã xác minh pháp lý',
-  none: 'Chưa xác minh',
-};
-const TIER_COLORS: Record<string, string> = {
-  gold: '#c08a1a', capability: '#0d6b3f', legal: '#12439c', none: '#555',
-};
-const ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner', admin: 'Admin', editor: 'Editor', member: 'Thành viên',
-};
+const TYPE_LABEL = LISTING_TYPE_LABEL;
+const QUOTE_LBL: Record<string, string> = Object.fromEntries(Object.entries(QUOTE_STATUS).map(([k, v]) => [k, v.label]));
 
 async function getDashboardData() {
-  const supa = createSupabaseServer();
-  const { data: { user } } = await supa.auth.getUser();
-  if (!user) return null;
-
-  // Công ty đầu tiên user là thành viên active
-  const { data: membership } = await supa
-    .from('company_members')
-    .select('company_id, role, companies ( * )')
-    .eq('user_id', user.id)
-    .eq('status', 'active')
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  const company = (membership?.companies as unknown as Record<string, unknown> | null) ?? null;
-  const role = membership?.role ?? null;
+  const { supa, user, company, role } = await requireUserCompany('/dashboard');
 
   if (!company) return { user, company: null, role: null, members: [], notifications: [], listings: [], trustScore: null, received: [], sent: [], stats: { openListings: 0, received: 0, sent: 0, unread: 0 } };
 
@@ -116,23 +82,6 @@ async function getDashboardData() {
   return { user, company, role, members: members ?? [], notifications: notifications ?? [], listings: listings ?? [], trustScore, received: received ?? [], sent: sent ?? [], stats };
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  need_contractor: 'Tìm nhà thầu',
-  need_crew: 'Tìm đội thi công',
-  need_supplier: 'Tìm nhà cung cấp',
-  partnership: 'Hợp tác',
-  offer_service: 'Cung cấp dịch vụ',
-  opportunity: 'Cơ hội',
-};
-const STATUS_CLS: Record<string, string> = {
-  open: 'green', closed: 'gray', fulfilled: 'blue', expired: 'gray',
-};
-const STATUS_LBL: Record<string, string> = {
-  open: 'Đang mở', closed: 'Đã đóng', fulfilled: 'Hoàn tất', expired: 'Hết hạn',
-};
-const QUOTE_LBL: Record<string, string> = {
-  sent: 'Đã gửi', shortlisted: 'Danh sách rút gọn', accepted: 'Được chọn', rejected: 'Từ chối', withdrawn: 'Đã rút',
-};
 const NOTIF_ICONS: Record<string, string> = {
   new_message: 'ic-chat',
   new_quote: 'ic-file-text',
@@ -180,113 +129,24 @@ export default async function DashboardPage() {
   }
 
   const co = company as Record<string, unknown>;
-  const slug = co.slug as string;
   const coName = co.name as string;
   const tier = (co.verified_tier as string) ?? 'none';
   const trust = Math.round((trustScore?.score ?? (co.trust_score as number) ?? 0));
   const completeness = (co.profile_completeness as number) ?? 0;
-  const ini = initials(coName);
-  const logoColor = TIER_COLORS[tier] ?? '#12439c';
-
-  const NAV_ITEMS = [
-    { href: '/dashboard', icon: 'ic-chart', label: 'Tổng quan', active: true },
-    { href: `/cong-ty/${slug}`, icon: 'ic-building', label: 'Hồ sơ công khai' },
-    { href: '/dashboard/company-edit', icon: 'ic-edit', label: 'Chỉnh sửa hồ sơ' },
-  ];
-  const NAV_BIZ = [
-    { href: '/marketplace', icon: 'ic-briefcase', label: 'Tin đăng của tôi' },
-    { href: '#quotes', icon: 'ic-file-text', label: 'Báo giá', badge: stats.received || undefined },
-    { href: '/chat', icon: 'ic-chat', label: 'Tin nhắn', badge: notifications.filter((n: Record<string, unknown>) => n.type === 'new_message').length || undefined },
-    { href: '/feed', icon: 'ic-layers', label: 'Bài viết' },
-  ];
 
   return (
-    <div className="dash">
-      <style>{`
-        .dash{display:grid;grid-template-columns:250px 1fr;gap:0;align-items:start}
-        .dside{background:#fff;border-right:1px solid var(--line);min-height:calc(100vh - 66px);padding:20px 14px;position:sticky;top:66px}
-        .dside .co{display:flex;gap:10px;align-items:center;padding:10px;border-radius:10px;background:#fafbfc;margin-bottom:16px}
-        .dside .co .a{width:40px;height:40px;border-radius:10px;font-weight:800;color:#fff;display:grid;place-items:center;flex:none}
-        .dside .co h4{font-size:13.5px;font-weight:700;color:var(--navy)}
-        .dside .co small{font-size:11px;color:var(--green);display:flex;align-items:center;gap:3px}
-        .dnav a{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:9px;font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px;text-decoration:none}
-        .dnav a svg{width:18px;height:18px;color:var(--muted)}
-        .dnav a.active{background:var(--navy);color:#fff}
-        .dnav a.active svg{color:var(--orange-2)}
-        .dnav a:hover:not(.active){background:#f6f8fb}
-        .dnav .grp{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:16px 12px 8px;font-weight:700}
-        .dnav .dbadge{background:var(--orange);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 5px;margin-left:auto}
-        .dmain{padding:26px}
-        .welcome{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:22px;flex-wrap:wrap}
-        .welcome h1{font-size:23px;font-weight:800;color:var(--navy)}
-        .welcome p{color:var(--muted);font-size:14px;margin-top:3px}
-        .dcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow-sm)}
-        .dcard h3{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
-        .act-row{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-2);font-size:13.5px;align-items:center}
-        .act-row:last-child{border-bottom:none}
-        .act-row .ic-b{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;flex:none}
-        .act-row small{color:var(--muted);font-size:12px;margin-left:auto;white-space:nowrap}
-        .todo{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:13.5px;border-bottom:1px solid var(--line-2)}
-        .todo:last-child{border-bottom:none}
-        .todo .ck{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);display:grid;place-items:center;flex:none}
-        .todo.done .ck{background:var(--green);border-color:var(--green);color:#fff}
-        .todo.done span{color:var(--muted);text-decoration:line-through}
-        .todo a{margin-left:auto;color:var(--orange);font-weight:600;font-size:12.5px;text-decoration:none}
-        .stat-tile .ic-b{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;margin-bottom:8px}
-        .table{width:100%;border-collapse:collapse;font-size:13.5px}
-        .table th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:600;font-size:12.5px;border-bottom:1px solid var(--line)}
-        .table td{padding:10px 12px;border-bottom:1px solid var(--line-2)}
-        .table tr:last-child td{border-bottom:none}
-        @media(max-width:900px){.dash{grid-template-columns:1fr}.dside{position:static;min-height:auto;border-right:none;border-bottom:1px solid var(--line)}.dnav{display:flex;flex-wrap:wrap;gap:4px}.dnav a{margin:0}.dnav .grp{width:100%}}
-      `}</style>
+    <>
 
-      {/* SIDEBAR */}
-      <aside className="dside">
-        <div className="co">
-          {co.logo_url ? (
-            <img src={co.logo_url as string} alt={coName} style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover' }} />
-          ) : (
-            <span className="a" style={{ background: logoColor }}>{ini}</span>
-          )}
-          <div>
-            <h4>{coName}</h4>
-            <small>
-              <svg className="ic"><use href="#ic-shield-check" /></svg>
-              {TIER_LABELS[tier] ?? 'Chưa xác minh'}
-            </small>
-          </div>
-        </div>
-        <nav className="dnav">
-          {NAV_ITEMS.map((n) => (
-            <a key={n.label} href={n.href} className={n.active ? 'active' : ''}>
-              <svg className="ic"><use href={`#${n.icon}`} /></svg> {n.label}
-            </a>
-          ))}
-          <div className="grp">Kinh doanh</div>
-          {NAV_BIZ.map((n) => (
-            <a key={n.label} href={n.href}>
-              <svg className="ic"><use href={`#${n.icon}`} /></svg> {n.label}
-              {n.badge ? <span className="dbadge">{n.badge}</span> : null}
-            </a>
-          ))}
-          <div className="grp">Uy tín &amp; tài khoản</div>
-          {NAV_TRUST.map((n) => (
-            <a key={n.label} href={n.href}>
-              <svg className="ic"><use href={`#${n.icon}`} /></svg> {n.label}
-            </a>
-          ))}
-        </nav>
-      </aside>
 
       {/* MAIN */}
-      <main className="dmain">
+      <div className="dpage">
         <div className="welcome">
           <div>
             <h1>Xin chào, {coName} 👋</h1>
             <p>Đây là tổng quan hoạt động doanh nghiệp của bạn trên nền tảng.</p>
           </div>
           <div className="row">
-            <a className="btn btn-outline" href="/marketplace">
+            <a className="btn btn-outline" href="/marketplace/new">
               <svg className="ic"><use href="#ic-plus" /></svg> Đăng nhu cầu
             </a>
             <a className="btn btn-orange" href="/feed">
@@ -365,7 +225,7 @@ export default async function DashboardPage() {
               <div className="dcard mb-24">
                 <h3>
                   Tin đăng của tôi{' '}
-                  <a href="/marketplace" style={{ fontSize: 12.5, color: 'var(--orange)', fontWeight: 600 }}>Quản lý</a>
+                  <a href="/dashboard/listings" style={{ fontSize: 12.5, color: 'var(--orange)', fontWeight: 600 }}>Quản lý</a>
                 </h3>
                 <table className="table">
                   <thead>
@@ -378,8 +238,8 @@ export default async function DashboardPage() {
                         <td>{TYPE_LABEL[l.type as string] ?? l.type as string}</td>
                         <td>{l.quote_count as number}</td>
                         <td>
-                          <span className={`badge ${STATUS_CLS[l.status as string] ?? 'gray'}`}>
-                            {STATUS_LBL[l.status as string] ?? l.status as string}
+                          <span className={`badge ${LISTING_STATUS[l.status as string]?.cls ?? 'gray'}`}>
+                            {LISTING_STATUS[l.status as string]?.label ?? (l.status as string)}
                           </span>
                         </td>
                       </tr>
@@ -393,7 +253,7 @@ export default async function DashboardPage() {
               <div className="dcard mb-24" style={{ textAlign: 'center', padding: 32 }}>
                 <svg className="ic" style={{ width: 40, height: 40, color: 'var(--muted)', opacity: 0.3, marginBottom: 12 }}><use href="#ic-briefcase" /></svg>
                 <p className="muted" style={{ marginBottom: 16 }}>Chưa có tin đăng nào.</p>
-                <a className="btn btn-orange" href="/marketplace">
+                <a className="btn btn-orange" href="/marketplace/new">
                   <svg className="ic"><use href="#ic-plus" /></svg> Đăng tin mới
                 </a>
               </div>
@@ -485,14 +345,14 @@ export default async function DashboardPage() {
                 );
               })}
               {(role === 'owner' || role === 'admin') && (
-                <a className="btn btn-outline btn-block btn-sm mt-8">
+                <a className="btn btn-outline btn-block btn-sm mt-8" href="/dashboard/members">
                   <svg className="ic"><use href="#ic-plus" /></svg> Mời thành viên
                 </a>
               )}
             </div>
           </aside>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

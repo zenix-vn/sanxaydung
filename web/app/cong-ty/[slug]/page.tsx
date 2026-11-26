@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import ReportButton from './ReportButton';
+import SaveButton from '@/components/SaveButton';
+import { TrackView, ContactLink } from '@/components/Track';
 import type { CSSProperties } from 'react';
 import { notFound } from 'next/navigation';
 import { createSupabaseServer } from '@/lib/supabase/server';
@@ -104,6 +106,27 @@ async function getCompany(slug: string): Promise<CompanyDetail | null> {
   }
 }
 
+const fetchProjectPhotos = cachedPublic(async (companyId: string) => {
+  const { data, error } = await createSupabasePublic()
+    .from('media')
+    .select('owner_id, url')
+    .eq('company_id', companyId)
+    .eq('owner_type', 'project')
+    .eq('kind', 'image')
+    .order('sort_order');
+  if (error) throw error;
+  return (data ?? []) as { owner_id: string; url: string }[];
+}, 'project-photos', 60);
+
+async function getProjectPhotos(companyId: string) {
+  try {
+    const rows = await fetchProjectPhotos(companyId);
+    return rows.reduce((m, r) => m.set(r.owner_id, [...(m.get(r.owner_id) ?? []), r.url]), new Map<string, string[]>());
+  } catch {
+    return new Map<string, string[]>();
+  }
+}
+
 async function getRelation(companyId: string) {
   const me = await getMe();
   const mine = me.companies.filter((c) => c.id !== companyId);
@@ -179,7 +202,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
   const showAll = searchParams?.all === '1';
   const c = await getCompany(params.slug);
   if (!c) notFound();
-  const rel = await getRelation(c.id);
+  const [rel, photos] = await Promise.all([getRelation(c.id), getProjectPhotos(c.id)]);
 
   const cats = (c.company_categories ?? []).map((x) => x.categories?.name).filter(Boolean);
   const provs = (c.company_locations ?? []).map((x) => x.provinces?.name).filter(Boolean);
@@ -230,6 +253,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
 
   return (
     <>
+      <TrackView companyId={c.id} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <style>{`
         .svc{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line-2)}
@@ -251,6 +275,8 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
         .review .verified{font-size:11.5px;color:var(--green);display:flex;align-items:center;gap:4px;margin-top:2px}
         .review .verified svg{width:13px;height:13px}
         .review p{font-size:13.5px;color:#31414f;margin-top:6px}
+        .proj-photos{display:flex;gap:6px;margin-top:8px}
+        .proj-photos a{width:46px;height:36px;border-radius:6px;background:#e6ebf1 center/cover;display:block}
         .staff-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
         .staff{text-align:center;border:1px solid var(--line);border-radius:12px;padding:16px}
         .staff .a{width:60px;height:60px;border-radius:50%;margin:0 auto 10px;font-weight:800;color:#fff;display:grid;place-items:center;font-size:18px}
@@ -334,15 +360,13 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
 
             {/* Actions */}
             <div className="ph-actions">
-              <a className="btn btn-outline btn-icon" title="Theo dõi">
-                <svg className="ic"><use href="#ic-heart" /></svg>
-              </a>
+              {!rel.isMember && <SaveButton kind="company" itemId={c.id} className="btn btn-outline btn-icon" compact />}
               <a className="btn btn-outline" href={`mailto:?subject=${encodeURIComponent(c.name)}&body=${encodeURIComponent(`${SITE_URL}/cong-ty/${c.slug}`)}`}>
                 <svg className="ic"><use href="#ic-link" /></svg> Chia sẻ
               </a>
-              <a className="btn btn-outline" href={`/chat?to=${c.id}`}>
+              <ContactLink companyId={c.id} className="btn btn-outline" href={`/chat?to=${c.id}`}>
                 <svg className="ic"><use href="#ic-chat" /></svg> Nhắn tin
-              </a>
+              </ContactLink>
               {!rel.isMember && <ConnectButton targetId={c.id} mine={rel.mine} existing={rel.existing} />}
             </div>
           </div>
@@ -433,6 +457,13 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                           {p.role && <span>{p.role}</span>}
                           {p.year && <span>{p.year}</span>}
                         </div>
+                        {(photos.get(p.id)?.length ?? 0) > 0 && (
+                          <div className="proj-photos">
+                            {photos.get(p.id)!.filter((u) => u !== p.cover_url).slice(0, 4).map((u) => (
+                              <a key={u} href={u} target="_blank" rel="noopener" style={{ backgroundImage: `url(${u})` }} aria-label={`Ảnh dự án ${p.title}`} />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -716,13 +747,14 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
               {c.email && (
                 <div className="kv">
                   <span className="k">Email</span>
-                  <span className="v" style={{ wordBreak: 'break-all' }}>{c.email}</span>
+                  <ContactLink companyId={c.id} className="v" href={`mailto:${c.email}`} style={{ wordBreak: 'break-all', color: 'var(--orange)' }}>{c.email}</ContactLink>
                 </div>
               )}
               {c.website && (
                 <div className="kv">
                   <span className="k">Website</span>
-                  <a
+                  <ContactLink
+                    companyId={c.id}
                     className="v"
                     href={c.website.startsWith('http') ? c.website : `https://${c.website}`}
                     target="_blank"
@@ -730,7 +762,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                     style={{ color: 'var(--orange)' }}
                   >
                     {c.website.replace(/^https?:\/\//, '')}
-                  </a>
+                  </ContactLink>
                 </div>
               )}
               {c.address && (
@@ -739,9 +771,9 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                   <span className="v" style={{ maxWidth: 170 }}>{c.address}</span>
                 </div>
               )}
-              <a className="btn btn-orange btn-block mt-16" href={`/chat?to=${c.id}`}>
+              <ContactLink companyId={c.id} className="btn btn-orange btn-block mt-16" href={`/chat?to=${c.id}`}>
                 <svg className="ic"><use href="#ic-chat" /></svg> Gửi tin nhắn
-              </a>
+              </ContactLink>
             </div>
 
             {/* Regions */}

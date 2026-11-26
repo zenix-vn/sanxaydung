@@ -2,7 +2,11 @@ import type { Metadata } from 'next';
 import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { SUPABASE_URL } from '@/lib/env';
 import SortSelect from './SortSelect';
+import Pagination from '@/components/Pagination';
+import { TIER_COLORS } from '@/lib/format';
+import { initials } from '@/lib/ui';
 import AdSlot from '@/components/AdSlot';
+import { TrackImpressions } from '@/components/Track';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,22 +22,6 @@ const GROUP_LABELS: Record<string, string> = {
   supplier: 'Nhà cung cấp',
   service: 'Đơn vị dịch vụ',
 };
-
-const TIER_COLORS: Record<string, string> = {
-  gold: '#c08a1a',
-  capability: '#0d6b3f',
-  legal: '#12439c',
-  none: '#555',
-};
-
-function initials(name: string) {
-  return name
-    .split(' ')
-    .filter((w) => w.length > 1)
-    .slice(-2)
-    .map((w) => w[0].toUpperCase())
-    .join('');
-}
 
 type SP = {
   q?: string;
@@ -175,6 +163,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
         .chip-active svg{width:14px;height:14px}
         .sort-sel{width:auto;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fff;color:var(--text)}
         .list-comp{text-decoration:none}
+        .dir-h1{font-size:22px;font-weight:800;color:#fff;margin:6px 0 14px}
       `}</style>
 
       {/* Search band */}
@@ -185,6 +174,10 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
             <svg className="ic"><use href="#ic-chevron-right" /></svg>
             <span>Danh bạ doanh nghiệp</span>
           </div>
+          <h1 className="dir-h1">
+            {activeGroup ? GROUP_LABELS[activeGroup] ?? 'Doanh nghiệp' : 'Doanh nghiệp xây dựng'}
+            {sp.province ? ` tại ${provinces.find((p) => p.code === sp.province)?.name ?? ''}` : ' trên toàn quốc'}
+          </h1>
           <form className="dir-searchbar" action="/directory">
             <div className="fld">
               <svg className="ic"><use href="#ic-search" /></svg>
@@ -313,6 +306,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
             ) : (
               <>
                 <div className="stack">
+                  <TrackImpressions ids={companies.map((c) => c.id)} />
                   {companies.map((c) => {
                     const ini = initials(c.name);
                     const color = TIER_COLORS[c.verified_tier] ?? '#555';
@@ -396,28 +390,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
                   })}
                 </div>
 
-                {/* Pagination */}
-                {pages > 1 && (
-                  <div className="pagination">
-                    {currentPage > 1 && (
-                      <a href={`/directory?${baseQs}&page=${currentPage - 1}`} aria-label="Trang trước">
-                        <svg className="ic"><use href="#ic-chevron-left" /></svg>
-                      </a>
-                    )}
-                    {[currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2]
-                      .filter((p) => p >= 1 && p <= pages)
-                      .map((p) => (
-                        <a key={p} className={p === currentPage ? 'active' : ''} href={`/directory?${baseQs}&page=${p}`}>
-                          {p}
-                        </a>
-                      ))}
-                    {currentPage < pages && (
-                      <a href={`/directory?${baseQs}&page=${currentPage + 1}`} aria-label="Trang sau">
-                        <svg className="ic"><use href="#ic-chevron-right" /></svg>
-                      </a>
-                    )}
-                  </div>
-                )}
+                <Pagination base="/directory" qs={baseQs} page={currentPage} pages={pages} />
               </>
             )}
           </div>

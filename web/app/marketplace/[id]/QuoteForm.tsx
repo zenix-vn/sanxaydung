@@ -5,14 +5,19 @@ import { createSupabaseBrowser } from '@/lib/supabase/client';
 import { useMe } from '@/lib/me-client';
 import { canEdit } from '@/lib/roles';
 import { parseMoney } from '@/lib/ui';
+import type { BoqItem } from '@/components/Boq';
 
-export default function QuoteForm({ listingId, ownerCompanyId }: { listingId: string; ownerCompanyId: string }) {
+export default function QuoteForm({ listingId, ownerCompanyId, boq = [] }: { listingId: string; ownerCompanyId: string; boq?: BoqItem[] }) {
   const me = useMe();
   const router = useRouter();
   const [companyId, setCompanyId] = useState('');
   const [price, setPrice] = useState('');
   const [timeline, setTimeline] = useState('');
   const [note, setNote] = useState('');
+  const [unitPrices, setUnitPrices] = useState<string[]>(() => boq.map(() => ''));
+  const parsedUnits = unitPrices.map((v) => (v.trim() ? parseMoney(v) : null));
+  const boqTotal = boq.reduce((a, r, i) => a + (r.qty ?? 0) * (parsedUnits[i] ?? 0), 0);
+  const useBoq = boq.length > 0 && parsedUnits.some((v) => v != null);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -60,12 +65,14 @@ export default function QuoteForm({ listingId, ownerCompanyId }: { listingId: st
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
-    const amount = parseMoney(price);
+    if (unitPrices.some((v, i) => v.trim() && parsedUnits[i] == null)) return setErr('Có đơn giá chưa đúng định dạng (vd. 1.250.000 hoặc 1,25tr).');
+    const amount = useBoq ? boqTotal : parseMoney(price);
     if (amount == null || amount <= 0) return setErr('Giá đề xuất chưa đúng (vd. 52.000.000.000 hoặc 52 tỷ).');
+    const items = useBoq ? parsedUnits.map((v, i) => ({ i, unit_price: v })).filter((x) => x.unit_price != null) : [];
     setLoading(true);
     const supa = createSupabaseBrowser();
     const message = [timeline.trim() && `Thời gian thi công: ${timeline.trim()}`, note.trim()].filter(Boolean).join('\n\n') || null;
-    const { error } = await supa.from('quotes').insert({ listing_id: listingId, company_id: cid, amount, message });
+    const { error } = await supa.from('quotes').insert({ listing_id: listingId, company_id: cid, amount, message, items });
     if (error) {
       setLoading(false);
       return setErr(error.code === '23505' ? 'Doanh nghiệp của bạn đã báo giá cho tin này.' : error.message);
@@ -97,10 +104,35 @@ export default function QuoteForm({ listingId, ownerCompanyId }: { listingId: st
           </select>
         </div>
       )}
+      {boq.length > 0 && (
+        <div className="field-group">
+          <label>Đơn giá theo bảng khối lượng (tùy chọn)</label>
+          <div className="table-wrap">
+            <table className="table boq">
+              <thead><tr><th>Hạng mục</th><th style={{ textAlign: 'right' }}>KL</th><th style={{ width: 150 }}>Đơn giá</th><th style={{ textAlign: 'right' }}>Thành tiền</th></tr></thead>
+              <tbody>
+                {boq.map((r, i) => (
+                  <tr key={i}>
+                    <td>{r.name}</td>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{r.qty?.toLocaleString('vi-VN') ?? '—'} {r.unit}</td>
+                    <td><input className="input" value={unitPrices[i]} onChange={(e) => setUnitPrices((u) => u.map((x, j) => (j === i ? e.target.value : x)))} placeholder="vd. 1,2tr" aria-label={`Đơn giá ${r.name}`} /></td>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>{parsedUnits[i] != null && r.qty != null ? (parsedUnits[i]! * r.qty).toLocaleString('vi-VN') : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <small className="muted">Điền đơn giá thì tổng giá được tính tự động.</small>
+        </div>
+      )}
       <div className="form-row" style={{ marginBottom: 16 }}>
         <div className="field-group" style={{ marginBottom: 0 }}>
           <label>Giá đề xuất (VNĐ) <span className="req">*</span></label>
-          <input className="input" placeholder="vd. 52.000.000.000 hoặc 52 tỷ" value={price} onChange={(e) => setPrice(e.target.value)} required />
+          {useBoq ? (
+            <input className="input" readOnly value={`${boqTotal.toLocaleString('vi-VN')} ₫ (tổng theo BOQ)`} style={{ background: '#f6f8fb' }} />
+          ) : (
+            <input className="input" placeholder="vd. 52.000.000.000 hoặc 52 tỷ" value={price} onChange={(e) => setPrice(e.target.value)} required={!useBoq} />
+          )}
         </div>
         <div className="field-group" style={{ marginBottom: 0 }}>
           <label>Thời gian thi công</label>

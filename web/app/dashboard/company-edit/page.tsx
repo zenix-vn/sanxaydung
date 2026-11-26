@@ -11,13 +11,17 @@ export default async function CompanyEditPage() {
   if (!company) redirect('/dashboard');
 
   const id = company.id as string;
-  const [cats, provs, myCats, myLocs, projects, docs] = await Promise.all([
+  const [cats, provs, myCats, myLocs, projects, docs, services, staff, equipment, photos] = await Promise.all([
     supa.from('categories').select('id, name, group_key').order('sort_order'),
     supa.from('provinces').select('code, name').order('name'),
     supa.from('company_categories').select('category_id').eq('company_id', id),
     supa.from('company_locations').select('province_code').eq('company_id', id),
-    supa.from('projects').select('id, title, role, year, province_code').eq('company_id', id).order('year', { ascending: false }),
+    supa.from('projects').select('id, title, role, year, province_code, cover_url').eq('company_id', id).order('year', { ascending: false }),
     supa.from('documents').select('id, title, file_url, visibility, size_bytes').eq('company_id', id).order('created_at', { ascending: false }),
+    supa.from('services').select('*').eq('company_id', id).order('created_at'),
+    supa.from('staff').select('*').eq('company_id', id),
+    supa.from('equipment').select('*').eq('company_id', id),
+    supa.from('media').select('id, url, caption, owner_id').eq('company_id', id).eq('owner_type', 'project').order('sort_order'),
   ]);
 
   return (
@@ -30,6 +34,10 @@ export default async function CompanyEditPage() {
       initialProvinceCodes={(myLocs.data ?? []).map((r: any) => r.province_code)}
       initialProjects={(projects.data ?? []) as any}
       initialDocs={(docs.data ?? []) as any}
+      services={(services.data ?? []) as any}
+      staff={(staff.data ?? []) as any}
+      equipment={(equipment.data ?? []) as any}
+      projectPhotos={(photos.data ?? []) as any}
     />
   );
 }
