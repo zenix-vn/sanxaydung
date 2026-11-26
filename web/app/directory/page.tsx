@@ -40,8 +40,6 @@ type SP = {
   province?: string;
   verified?: string;
   group?: string;
-  capability?: string;
-  size?: string;
   sort?: string;
   page?: string;
 };
@@ -92,6 +90,24 @@ async function getProvinces() {
   }
 }
 
+const fetchCounts = cachedPublic(async () => {
+  const { data, error } = await createSupabasePublic().rpc('home_stats');
+  if (error) throw error;
+  const d = data as { verified?: number; groups?: Record<string, number> } | null;
+  return { verified: d?.verified ?? 0, groups: d?.groups ?? {} };
+}, 'dir-counts', 300);
+
+async function getCounts() {
+  if (!SUPABASE_URL) return null;
+  try {
+    return await fetchCounts();
+  } catch {
+    return null;
+  }
+}
+
+const nf = new Intl.NumberFormat('vi-VN');
+
 type RawParams = { [key: string]: string | string[] | undefined };
 const str = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? '';
 
@@ -102,13 +118,11 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
     province: str(searchParams.province) || undefined,
     verified: str(searchParams.verified) || undefined,
     group: str(searchParams.group) || undefined,
-    capability: str(searchParams.capability) || undefined,
-    size: str(searchParams.size) || undefined,
     sort: str(searchParams.sort) || 'trust',
     page: str(searchParams.page) || '1',
   };
 
-  const [companies, provinces] = await Promise.all([search(sp), getProvinces()]);
+  const [companies, provinces, counts] = await Promise.all([search(sp), getProvinces(), getCounts()]);
 
   const activeGroup = sp.group ?? '';
   const activeVerified = sp.verified === 'true';
@@ -126,8 +140,8 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
   if (sp.group) chips.push({ label: GROUP_LABELS[sp.group] ?? sp.group, removeKey: 'group' });
   if (sp.province) chips.push({ label: sp.province, removeKey: 'province' });
   if (sp.verified) chips.push({ label: 'Đã xác minh', removeKey: 'verified' });
-  if (sp.capability) chips.push({ label: `Hạng ${sp.capability}`, removeKey: 'capability' });
-  if (sp.size) chips.push({ label: sp.size, removeKey: 'size' });
+
+  const nActive = (sp.group ? 1 : 0) + (sp.verified ? 1 : 0);
 
   function removeChipUrl(key: string) {
     const params = { ...sp } as Record<string, string | undefined>;
@@ -198,7 +212,13 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
       <section className="block" style={{ paddingTop: 28, background: 'var(--bg)' }}>
         <div className="container grid-side">
 
-          {/* FILTER SIDEBAR */}
+          {/* FILTER SIDEBAR — trên điện thoại thu gọn sau nút "Bộ lọc" */}
+          <input type="checkbox" id="filter-toggle" className="filter-toggle" hidden />
+          <label htmlFor="filter-toggle" className="filter-btn">
+            <svg className="ic"><use href="#ic-sliders" /></svg>
+            Bộ lọc{nActive > 0 && <span className="n">{nActive}</span>}
+            <svg className="ic chev"><use href="#ic-chevron-down" /></svg>
+          </label>
           <aside className="filter-card">
             <form method="GET" action="/directory">
               {sp.q && <input type="hidden" name="q" value={sp.q} />}
@@ -220,7 +240,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
                     defaultChecked={activeGroup === k}
                   />
                   {v}
-                  <span className="cnt">{k === 'contractor' ? '3.204' : k === 'crew' ? '2.881' : k === 'supplier' ? '1.905' : '955'}</span>
+                  {counts && <span className="cnt">{nf.format(counts.groups[k] ?? 0)}</span>}
                 </label>
               ))}
 
@@ -229,51 +249,11 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
               <label className="fopt">
                 <input type="checkbox" name="verified" value="true" defaultChecked={activeVerified} />
                 <span className="verify legal" style={{ fontSize: 12 }}>
-                  <svg className="ic"><use href="#ic-shield-check" /></svg>Pháp lý
+                  <svg className="ic"><use href="#ic-shield-check" /></svg>Đã xác minh
                 </span>
-                <span className="cnt">4.120</span>
-              </label>
-              <label className="fopt">
-                <input type="checkbox" name="verified_cap" value="true" />
-                <span className="verify capability" style={{ fontSize: 12 }}>
-                  <svg className="ic"><use href="#ic-award" /></svg>Năng lực
-                </span>
-                <span className="cnt">1.870</span>
-              </label>
-              <label className="fopt">
-                <input type="checkbox" name="verified_gold" value="true" />
-                <span className="verify gold" style={{ fontSize: 12 }}>
-                  <svg className="ic"><use href="#ic-star-f" /></svg>Đối tác vàng
-                </span>
-                <span className="cnt">312</span>
+                {counts && <span className="cnt">{nf.format(counts.verified)}</span>}
               </label>
 
-              <div className="divider" />
-              <h4>Hạng năng lực</h4>
-              {['I', 'II', 'III'].map((h) => (
-                <label className="fopt" key={h}>
-                  <input type="checkbox" name="capability" value={h} defaultChecked={sp.capability === h} />
-                  Hạng {h}
-                  <span className="cnt">{h === 'I' ? '640' : h === 'II' ? '1.230' : '2.480'}</span>
-                </label>
-              ))}
-
-              <div className="divider" />
-              <h4>Trust Score tối thiểu</h4>
-              <input type="range" min="0" max="100" defaultValue="0" name="min_trust" style={{ width: '100%', accentColor: 'var(--orange)' }} />
-              <div className="between" style={{ fontSize: 12, color: 'var(--muted)' }}>
-                <span>0</span><span><b style={{ color: 'var(--green)' }}>≥ 0</b></span><span>100</span>
-              </div>
-
-              <div className="divider" />
-              <h4>Quy mô nhân sự</h4>
-              {['1–10 người', '11–50 người', '51–200 người', 'Trên 200 người'].map((s) => (
-                <label className="fopt" key={s}>
-                  <input type="checkbox" name="size" value={s} defaultChecked={sp.size === s} /> {s}
-                </label>
-              ))}
-
-              <div className="divider" />
               <button className="btn btn-navy btn-block mt-16" type="submit">Áp dụng bộ lọc</button>
             </form>
           </aside>

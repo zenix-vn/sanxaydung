@@ -329,6 +329,7 @@ section.block,.block{padding:54px 0}
 .fopt{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text);padding:6px 0;cursor:pointer;user-select:none}
 .fopt input{width:16px;height:16px;accent-color:var(--orange);cursor:pointer;flex:none}
 .fopt .cnt{margin-left:auto;font-size:12px;color:var(--muted)}
+.filter-btn{display:none}
 .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
 .toolbar .count{font-size:14px;color:var(--muted)}
 .toolbar .count b{color:var(--navy)}
@@ -387,6 +388,14 @@ footer .brand span{color:#7f97b3}
   .foot-grid{grid-template-columns:1fr 1fr}
   .company-grid{grid-template-columns:repeat(2,1fr)}
   .grid-side,.grid-side-r{grid-template-columns:1fr}
+  .grid-side{gap:14px}
+  .filter-btn{display:flex;align-items:center;gap:8px;justify-self:start;padding:10px 16px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;user-select:none;box-shadow:var(--shadow-sm)}
+  .filter-btn .ic{width:18px;height:18px}
+  .filter-btn .n{background:var(--orange);color:#fff;border-radius:20px;font-size:12px;padding:1px 8px}
+  .filter-btn .chev{transition:transform .2s}
+  .filter-toggle:checked + .filter-btn .chev{transform:rotate(180deg)}
+  .filter-card{display:none;position:static}
+  .filter-toggle:checked ~ .filter-card{display:block}
   .ph-inner{flex-direction:column;align-items:flex-start}
   .ph-logo{width:96px;height:96px;font-size:28px}
   .proj-grid{grid-template-columns:repeat(2,1fr)}
@@ -401,6 +410,8 @@ footer .brand span{color:#7f97b3}
   .cat-grid{grid-template-columns:repeat(3,1fr)}
   .strip .container{display:grid;grid-template-columns:repeat(3,1fr);gap:20px 12px;justify-items:start}
   .searchbar{grid-template-columns:1fr;padding:12px}
+  .dir-searchbar{grid-template-columns:1fr 1fr}
+  .dir-searchbar .fld:first-child,.dir-searchbar .btn{grid-column:1/-1;justify-content:center}
   .searchbar .btn{grid-column:auto;padding:13px}
   .grid-3{grid-template-columns:1fr}
   .form-row{grid-template-columns:1fr}
