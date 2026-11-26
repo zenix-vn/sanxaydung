@@ -175,6 +175,13 @@ select public.promote_registration(id) from partner_registrations where status='
 
 ---
 
+## Nhập ngay trên web (khuyên dùng)
+
+Quản trị viên vào **/admin → Nhập dữ liệu** (`/admin/import`): tải file CSV hoặc dán từ Google Sheets → kiểm tra cách ghép cột → **Kiểm tra dữ liệu** → chọn *Đưa vào hàng chờ* hoặc *Tạo hồ sơ ngay* (tối đa 500 dòng mỗi lần).
+
+- Khác với script bên dưới: dòng trùng SĐT/MST với hồ sơ hoặc bản đăng ký đã có sẽ **bị bỏ qua**, không cập nhật.
+- Script đồng bộ không ghi đè hồ sơ đã có chủ, đã được quản trị sửa tay, đổi chủ hoặc gộp.
+
 ## Nhập vào production (zenix-server)
 
 ```bash

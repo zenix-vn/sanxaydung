@@ -12,7 +12,7 @@
 #   OpenLiteSpeed vhost: /usr/local/lsws/conf/vhosts/sanxaydung.vn (mẫu: deploy/ols/)
 # KHÔNG dùng chung stack /opt/supabase (thuộc app khác).
 set -euo pipefail
-SSH="ssh -o BatchMode=yes zenix-server"
+SSH="ssh -o BatchMode=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=15 zenix-server"   # giữ kết nối khi build lâu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DOMAIN="sanxaydung.vn"
 
