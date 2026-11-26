@@ -1,18 +1,26 @@
 'use client';
-import { Fragment, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
-import { ProjectPhotos, ServicesEditor, StaffEditor, EquipmentEditor, type Photo } from './PortfolioEditor';
+import { ServicesEditor, StaffEditor, EquipmentEditor, type Photo } from './PortfolioEditor';
+import ProjectsEditor, { type Project } from './ProjectsEditor';
+import { PartnersEditor, AwardsEditor } from './ShowcaseEditor';
+import { AboutFields, SectionsEditor } from './ContentEditors';
+import RichTextEditor from './RichTextEditor';
+import { AppearanceEditor, HighlightsEditor, LinksEditor, toProfileForm, buildProfileSettings } from './AppearanceEditor';
+import GalleryEditor from './GalleryEditor';
+import { shrinkImage } from '@/lib/image';
+import { cssUrl, type Award, type GalleryItem, type Partner } from '@/lib/profile';
 
 type Company = Record<string, any>;
 type Cat = { id: string; name: string; group_key: string };
 type Prov = { code: string; name: string };
-type Project = { id: string; title: string; role: string | null; year: number | null; province_code: string | null; cover_url: string | null };
 type Doc = { id: string; title: string; file_url: string; visibility: 'public' | 'members' | 'connections'; size_bytes: number | null };
 
 const SIZES = ['1–10 người', '11–50 người', '51–200 người', 'Trên 200 người'];
 const VIS: Record<Doc['visibility'], string> = { public: 'Công khai', members: 'Thành viên', connections: 'Đối tác kết nối' };
 const MAX_IMG = 5 * 1024 * 1024;
-const MAX_DOC = 25 * 1024 * 1024;
+const MAX_DOC = 20 * 1024 * 1024; // khớp giới hạn bucket company-documents
+const DOC_TYPES = '.pdf,.docx,.xlsx,.jpg,.jpeg,.png,.webp';
 
 function slugify(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/gi, 'd').toLowerCase()
@@ -24,6 +32,7 @@ export default function CompanyEditForm(props: {
   company: Company; canEdit: boolean; categories: Cat[]; provinces: Prov[];
   initialCategoryIds: string[]; initialProvinceCodes: string[]; initialProjects: Project[]; initialDocs: Doc[];
   services: any[]; staff: any[]; equipment: any[]; projectPhotos: (Photo & { owner_id: string })[];
+  gallery: GalleryItem[]; partners: Partner[]; awards: Award[];
 }) {
   const supa = useMemo(() => createSupabaseBrowser(), []);
   const co = props.company;
@@ -36,17 +45,20 @@ export default function CompanyEditForm(props: {
   });
   const [logo, setLogo] = useState<string | null>(co.logo_url ?? null);
   const [cover, setCover] = useState<string | null>(co.cover_url ?? null);
+  const [profile, setProfile] = useState(() => toProfileForm(co.profile_settings));
   const [catIds, setCatIds] = useState<string[]>(props.initialCategoryIds);
   const [locs, setLocs] = useState<string[]>(props.initialProvinceCodes);
-  const [projects, setProjects] = useState<Project[]>(props.initialProjects);
   const [docs, setDocs] = useState<Doc[]>(props.initialDocs);
   const [completeness, setCompleteness] = useState<number>(co.profile_completeness ?? 0);
   const [status, setStatus] = useState<string>(co.status ?? 'draft');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
-  const [np, setNp] = useState({ title: '', role: '', year: '', province_code: '' });
-  const [photosOpen, setPhotosOpen] = useState<string | null>(null);
-  const [pphotos, setPphotos] = useState(props.projectPhotos);
+  // Thông báo nổi theo màn hình; báo thành công tự ẩn, báo lỗi giữ đến khi bấm đóng
+  useEffect(() => {
+    if (!msg?.ok) return;
+    const t = setTimeout(() => setMsg(null), 6000);
+    return () => clearTimeout(t);
+  }, [msg]);
   const logoRef = useRef<HTMLInputElement>(null);
   const coverRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
@@ -56,12 +68,14 @@ export default function CompanyEditForm(props: {
     fn(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const disabled = !props.canEdit || busy;
 
-  async function upload(file: File, kind: 'logo' | 'cover') {
+  async function upload(original: File, kind: 'logo' | 'cover') {
     setMsg(null);
-    if (!file.type.startsWith('image/')) return setMsg({ ok: false, text: 'Chỉ nhận file ảnh.' });
-    if (file.size > MAX_IMG) return setMsg({ ok: false, text: 'Ảnh tối đa 5MB.' });
+    if (!original.type.startsWith('image/')) return setMsg({ ok: false, text: 'Chỉ nhận file ảnh.' });
     setBusy(true);
     try {
+      // Logo giữ nguyên định dạng: còn dùng làm ảnh xem trước khi chia sẻ link
+      const file = kind === 'logo' ? original : await shrinkImage(original, 2400);
+      if (file.size > MAX_IMG) throw new Error('Ảnh tối đa 5MB.');
       const path = `${co.id}/${kind}-${Date.now()}.${ext(file)}`;
       const { error } = await supa.storage.from('company-logos').upload(path, file, { upsert: true, contentType: file.type });
       if (error) throw error;
@@ -70,6 +84,8 @@ export default function CompanyEditForm(props: {
       const { data, error: e2 } = await supa.from('companies').update({ [col]: url }).eq('id', co.id).select('profile_completeness').single();
       if (e2) throw e2;
       kind === 'logo' ? setLogo(url) : setCover(url);
+      // Ảnh bìa mới → điểm lấy nét cũ không còn đúng
+      if (kind === 'cover') setProfile((p) => ({ ...p, focus: { x: 50, y: 50 } }));
       setCompleteness(data?.profile_completeness ?? completeness);
       setMsg({ ok: true, text: kind === 'logo' ? 'Đã cập nhật logo.' : 'Đã cập nhật ảnh bìa.' });
     } catch (err) {
@@ -88,6 +104,8 @@ export default function CompanyEditForm(props: {
     if (year !== null && (isNaN(year) || year < 1900 || year > new Date().getFullYear()))
       return setMsg({ ok: false, text: 'Năm thành lập không hợp lệ.' });
     if (f.email && !/^\S+@\S+\.\S+$/.test(f.email)) return setMsg({ ok: false, text: 'Email không hợp lệ.' });
+    const built = buildProfileSettings(profile);
+    if ('error' in built) return setMsg({ ok: false, text: built.error });
 
     setBusy(true);
     try {
@@ -98,6 +116,7 @@ export default function CompanyEditForm(props: {
         phone: f.phone.trim() || null, email: f.email.trim() || null,
         website: f.website.trim() || null, province_code: f.province_code || null,
         address: f.address.trim() || null,
+        profile_settings: built.settings,
       };
       if (publish) patch.status = 'published';
       const { data, error } = await supa.from('companies').update(patch).eq('id', co.id)
@@ -106,6 +125,7 @@ export default function CompanyEditForm(props: {
       setF((p) => ({ ...p, slug: data.slug }));
       setCompleteness(data.profile_completeness ?? 0);
       setStatus(data.status);
+      setProfile(toProfileForm(built.settings));
 
       // Đồng bộ lĩnh vực + khu vực (xóa rồi chèn lại)
       await supa.from('company_categories').delete().eq('company_id', co.id);
@@ -126,29 +146,9 @@ export default function CompanyEditForm(props: {
     }
   }
 
-  async function addProject() {
-    if (!np.title.trim()) return setMsg({ ok: false, text: 'Nhập tên dự án.' });
-    const year = np.year ? parseInt(np.year, 10) : null;
-    const { data, error } = await supa.from('projects').insert({
-      company_id: co.id, title: np.title.trim(), role: np.role.trim() || null,
-      year: year && !isNaN(year) ? year : null, province_code: np.province_code || null,
-    }).select('id, title, role, year, province_code, cover_url').single();
-    if (error) return setMsg({ ok: false, text: error.message });
-    setProjects((p) => [data as Project, ...p]);
-    setNp({ title: '', role: '', year: '', province_code: '' });
-    setPhotosOpen((data as Project).id);
-  }
-  async function delProject(id: string) {
-    if (!confirm('Xóa dự án này?')) return;
-    await supa.from('media').delete().eq('owner_type', 'project').eq('owner_id', id);
-    const { error } = await supa.from('projects').delete().eq('id', id);
-    if (error) return setMsg({ ok: false, text: error.message });
-    setProjects((p) => p.filter((x) => x.id !== id));
-  }
-
   async function addDoc(file: File) {
     setMsg(null);
-    if (file.size > MAX_DOC) return setMsg({ ok: false, text: 'Tài liệu tối đa 25MB.' });
+    if (file.size > MAX_DOC) return setMsg({ ok: false, text: 'Tài liệu tối đa 20MB.' });
     setBusy(true);
     try {
       const path = `${co.id}/${Date.now()}-${slugify(file.name.replace(/\.[^.]+$/, '')) || 'tai-lieu'}.${ext(file)}`;
@@ -189,13 +189,13 @@ export default function CompanyEditForm(props: {
     { ok: !!f.phone && !!f.address && !!f.province_code, label: 'Liên hệ & địa chỉ' },
     { ok: !!f.founded_year && !!f.website, label: 'Năm thành lập & website' },
   ];
-  const provName = (c: string | null) => props.provinces.find((p) => p.code === c)?.name ?? '—';
   const initialsOf = (co.name as string).split(' ').filter((w) => w.length > 1).slice(-2).map((w) => w[0].toUpperCase()).join('');
 
   return (
     <>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .edit-grid{display:grid;grid-template-columns:230px 1fr;gap:24px;align-items:start}
+        .edit-grid>div{min-width:0}
         .sec-nav{position:sticky;top:82px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;box-shadow:var(--shadow-sm)}
         .sec-nav a{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--text);text-decoration:none}
         .sec-nav a svg{width:17px;height:17px;color:var(--muted)}
@@ -218,11 +218,87 @@ export default function CompanyEditForm(props: {
         .table th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:600;font-size:12.5px;border-bottom:1px solid var(--line)}
         .table td{padding:10px 12px;border-bottom:1px solid var(--line-2)}
         .table tr:last-child td{border-bottom:none}
-        .toast{padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:16px}
+        .toast{position:sticky;top:80px;z-index:45;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:16px;box-shadow:var(--shadow-sm)}
         .toast.ok{background:#f0fbf4;color:#0d6b3f;border:1px solid #b6e6c9}
         .toast.err{background:#fdf0ee;color:#c0392b;border:1px solid #f3c6bf}
+        .sub-h{font-size:15px;font-weight:800;color:var(--navy);margin:10px 0 4px}
+        .swatches{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+        .sw{width:32px;height:32px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}
+        .sw.auto{width:auto;border-radius:20px;padding:0 12px;font-size:12.5px;font-weight:600;color:var(--navy);background:#fff}
+        .sw.on{box-shadow:0 0 0 3px var(--navy)}
+        .swatches label.sw-custom{display:flex;align-items:center;gap:8px;margin:0;font-size:12.5px;cursor:pointer}
+        .sw-custom input{width:36px;height:32px;padding:0;border:none;background:none;cursor:pointer}
+        .sw-demo{display:inline-block;color:#fff;font-weight:700;border-radius:8px;padding:5px 12px;margin:0 6px}
+        .focus-pick{position:relative;display:inline-block;max-width:100%;padding:0;border:none;background:none;cursor:crosshair;line-height:0}
+        .focus-pick img{max-width:100%;max-height:300px;border-radius:10px}
+        .focus-pick span{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--orange),0 2px 8px rgba(0,0,0,.4);pointer-events:none}
+        .focus-sliders{display:flex;gap:20px;flex-wrap:wrap;margin:10px 0}
+        .focus-sliders label{display:flex;align-items:center;gap:8px;margin:0;font-size:12.5px}
+        .focus-previews{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
+        .focus-previews figure{margin:0}
+        .focus-previews figure div{border-radius:8px;background-size:cover;background-color:#e6ebf1}
+        .focus-previews .desk div{width:320px;max-width:70vw;aspect-ratio:1280/220}
+        .focus-previews .mob div{width:125px;aspect-ratio:390/220}
+        .focus-previews figcaption{font-size:11.5px;color:var(--muted);margin-top:4px}
+        .hl-row{display:grid;grid-template-columns:150px 1fr;gap:10px;margin-bottom:10px}
+        .gal-edit{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
+        .ge{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+        .ge.dragging{opacity:.45}
+        .ge-img{position:relative;aspect-ratio:4/3;background:#e6ebf1;display:grid;place-items:center;font-size:12.5px;color:var(--muted);cursor:grab}
+        .ge-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+        .ge-img i{position:absolute;left:6px;top:6px;display:flex;align-items:center;gap:4px;font-style:normal;font-size:11px;font-weight:700;color:#fff;background:rgba(2,30,72,.75);border-radius:6px;padding:3px 7px}
+        .ge-img i svg{width:12px;height:12px}
+        .ge .input{border:none;border-top:1px solid var(--line-2);border-radius:0;font-size:12.5px;padding:8px 10px}
+        .ge-bar{display:flex;border-top:1px solid var(--line-2)}
+        .ge-bar button{flex:1;display:grid;place-items:center;padding:7px;background:none;border:none;cursor:pointer;color:var(--navy)}
+        .ge-bar button:hover:not(:disabled){background:#f6f8fb}
+        .ge-bar button:disabled{opacity:.3;cursor:default}
+        .ge-bar button.del{color:#c0392b}
+        .ge-bar svg{width:16px;height:16px}
+        .gal-add{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+        .gal-add .input{flex:1;min-width:220px;width:auto}
+        .card-block{scroll-margin-top:82px}
+        .rte{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+        .rte-bar{display:flex;flex-wrap:wrap;gap:2px;padding:6px;background:#f6f8fb;border-bottom:1px solid var(--line)}
+        .rte-bar button{display:flex;align-items:center;gap:5px;padding:6px 10px;border:none;border-radius:7px;background:none;color:var(--navy);font:600 12.5px/1 inherit;cursor:pointer}
+        .rte-bar button:hover:not(:disabled),.rte-bar button.on{background:#fff;box-shadow:0 0 0 1px var(--line)}
+        .rte-bar button:disabled{opacity:.4;cursor:default}
+        .rte-bar svg{width:14px;height:14px}
+        .rte-bar .rte-eye{margin-left:auto}
+        .rte .textarea{border:none;border-radius:0;box-shadow:none}
+        .rte-preview{padding:14px;min-height:220px}
+        .sc-form{display:grid;grid-template-columns:130px 1fr;gap:14px;align-items:start}
+        .sc-img.pick{width:130px;height:100px;border:2px dashed var(--line);border-radius:10px;background:#fff;display:grid;place-items:center;overflow:hidden;padding:0;cursor:pointer;margin-bottom:6px}
+        .sc-img.pick img{width:100%;height:100%;object-fit:contain}
+        .sc-img.pick span{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--muted)}
+        .sc-img.pick svg{width:20px;height:20px}
+        .sc-thumb{width:56px;height:42px;border-radius:8px;background:#eef1f5;border:1px solid var(--line-2);overflow:hidden;flex:none}
+        .sc-thumb img{width:100%;height:100%;object-fit:contain}
+        .sc-actions{gap:12px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+        .sc-arrow,.sc-star{background:none;border:none;padding:4px;cursor:pointer;color:var(--navy);display:grid;place-items:center}
+        .sc-arrow:disabled{opacity:.25;cursor:default}
+        .sc-arrow svg,.sc-star svg{width:16px;height:16px}
+        .sc-star{color:var(--muted)}
+        .sc-star.on{color:var(--orange)}
+        .sc-star.on svg{fill:currentColor}
+        .sc-star svg{width:19px;height:19px}
+        .sc-hits{display:flex;flex-direction:column;gap:2px;margin-top:6px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px}
+        .sc-hits small{color:var(--muted);font-size:11.5px;padding:2px 6px}
+        .sc-hits button{text-align:left;border:none;background:none;padding:6px;border-radius:6px;cursor:pointer;font:600 13px inherit;color:var(--navy)}
+        .sc-hits button:hover{background:#f6f8fb}
+        .sec-order{list-style:none;margin:0;padding:0}
+        .sec-order li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2);font-size:13.5px}
+        .sec-order li:last-child{border-bottom:none}
+        .sec-order .n{width:22px;color:var(--muted);font-size:12px}
+        .sec-order .t{flex:1;min-width:0;font-weight:600;color:var(--navy)}
+        .sec-order li.off .t{color:var(--muted);text-decoration:line-through}
+        .sec-order label{display:flex;align-items:center;gap:6px;margin:0;font-size:12.5px;font-weight:600;color:var(--muted);width:92px;cursor:pointer}
+        .sec-order button{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--navy);cursor:pointer}
+        .sec-order button:disabled{opacity:.3;cursor:default}
+        .sec-order button svg{width:15px;height:15px}
         @media(max-width:900px){.edit-grid{grid-template-columns:1fr}.sec-nav{position:static;display:flex;flex-wrap:wrap;gap:4px}}
-      `}</style>
+        @media(max-width:600px){.sec-order li{gap:8px}.sec-order .n{display:none}.sec-order label{width:auto;font-size:0;padding:6px}.crud-row{flex-wrap:wrap}.sc-actions{width:100%}.sc-form{grid-template-columns:1fr}.hl-row{grid-template-columns:110px 1fr}.gal-edit{grid-template-columns:1fr 1fr;gap:10px}}
+      ` }} />
 
       <section className="pagehead" style={{ padding: '22px 0' }}>
         <div className="container">
@@ -246,13 +322,19 @@ export default function CompanyEditForm(props: {
             <nav className="sec-nav mb-24">
               <a href="#basic"><svg className="ic"><use href="#ic-building" /></svg> Thông tin cơ bản</a>
               <a href="#media"><svg className="ic"><use href="#ic-image" /></svg> Logo &amp; ảnh bìa</a>
+              <a href="#appearance"><svg className="ic"><use href="#ic-paint" /></svg> Giao diện trang</a>
               <a href="#field"><svg className="ic"><use href="#ic-briefcase" /></svg> Lĩnh vực &amp; khu vực</a>
               <a href="#intro"><svg className="ic"><use href="#ic-file-text" /></svg> Giới thiệu</a>
+              <a href="#highlights"><svg className="ic"><use href="#ic-chart" /></svg> Số liệu nổi bật</a>
+              <a href="#gallery"><svg className="ic"><use href="#ic-camera" /></svg> Thư viện ảnh/video</a>
               <a href="#projects"><svg className="ic"><use href="#ic-clipboard" /></svg> Dự án</a>
+              <a href="#partners"><svg className="ic"><use href="#ic-people" /></svg> Khách hàng &amp; đối tác</a>
+              <a href="#awards"><svg className="ic"><use href="#ic-award" /></svg> Giải thưởng</a>
               <a href="#services"><svg className="ic"><use href="#ic-tag" /></svg> Dịch vụ</a>
               <a href="#staff"><svg className="ic"><use href="#ic-users" /></svg> Nhân sự &amp; thiết bị</a>
               <a href="#docs"><svg className="ic"><use href="#ic-folder" /></svg> Hồ sơ năng lực</a>
-              <a href="#contact"><svg className="ic"><use href="#ic-phone" /></svg> Liên hệ</a>
+              <a href="#contact"><svg className="ic"><use href="#ic-phone" /></svg> Liên hệ &amp; mạng xã hội</a>
+              <a href="#layout"><svg className="ic"><use href="#ic-sliders" /></svg> Bố cục trang</a>
             </nav>
             <div className="completeness-widget">
               <div>Độ hoàn thiện hồ sơ</div>
@@ -273,7 +355,7 @@ export default function CompanyEditForm(props: {
 
           <div>
             {!props.canEdit && <div className="toast err">Bạn chỉ có quyền xem. Cần vai trò Editor trở lên để chỉnh sửa hồ sơ.</div>}
-            {msg && <div className={`toast ${msg.ok ? 'ok' : 'err'}`}>{msg.text}</div>}
+            {msg && <div className={`toast ${msg.ok ? 'ok' : 'err'}`} role="status" onClick={() => setMsg(null)} title="Bấm để đóng">{msg.text}</div>}
 
             <div className="card-block" id="basic">
               <h2>Thông tin cơ bản</h2>
@@ -319,13 +401,13 @@ export default function CompanyEditForm(props: {
 
             <div className="card-block" id="media">
               <h2>Logo &amp; ảnh bìa</h2>
-              <p className="muted mb-16">Ảnh tối đa 5MB, lưu công khai trong <code>company-logos/{'{company_id}'}/</code>.</p>
+              <p className="muted mb-16">Logo vuông (tối đa 5MB), ảnh bìa ngang nên từ 1600×400 (ảnh lớn được tự thu nhỏ). Hiển thị công khai ngay.</p>
               <div className="media-edit">
                 <div className="logo-up" style={logo ? { backgroundImage: `url(${logo})` } : undefined} onClick={() => !disabled && logoRef.current?.click()}>
                   {!logo && initialsOf}
                   <span className="cam"><svg className="ic"><use href="#ic-camera" /></svg></span>
                 </div>
-                <div className="cover-up" style={cover ? { backgroundImage: `url(${cover})` } : undefined}>
+                <div className="cover-up" style={cover ? { backgroundImage: cssUrl(cover), backgroundPosition: `${profile.focus.x}% ${profile.focus.y}%` } : undefined}>
                   <button type="button" className="btn" disabled={disabled} onClick={() => coverRef.current?.click()} style={{ background: 'rgba(255,255,255,.9)', color: 'var(--navy)' }}>
                     <svg className="ic"><use href="#ic-camera" /></svg> Đổi ảnh bìa
                   </button>
@@ -334,6 +416,8 @@ export default function CompanyEditForm(props: {
               <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => { const x = e.target.files?.[0]; if (x) upload(x, 'logo'); e.target.value = ''; }} />
               <input ref={coverRef} type="file" accept="image/*" hidden onChange={(e) => { const x = e.target.files?.[0]; if (x) upload(x, 'cover'); e.target.value = ''; }} />
             </div>
+
+            <AppearanceEditor value={profile} onChange={setProfile} disabled={disabled} cover={cover} />
 
             <div className="card-block" id="field">
               <h2>Lĩnh vực &amp; khu vực hoạt động</h2>
@@ -365,73 +449,20 @@ export default function CompanyEditForm(props: {
               </div>
               <div className="field-group">
                 <label>Giới thiệu chi tiết</label>
-                <textarea className="textarea" style={{ minHeight: 140 }} value={f.description} onChange={set('description')} disabled={disabled} />
+                <RichTextEditor companyId={co.id} value={f.description} onChange={(description) => setF((p) => ({ ...p, description }))} disabled={disabled} onMsg={setMsg} />
               </div>
+              <AboutFields value={profile} onChange={setProfile} disabled={disabled} />
             </div>
 
-            <div className="card-block" id="projects">
-              <h2>Dự án portfolio</h2>
-              {projects.length > 0 && (
-                <table className="table">
-                  <thead><tr><th>Dự án</th><th>Vai trò</th><th>Năm</th><th>Khu vực</th><th></th></tr></thead>
-                  <tbody>
-                    {projects.map((p) => {
-                      const n = pphotos.filter((x) => x.owner_id === p.id).length;
-                      return (
-                      <Fragment key={p.id}>
-                      <tr>
-                        <td>
-                          <div className="row" style={{ gap: 10 }}>
-                            <span className="pthumb" style={p.cover_url ? { backgroundImage: `url(${p.cover_url})` } : undefined} />
-                            <b style={{ color: 'var(--navy)' }}>{p.title}</b>
-                          </div>
-                        </td>
-                        <td>{p.role ?? '—'}</td><td>{p.year ?? '—'}</td><td>{provName(p.province_code)}</td>
-                        <td style={{ whiteSpace: 'nowrap' }}>
-                          <button type="button" className="btn-link" onClick={() => setPhotosOpen(photosOpen === p.id ? null : p.id)} style={{ marginRight: 10 }}>
-                            Ảnh{n ? ` (${n})` : ''}
-                          </button>
-                          <button type="button" disabled={disabled} onClick={() => delProject(p.id)} title="Xóa"><svg className="ic" style={{ width: 16, height: 16, color: 'var(--muted)' }}><use href="#ic-x" /></svg></button>
-                        </td>
-                      </tr>
-                      {photosOpen === p.id && (
-                        <tr>
-                          <td colSpan={5} style={{ background: '#fafbfc' }}>
-                            <ProjectPhotos
-                              companyId={co.id}
-                              projectId={p.id}
-                              cover={p.cover_url}
-                              photos={pphotos.filter((x) => x.owner_id === p.id)}
-                              onChange={(list) => setPphotos((all) => [...all.filter((x) => x.owner_id !== p.id), ...list.map((x) => ({ ...x, owner_id: p.id }))])}
-                              disabled={disabled}
-                              onMsg={setMsg}
-                              onCover={(url) => setProjects((ps) => ps.map((x) => (x.id === p.id ? { ...x, cover_url: url } : x)))}
-                            />
-                          </td>
-                        </tr>
-                      )}
-                      </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-              {props.canEdit && (
-                <div className="form-row mt-16" style={{ alignItems: 'end' }}>
-                  <div className="field-group"><label>Tên dự án</label><input className="input" value={np.title} onChange={(e) => setNp({ ...np, title: e.target.value })} /></div>
-                  <div className="field-group"><label>Vai trò</label><input className="input" placeholder="Tổng thầu…" value={np.role} onChange={(e) => setNp({ ...np, role: e.target.value })} /></div>
-                  <div className="field-group"><label>Năm</label><input className="input" inputMode="numeric" value={np.year} onChange={(e) => setNp({ ...np, year: e.target.value })} /></div>
-                  <div className="field-group">
-                    <label>Khu vực</label>
-                    <select className="select" value={np.province_code} onChange={(e) => setNp({ ...np, province_code: e.target.value })}>
-                      <option value="">—</option>
-                      {props.provinces.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
-                    </select>
-                  </div>
-                  <button type="button" className="btn btn-outline btn-sm" onClick={addProject} style={{ marginBottom: 16 }}><svg className="ic"><use href="#ic-plus" /></svg> Thêm</button>
-                </div>
-              )}
-            </div>
+            <HighlightsEditor value={profile} onChange={setProfile} disabled={disabled} />
+
+            <GalleryEditor companyId={co.id} initial={props.gallery} disabled={!props.canEdit} onMsg={setMsg} />
+
+            <ProjectsEditor companyId={co.id} initial={props.initialProjects} initialPhotos={props.projectPhotos} provinces={props.provinces} disabled={!props.canEdit} onMsg={setMsg} />
+
+            <PartnersEditor companyId={co.id} initial={props.partners} disabled={!props.canEdit} onMsg={setMsg} />
+
+            <AwardsEditor companyId={co.id} initial={props.awards} disabled={!props.canEdit} onMsg={setMsg} />
 
             <div className="card-block" id="services">
               <h2>Dịch vụ cung cấp</h2>
@@ -455,8 +486,11 @@ export default function CompanyEditForm(props: {
                   </button>
                 )}
               </h2>
-              <input ref={docRef} type="file" hidden onChange={(e) => { const x = e.target.files?.[0]; if (x) addDoc(x); e.target.value = ''; }} />
-              <p className="muted mb-16">Đặt mức riêng tư: công khai / thành viên / chỉ đối tác đã kết nối (tối đa 25MB/file).</p>
+              <input ref={docRef} type="file" accept={DOC_TYPES} hidden onChange={(e) => { const x = e.target.files?.[0]; if (x) addDoc(x); e.target.value = ''; }} />
+              <p className="muted mb-16">
+                PDF, Word, Excel hoặc ảnh, tối đa 20MB/file. <b>Công khai</b>: mọi khách xem hồ sơ đều tải được.{' '}
+                <b>Đối tác kết nối</b>: chỉ doanh nghiệp đã hoàn tất kết nối với bạn. <b>Thành viên</b>: chỉ nội bộ. Tên file là tên hiển thị.
+              </p>
               {docs.length === 0 && <p className="muted" style={{ fontSize: 13 }}>Chưa có tài liệu.</p>}
               {docs.map((d) => (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '12px 0', borderBottom: '1px solid var(--line-2)' }}>
@@ -493,7 +527,10 @@ export default function CompanyEditForm(props: {
                 </div>
               </div>
               <div className="field-group"><label>Địa chỉ</label><input className="input" value={f.address} onChange={set('address')} disabled={disabled} /></div>
+              <LinksEditor value={profile} onChange={setProfile} disabled={disabled} />
             </div>
+
+            <SectionsEditor value={profile} onChange={setProfile} disabled={disabled} />
 
             <div className="savebar">
               <a className="btn btn-outline" href="/dashboard">Hủy</a>

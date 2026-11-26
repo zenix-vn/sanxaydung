@@ -247,6 +247,17 @@ section.block,.block{padding:54px 0}
 .prose{font-size:14.5px;color:#31414f;line-height:1.75}
 .prose ul{margin:10px 0 10px 20px}
 .prose li{margin-bottom:6px}
+.rich{overflow-wrap:anywhere}
+.rich>*+*{margin-top:10px}
+.rich h3{font-size:16px;font-weight:800;color:var(--navy);margin-top:20px}
+.rich h4{font-size:14.5px;font-weight:700;color:var(--navy);margin-top:16px}
+.rich ul,.rich ol{padding-left:22px;margin-left:0}
+.rich ul{list-style:disc}
+.rich ol{list-style:decimal}
+.rich a{color:var(--orange);text-decoration:underline}
+.rich figure{margin-left:0;margin-right:0}
+.rich img{display:block;max-width:100%;max-height:520px;border-radius:10px}
+.rich figcaption{font-size:12.5px;color:var(--muted);margin-top:5px}
 
 /* Info sidebar boxes */
 .infobox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow-sm);margin-bottom:18px}
@@ -480,6 +491,7 @@ footer .brand span{color:#7f97b3}
 .table th{text-align:left;padding:8px 12px;color:var(--muted);font-weight:600;font-size:12.5px;border-bottom:1px solid var(--line)}
 .table td{padding:10px 12px;border-bottom:1px solid var(--line-2)}
 .table tr:last-child td{border-bottom:none}
+.dash>*,.dside .co>div{min-width:0}
 @media(max-width:900px){.dash{grid-template-columns:1fr}.dside{position:static;min-height:auto;border-right:none;border-bottom:1px solid var(--line)}.dnav{display:flex;flex-wrap:wrap;gap:4px}.dnav a{margin:0}.dnav .grp{width:100%}}
 .co-switch{position:relative;margin-bottom:16px}
 .dside .co{width:100%;border:1px solid transparent;cursor:pointer;font:inherit;margin-bottom:0}

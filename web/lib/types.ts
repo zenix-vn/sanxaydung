@@ -25,6 +25,8 @@ export interface Company {
   profile_completeness: number;
   owner_id: string | null;
   created_at: string;
+  /** Dữ liệu thô — luôn đọc qua parseProfileSettings() */
+  profile_settings?: unknown;
 }
 
 export interface Category {
@@ -51,6 +53,8 @@ export interface Project {
   cover_url: string | null;
   description: string | null;
   status: string;
+  kind?: string | null;
+  is_featured?: boolean;
 }
 
 export interface Listing {

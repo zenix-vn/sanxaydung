@@ -3,7 +3,7 @@ import ReportButton from './ReportButton';
 import SaveButton from '@/components/SaveButton';
 import ShareButton from '@/components/ShareButton';
 import { TrackView, ContactLink } from '@/components/Track';
-import type { CSSProperties } from 'react';
+import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
@@ -14,6 +14,17 @@ import { SITE_URL, thumb } from '@/lib/ui';
 import ConnectButton, { type ExistingConn } from './ConnectButton';
 import ReviewForm, { type Eligible } from './ReviewForm';
 import ReviewReply from './ReviewReply';
+import Gallery from './Gallery';
+import ProjectsGrid from './ProjectsGrid';
+import { AboutBlocks, AwardsSection, ListingsSection, PartnersSection, PostsSection, type CoListing, type CoPost } from './ShowcaseSections';
+import RichText from '@/components/RichText';
+import { plainText } from '@/lib/richtext';
+import './profile.css';
+import {
+  LINK_KINDS, LINK_META, MAX_AWARDS, MAX_FEATURED, MAX_GALLERY, MAX_PARTNERS,
+  brandVars, coverPosition, cssUrl, parseProfileSettings, parseVideo, safeHttpUrl, sectionOrder,
+  type Award, type GalleryItem, type Partner, type SectionKey,
+} from '@/lib/profile';
 import { VERIFY_KIND } from '@/lib/admin-labels';
 
 export const dynamic = 'force-dynamic';
@@ -128,6 +139,81 @@ async function getProjectPhotos(companyId: string) {
   }
 }
 
+const fetchGallery = cachedPublic(async (companyId: string) => {
+  const { data, error } = await createSupabasePublic()
+    .from('media')
+    .select('id, kind, url, caption')
+    .eq('company_id', companyId)
+    .eq('owner_type', 'company')
+    .order('sort_order')
+    .order('created_at')
+    .limit(MAX_GALLERY);
+  if (error) throw error;
+  return (data ?? []) as GalleryItem[];
+}, 'company-gallery', 30);
+
+async function getGallery(companyId: string): Promise<GalleryItem[]> {
+  try {
+    const rows = await fetchGallery(companyId);
+    // Bỏ link không hợp lệ (media.url do thành viên ghi trực tiếp được)
+    return rows.filter((m) => (m.kind === 'video' ? parseVideo(m.url) : safeHttpUrl(m.url)));
+  } catch {
+    return [];
+  }
+}
+
+type SharedDoc = { id: string; title: string; file_url: string; visibility: 'public' | 'connections'; size_bytes: number | null };
+
+/** Tài liệu chia sẻ ra ngoài mà người đang xem được phép thấy (RLS lọc theo phiên) — không cache. */
+async function getSharedDocs(companyId: string): Promise<SharedDoc[]> {
+  if (!SUPABASE_URL) return [];
+  try {
+    const { data } = await createSupabaseServer()
+      .from('documents')
+      .select('id, title, file_url, visibility, size_bytes')
+      .eq('company_id', companyId)
+      .in('visibility', ['public', 'connections'])
+      .order('created_at', { ascending: false });
+    return (data ?? []) as SharedDoc[];
+  } catch {
+    return [];
+  }
+}
+
+const fmtSize = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+
+// Các mục phụ: lỗi truy vấn chỉ làm mục đó trống, không làm hỏng cả trang
+const fetchExtras = cachedPublic(async (companyId: string) => {
+  const db = createSupabasePublic();
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const [partners, awards, posts, listings] = await Promise.all([
+    db.from('company_partners').select('*, linked:companies!linked_company_id ( slug, name, logo_url, status )')
+      .eq('company_id', companyId).order('sort_order').order('created_at').limit(MAX_PARTNERS),
+    db.from('company_awards').select('*').eq('company_id', companyId).order('sort_order').order('created_at').limit(MAX_AWARDS),
+    db.from('posts').select('id, type, title, body, like_count, comment_count, created_at')
+      .eq('company_id', companyId).eq('status', 'published').is('deleted_at', null).order('created_at', { ascending: false }).limit(30),
+    db.from('marketplace_listings').select('id, type, title, budget_from, budget_to, deadline, created_at')
+      .eq('company_id', companyId).eq('status', 'open').is('deleted_at', null).or(`deadline.is.null,deadline.gte.${today}`)
+      .order('created_at', { ascending: false }).limit(10),
+  ]);
+  const failed = [partners, awards, posts, listings].find((r) => r.error);
+  if (failed) throw failed.error;
+  return {
+    partners: (partners.data ?? []) as unknown as Partner[],
+    awards: (awards.data ?? []) as Award[],
+    posts: (posts.data ?? []) as CoPost[],
+    listings: (listings.data ?? []) as CoListing[],
+  };
+}, 'company-extras', 30);
+
+async function getExtras(companyId: string) {
+  try {
+    return await fetchExtras(companyId);
+  } catch {
+    return { partners: [], awards: [], posts: [], listings: [] } as { partners: Partner[]; awards: Award[]; posts: CoPost[]; listings: CoListing[] };
+  }
+}
+
 async function getRelation(companyId: string) {
   const me = await getMe();
   const mine = me.companies.filter((c) => c.id !== companyId);
@@ -172,9 +258,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   if (!c) return { title: 'Không tìm thấy doanh nghiệp' };
   return {
     title: c.name,
-    description: c.intro ?? c.description ?? `Hồ sơ năng lực ${c.name} trên Sàn Xây Dựng.`,
+    description: c.intro || plainText(c.description ?? '').slice(0, 300) || `Hồ sơ năng lực ${c.name} trên Sàn Xây Dựng.`,
     alternates: { canonical: `${SITE_URL}/cong-ty/${c.slug}` },
-    openGraph: { title: c.name, description: c.intro ?? '', images: c.logo_url ? [c.logo_url] : [], url: `${SITE_URL}/cong-ty/${c.slug}`, type: 'website' },
+    openGraph: { title: c.name, description: c.intro ?? plainText(c.description ?? '').slice(0, 200), images: c.logo_url ? [c.logo_url] : [], url: `${SITE_URL}/cong-ty/${c.slug}`, type: 'website' },
   };
 }
 
@@ -203,7 +289,13 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
   const showAll = searchParams?.all === '1';
   const c = await getCompany(params.slug);
   if (!c) notFound();
-  const [rel, photos] = await Promise.all([getRelation(c.id), getProjectPhotos(c.id)]);
+  const [rel, photos, gallery, docs, extras] = await Promise.all([getRelation(c.id), getProjectPhotos(c.id), getGallery(c.id), getSharedDocs(c.id), getExtras(c.id)]);
+  const settings = parseProfileSettings(c.profile_settings);
+  const links = LINK_KINDS.flatMap((k) => (settings.links?.[k] ? [{ kind: k, url: settings.links[k]! }] : []));
+  const sameAs = [
+    ...(c.website ? [c.website.startsWith('http') ? c.website : `https://${c.website}`] : []),
+    ...links.filter((l) => l.kind !== 'zalo').map((l) => l.url),
+  ];
 
   const cats = (c.company_categories ?? []).map((x) => x.categories?.name).filter(Boolean);
   const provs = (c.company_locations ?? []).map((x) => x.provinces?.name).filter(Boolean);
@@ -243,8 +335,8 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
     ...(c.legal_name ? { legalName: c.legal_name } : {}),
     url: `${SITE_URL}/cong-ty/${c.slug}`,
     ...(c.logo_url ? { logo: c.logo_url } : {}),
-    ...(c.intro || c.description ? { description: c.intro ?? c.description } : {}),
-    ...(c.website ? { sameAs: [c.website.startsWith('http') ? c.website : `https://${c.website}`] } : {}),
+    ...(c.intro || c.description ? { description: c.intro || plainText(c.description ?? '').slice(0, 500) } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
     ...(c.founded_year ? { foundingDate: String(c.founded_year) } : {}),
     ...(c.address ? { address: { '@type': 'PostalAddress', streetAddress: c.address, addressCountry: 'VN' } } : {}),
     ...(reviewCount > 0 && avgOverall
@@ -252,11 +344,334 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
       : {}),
   };
 
+  // Phần giới thiệu dài; bỏ qua nếu chỉ lặp lại mô tả ngắn
+  const longText = c.description && c.description.trim() !== c.intro?.trim() ? c.description : '';
+  // Dự án ghim đứng đầu, còn lại theo năm mới nhất
+  const featuredIds = new Set((c.projects ?? []).filter((p) => p.is_featured).slice(0, MAX_FEATURED).map((p) => p.id));
+  const projectCards = [...(c.projects ?? [])]
+    .sort((a, b) => Number(featuredIds.has(b.id)) - Number(featuredIds.has(a.id)) || (b.year ?? 0) - (a.year ?? 0))
+    .map((p) => ({
+      id: p.id, title: p.title, role: p.role, year: p.year, kind: p.kind ?? null, featured: featuredIds.has(p.id), cover: p.cover_url,
+      photos: (photos.get(p.id) ?? []).filter((u) => u !== p.cover_url).slice(0, 4),
+    }));
+  // Nhãn tab của từng mục; null = mục chưa có nội dung
+  const tabs: Record<SectionKey, string | null> = {
+    gioithieu: 'Giới thiệu',
+    duan: projectCards.length ? `Dự án (${projectCards.length})` : null,
+    thuvien: gallery.length ? `Hình ảnh (${gallery.length})` : null,
+    dichvu: services.length ? `Dịch vụ (${services.length})` : null,
+    doitac: extras.partners.length ? 'Khách hàng & đối tác' : null,
+    danhgia: `Đánh giá (${reviewCount})`,
+    tailieu: 'Hồ sơ năng lực',
+    giaithuong: extras.awards.length ? 'Giải thưởng' : null,
+    nhansu: staff.length || equipment.length ? 'Nhân sự & Thiết bị' : null,
+    baidang: extras.posts.length ? 'Bài đăng' : null,
+    tindang: extras.listings.length ? `Tin đăng (${extras.listings.length})` : null,
+  };
+  const hidden = settings.sections?.hidden ?? [];
+  const shown = sectionOrder(settings.sections?.order).filter((k) => tabs[k] && !hidden.includes(k));
+
+  const sections: Record<SectionKey, () => ReactNode> = {
+    gioithieu: () => (
+      <>
+        <div className="card-block" id="gioithieu">
+          <h2>
+            Giới thiệu
+            <ReportButton companyId={c.id} />
+          </h2>
+          {c.intro && <p className="prose co-lead">{c.intro}</p>}
+          {!c.intro && !longText && !settings.about && <p className="muted">Chưa có thông tin giới thiệu.</p>}
+          {settings.highlights ? (
+            <div className="grid-4 mt-16" style={{ gap: 12 }}>
+              {settings.highlights.map((h, i) => (
+                <div className="stat-tile co-hl" key={i} style={{ boxShadow: 'none', background: '#fafbfc', padding: '16px 14px', overflowWrap: 'anywhere' }}>
+                  <div className={h.value.length > 7 ? 'num long' : 'num'} style={settings.brand_color ? { color: 'var(--orange)' } : undefined}>{h.value}</div>
+                  <div className="lbl">{h.label}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid-4 mt-16" style={{ gap: 12 }}>
+              <div className="stat-tile" style={{ boxShadow: 'none', background: '#fafbfc' }}>
+                <div className="num">{c.projects?.length ?? 0}</div>
+                <div className="lbl">Dự án hoàn thành</div>
+              </div>
+              {c.founded_year && (
+                <div className="stat-tile" style={{ boxShadow: 'none', background: '#fafbfc' }}>
+                  <div className="num">{new Date().getFullYear() - c.founded_year}</div>
+                  <div className="lbl">Năm kinh nghiệm</div>
+                </div>
+              )}
+              <div className="stat-tile" style={{ boxShadow: 'none', background: '#fafbfc' }}>
+                <div className="num">{trust}</div>
+                <div className="lbl">Trust Score</div>
+              </div>
+              <div className="stat-tile" style={{ boxShadow: 'none', background: '#fafbfc' }}>
+                <div className="num">{c.profile_completeness}%</div>
+                <div className="lbl">Hồ sơ hoàn thiện</div>
+              </div>
+            </div>
+          )}
+          {longText && <RichText text={longText} />}
+          {settings.about && <AboutBlocks about={settings.about} />}
+        </div>
+      </>
+    ),
+    duan: () => (
+      <>
+        <div className="card-block" id="duan">
+          <h2>Dự án tiêu biểu</h2>
+          <ProjectsGrid items={projectCards} expanded={showAll} />
+        </div>
+      </>
+    ),
+    thuvien: () => (
+      <>
+        {gallery.length > 0 && (
+          <div className="card-block" id="thuvien">
+            <h2>Hình ảnh &amp; video</h2>
+            <Gallery items={gallery} companyName={c.name} />
+          </div>
+        )}
+      </>
+    ),
+    dichvu: () => (
+      <>
+        {services.length > 0 && (
+          <div className="card-block" id="dichvu">
+            <h2>Dịch vụ cung cấp</h2>
+            {services.map((s, i) => {
+              const price = fmtPrice(s.price_from, s.price_to, s.price_unit);
+              return (
+                <div className="svc" key={s.id}>
+                  <div className="ic-b">
+                    <svg className="ic"><use href={`#${SVC_ICONS[i % SVC_ICONS.length]}`} /></svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4>{s.name}</h4>
+                    {s.description && <p>{s.description}</p>}
+                  </div>
+                  {price && <div className="price">{price}</div>}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </>
+    ),
+    doitac: () => (
+      <>
+        <PartnersSection items={extras.partners} selfId={c.id} />
+      </>
+    ),
+    danhgia: () => (
+      <>
+        <div className="card-block" id="danhgia">
+          <h2>Đánh giá từ đối tác</h2>
+          {rel.eligible.length > 0 && <ReviewForm targetId={c.id} eligible={rel.eligible} />}
+          {reviewCount === 0 ? (
+            <>
+              <div className="pill-note mb-16">
+                <svg className="ic"><use href="#ic-shield-check" /></svg>
+                <span>Chỉ doanh nghiệp có <b>kết nối đã hoàn tất</b> trên sàn mới được đánh giá — chống review ảo.</span>
+              </div>
+              <p className="muted">Chưa có đánh giá nào cho doanh nghiệp này.</p>
+            </>
+          ) : (
+            <>
+              <div className="rev-summary">
+                <div className="rev-big">
+                  <div className="n">{avgOverall?.toFixed(1) ?? '—'}</div>
+                  <div className="stars" style={{ justifyContent: 'center', margin: '4px 0' }}>
+                    {avgOverall && (
+                      <span className="st">{'★'.repeat(Math.round(avgOverall))}</span>
+                    )}
+                  </div>
+                  <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                    {reviewCount} đánh giá xác thực
+                  </div>
+                </div>
+                {revCriteria.length > 0 && (
+                  <div className="rev-crit">
+                    {revCriteria.map((cr) => (
+                      <div key={cr.label}>
+                        <div className="between">
+                          <span>{cr.label}</span><b>{cr.val}</b>
+                        </div>
+                        <div className="progress">
+                          <div className="bar green" style={{ width: `${Math.round(cr.val / 5 * 100)}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="pill-note mb-16">
+                <svg className="ic"><use href="#ic-shield-check" /></svg>
+                <span>Chỉ doanh nghiệp có <b>kết nối đã hoàn tất</b> trên sàn mới được đánh giá — chống review ảo.</span>
+              </div>
+              {(showAll ? reviews : reviews.slice(0, 5)).map((r) => {
+                const rco = r.reviewer_company;
+                const rName = rco?.name ?? 'Doanh nghiệp';
+                const rIni = initials(rName);
+                const rBg = rco ? colorFor(rco.id) : '#555';
+                const stars = Math.round(r.overall ?? 0);
+                return (
+                  <div className="review" key={r.id}>
+                    <div className="top">
+                      <div className="ava" style={{ background: rBg }}>{rIni}</div>
+                      <div style={{ flex: 1 }}>
+                        <h4>
+                          {rco ? (
+                            <a href={`/cong-ty/${rco.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{rName}</a>
+                          ) : rName}
+                        </h4>
+                        <div className="verified">
+                          <svg className="ic"><use href="#ic-shield-check" /></svg>
+                          Kết nối xác thực · {new Date(r.created_at).toLocaleDateString('vi-VN')}
+                        </div>
+                      </div>
+                      <div className="stars">
+                        <span className="st">{'★'.repeat(stars)}</span>
+                        {stars < 5 && <span className="st" style={{ opacity: 0.3 }}>{'★'.repeat(5 - stars)}</span>}
+                      </div>
+                    </div>
+                    {r.comment && <p>{r.comment}</p>}
+                    <ReviewReply reviewId={r.id} companyName={c.name} initial={r.reply ?? null} canReply={rel.canReply} />
+                  </div>
+                );
+              })}
+              {reviewCount > 5 && !showAll && (
+                <a className="btn btn-outline btn-block mt-16" href="?all=1#danhgia">
+                  Xem tất cả {reviewCount} đánh giá
+                </a>
+              )}
+            </>
+          )}
+        </div>
+      </>
+    ),
+    tailieu: () => (
+      <>
+        <div className="card-block" id="tailieu">
+          <h2>Hồ sơ năng lực</h2>
+          {verified.length > 0 ? verified.map((v) => (
+            <div className="doc-row" key={v.id}>
+              <div className="ic-b">
+                <svg className="ic"><use href={v.kind === 'capability_cert' ? '#ic-award' : '#ic-file-text'} /></svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <h4>{VERIFY_KIND[v.kind] ?? v.kind}{v.cert_class ? ` · ${v.cert_class}` : ''}</h4>
+                <small>Sàn Xây Dựng đã đối chiếu{v.verified_at ? ` ngày ${new Date(v.verified_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}` : ''}</small>
+              </div>
+              <span className="badge green">
+                <svg className="ic"><use href="#ic-check" /></svg> Đã xác minh
+              </span>
+            </div>
+          )) : (
+            <p className="muted">Chưa có giấy tờ nào được xác minh.</p>
+          )}
+          {docs.length > 0 && (
+            <>
+              <h3 className="co-docs-h">Tài liệu do doanh nghiệp cung cấp</h3>
+              {docs.map((d) => (
+                <div className="doc-row" key={d.id}>
+                  <div className="ic-b">
+                    <svg className="ic"><use href="#ic-file-text" /></svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+                    <h4>{d.title}</h4>
+                    <small>
+                      {[
+                        d.file_url.split('.').pop()?.toUpperCase(),
+                        d.size_bytes ? fmtSize(d.size_bytes) : null,
+                        d.visibility === 'connections' ? 'Chỉ đối tác đã kết nối' : null,
+                      ].filter(Boolean).join(' · ')}
+                    </small>
+                  </div>
+                  <a className="btn btn-outline btn-sm" href={`/tai-lieu/${d.id}`} target="_blank" rel="nofollow noopener" aria-label={`Tải ${d.title}`}>
+                    <svg className="ic"><use href="#ic-download" /></svg> Tải
+                  </a>
+                </div>
+              ))}
+            </>
+          )}
+          {!rel.isMember && (
+            <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>
+              Cần hồ sơ năng lực chi tiết? <a href={`/chat?to=${c.id}`} style={{ color: 'var(--orange)', fontWeight: 600 }}>Nhắn tin cho doanh nghiệp</a>.
+            </p>
+          )}
+        </div>
+      </>
+    ),
+    giaithuong: () => (
+      <>
+        <AwardsSection items={extras.awards} />
+      </>
+    ),
+    nhansu: () => (
+      <>
+        {(staff.length > 0 || equipment.length > 0) && (
+          <div className="card-block" id="nhansu">
+            {staff.length > 0 && (
+              <>
+                <h2>Nhân sự chủ chốt</h2>
+                <div className="staff-grid mb-16">
+                  {staff.map((s) => {
+                    const sIni = s.full_name ? initials(s.full_name) : '?';
+                    const sBg = colorFor(s.id);
+                    return (
+                      <div className="staff" key={s.id}>
+                        {s.avatar_url ? (
+                          <img src={s.avatar_url} alt={s.full_name ?? ''} style={{ width: 60, height: 60, borderRadius: '50%', margin: '0 auto 10px', objectFit: 'cover', display: 'block' }} />
+                        ) : (
+                          <div className="a" style={{ background: sBg }}>{sIni}</div>
+                        )}
+                        <h4>{s.full_name ?? 'Nhân sự'}</h4>
+                        <small>
+                          {[s.title, s.experience_years ? `${s.experience_years} năm` : null].filter(Boolean).join(' · ')}
+                        </small>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            {equipment.length > 0 && (
+              <>
+                <h2>Thiết bị chính</h2>
+                <div className="grid-3" style={{ gap: 12 }}>
+                  {equipment.map((eq) => (
+                    <div className="stat-tile" key={eq.id} style={{ boxShadow: 'none', background: '#fafbfc' }}>
+                      {eq.quantity != null && <div className="num">{eq.quantity}</div>}
+                      <div className="lbl">{eq.name}</div>
+                      {eq.note && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{eq.note}</div>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </>
+    ),
+    baidang: () => (
+      <>
+        <PostsSection items={extras.posts} showAll={showAll} />
+      </>
+    ),
+    tindang: () => (
+      <>
+        <ListingsSection items={extras.listings} />
+      </>
+    ),
+  };
+
   return (
-    <>
+    <div className={settings.brand_color ? 'co-page co-brand' : 'co-page'} style={settings.brand_color ? (brandVars(settings.brand_color) as CSSProperties) : undefined}>
       <TrackView companyId={c.id} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .svc{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line-2)}
         .svc:last-child{border-bottom:none}
         .svc .ic-b{width:44px;height:44px;border-radius:10px;background:var(--orange-soft);color:var(--orange);display:grid;place-items:center;flex:none}
@@ -283,19 +698,60 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
         .staff .a{width:60px;height:60px;border-radius:50%;margin:0 auto 10px;font-weight:800;color:#fff;display:grid;place-items:center;font-size:18px}
         .staff h4{font-size:13.5px;font-weight:700;color:var(--navy)}
         .staff small{font-size:12px;color:var(--muted)}
+        .co-brand .card-block h2{position:relative}
+        .co-brand .card-block h2::before{content:"";position:absolute;left:-24px;top:3px;bottom:3px;width:4px;border-radius:0 4px 4px 0;background:var(--orange)}
+        .co-brand .pill-note{color:var(--navy);border-color:var(--brand-line)}
+        .co-cover{height:220px;position:relative}
+        .co-tagline{position:absolute;left:0;right:0;bottom:22px}
+        .co-tagline p{margin-left:146px;color:#fff;font-size:22px;font-weight:800;line-height:1.3;text-align:right;text-shadow:0 2px 12px rgba(0,0,0,.65);overflow-wrap:anywhere}
+        .co-hl .num{font-size:clamp(19px,5.4vw,26px);overflow-wrap:anywhere}
+        .co-hl .num.long{font-size:clamp(16px,4.4vw,21px);line-height:1.3}
+        @media(min-width:901px){.co-page .ph-inner{align-items:flex-start}.co-page .ph-main{padding-top:68px;min-width:0}.co-page .ph-actions{padding-top:72px}}
+        .co-gal{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+        .co-gal button{position:relative;aspect-ratio:4/3;border:none;padding:0;border-radius:10px;overflow:hidden;background:#e6ebf1;cursor:pointer}
+        .co-gal img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .25s}
+        .co-gal button:hover img{transform:scale(1.04)}
+        .co-gal .ph{position:absolute;inset:0;display:grid;place-items:center;background:var(--navy);color:#c6d3e2;font-size:12px}
+        .co-gal .play{position:absolute;left:50%;top:50%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:rgba(2,30,72,.78);color:#fff;display:grid;place-items:center;font-size:16px}
+        .co-gal .more{position:absolute;inset:0;display:grid;place-items:center;background:rgba(2,30,72,.65);color:#fff;font-size:24px;font-weight:800}
+        .co-gal .cap{position:absolute;left:0;right:0;bottom:0;padding:18px 8px 6px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:11.5px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .lightbox{width:100vw;height:100vh;height:100dvh;max-width:100vw;max-height:100vh;max-height:100dvh;margin:0;padding:0;border:none;background:rgba(3,10,22,.95)}
+        .lightbox::backdrop{background:rgba(3,10,22,.9)}
+        .lb-in{height:100%;display:grid;place-items:center;padding:56px 64px;position:relative}
+        .lightbox figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:100%}
+        .lightbox figure img{max-width:100%;max-height:calc(100vh - 170px);max-height:calc(100dvh - 170px);border-radius:6px}
+        .lightbox iframe{width:min(1100px,calc(100vw - 128px),calc((100vh - 170px)*16/9));aspect-ratio:16/9;border:none;background:#000}
+        .lightbox figcaption{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;color:#c6d3e2;font-size:13px}
+        .lightbox figcaption b{color:#fff}
+        .lightbox figcaption a{color:#fff;text-decoration:underline}
+        .lb-btn{position:absolute;width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:1}
+        .lb-btn:hover{background:rgba(255,255,255,.28)}
+        .lb-close{top:12px;right:12px}.lb-prev{left:12px;top:calc(50% - 22px)}.lb-next{right:12px;top:calc(50% - 22px)}
+        .co-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+        .co-links a{font-size:12.5px;font-weight:600;color:var(--navy);border:1.5px solid var(--line);border-radius:20px;padding:6px 12px;text-decoration:none}
+        .co-links a:hover{border-color:var(--orange);color:var(--orange)}
+        .co-docs-h{font-size:14.5px;font-weight:700;color:var(--navy);margin:20px 0 4px}
+        @media(max-width:900px){.co-tagline{bottom:auto;top:20px}.co-tagline p{margin-left:0;font-size:17px;text-align:center}}
+        @media(max-width:600px){.co-gal{grid-template-columns:repeat(2,1fr)}.lb-in{padding:56px 8px}.lightbox iframe{width:calc(100vw - 16px)}.lb-prev,.lb-next{top:auto;bottom:12px}}
         @media(max-width:900px){.rev-summary{grid-template-columns:1fr}.staff-grid{grid-template-columns:1fr 1fr}}
         @media(max-width:600px){.rev-crit{grid-template-columns:1fr}.staff-grid{grid-template-columns:1fr 1fr}}
-      `}</style>
+      ` }} />
 
       {/* Cover */}
       <div
+        className="co-cover"
         style={{
-          height: 220,
           background: c.cover_url
-            ? `linear-gradient(rgba(2,30,72,.3),rgba(2,30,72,.1)),url(${c.cover_url}) center/cover`
+            ? `linear-gradient(rgba(2,30,72,.3),rgba(2,30,72,.1)),${cssUrl(c.cover_url)} ${coverPosition(settings)}/cover`
             : 'linear-gradient(120deg,rgba(2,30,72,.9),rgba(2,30,72,.6)),url(https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1280&q=60) center/cover',
         }}
-      />
+      >
+        {settings.tagline && (
+          <div className="co-tagline">
+            <div className="container"><p>{settings.tagline}</p></div>
+          </div>
+        )}
+      </div>
 
       {/* Profile head */}
       <div className="profile-head">
@@ -382,14 +838,9 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
       <div className="sticky-tabs">
         <div className="container">
           <nav className="tabs">
-            <a className="active" href="#gioithieu">Giới thiệu</a>
-            {(c.projects?.length ?? 0) > 0 && (
-              <a href="#duan">Dự án ({c.projects!.length})</a>
-            )}
-            {services.length > 0 && <a href="#dichvu">Dịch vụ ({services.length})</a>}
-            <a href="#danhgia">Đánh giá ({reviewCount})</a>
-            <a href="#tailieu">Hồ sơ năng lực</a>
-            <a href="#nhansu">Nhân sự &amp; Thiết bị</a>
+            {shown.map((k, i) => (
+              <a key={k} className={i === 0 ? 'active' : undefined} href={`#${k}`}>{tabs[k]}</a>
+            ))}
           </nav>
         </div>
       </div>
@@ -401,257 +852,9 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
           {/* ── LEFT MAIN ── */}
           <div>
 
-            {/* Giới thiệu */}
-            <div className="card-block" id="gioithieu">
-              <h2>
-                Giới thiệu
-                <ReportButton companyId={c.id} />
-              </h2>
-              {c.intro || c.description ? (
-                <p className="prose">{c.intro ?? c.description}</p>
-              ) : (
-                <p className="muted">Chưa có thông tin giới thiệu.</p>
-              )}
-              <div className="grid-4 mt-16" style={{ gap: 12 }}>
-                <div className="stat-tile" style={{ boxShadow: 'none', background: '#fafbfc' }}>
-                  <div className="num">{c.projects?.length ?? 0}</div>
-                  <div className="lbl">Dự án hoàn thành</div>
-                </div>
-                {c.founded_year && (
-                  <div className="stat-tile" style={{ boxShadow: 'none', background: '#fafbfc' }}>
-                    <div className="num">{new Date().getFullYear() - c.founded_year}</div>
-                    <div className="lbl">Năm kinh nghiệm</div>
-                  </div>
-                )}
-                <div className="stat-tile" style={{ boxShadow: 'none', background: '#fafbfc' }}>
-                  <div className="num">{trust}</div>
-                  <div className="lbl">Trust Score</div>
-                </div>
-                <div className="stat-tile" style={{ boxShadow: 'none', background: '#fafbfc' }}>
-                  <div className="num">{c.profile_completeness}%</div>
-                  <div className="lbl">Hồ sơ hoàn thiện</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Dự án */}
-            {(c.projects?.length ?? 0) > 0 && (
-              <div className="card-block" id="duan">
-                <h2>
-                  Dự án tiêu biểu
-                  {c.projects!.length > 6 && !showAll && (
-                    <a href={`?all=1#duan`} style={{ fontSize: 13, color: 'var(--orange)', fontWeight: 600 }}>
-                      Xem tất cả {c.projects!.length} →
-                    </a>
-                  )}
-                </h2>
-                <div className="proj-grid">
-                  {(showAll ? c.projects! : c.projects!.slice(0, 6)).map((p) => (
-                    <div className="proj" key={p.id}>
-                      <div
-                        className="img"
-                        style={
-                          p.cover_url
-                            ? { backgroundImage: `url(${p.cover_url})` }
-                            : { background: 'linear-gradient(135deg,#e6ebf1,#c8d6e5)' }
-                        }
-                      />
-                      <div className="b">
-                        <h4>{p.title}</h4>
-                        <div className="m">
-                          {p.role && <span>{p.role}</span>}
-                          {p.year && <span>{p.year}</span>}
-                        </div>
-                        {(photos.get(p.id)?.length ?? 0) > 0 && (
-                          <div className="proj-photos">
-                            {photos.get(p.id)!.filter((u) => u !== p.cover_url).slice(0, 4).map((u) => (
-                              <a key={u} href={u} target="_blank" rel="noopener" style={{ backgroundImage: `url(${u})` }} aria-label={`Ảnh dự án ${p.title}`} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Dịch vụ */}
-            {services.length > 0 && (
-              <div className="card-block" id="dichvu">
-                <h2>Dịch vụ cung cấp</h2>
-                {services.map((s, i) => {
-                  const price = fmtPrice(s.price_from, s.price_to, s.price_unit);
-                  return (
-                    <div className="svc" key={s.id}>
-                      <div className="ic-b">
-                        <svg className="ic"><use href={`#${SVC_ICONS[i % SVC_ICONS.length]}`} /></svg>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <h4>{s.name}</h4>
-                        {s.description && <p>{s.description}</p>}
-                      </div>
-                      {price && <div className="price">{price}</div>}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Đánh giá */}
-            <div className="card-block" id="danhgia">
-              <h2>Đánh giá từ đối tác</h2>
-              {rel.eligible.length > 0 && <ReviewForm targetId={c.id} eligible={rel.eligible} />}
-              {reviewCount === 0 ? (
-                <>
-                  <div className="pill-note mb-16">
-                    <svg className="ic"><use href="#ic-shield-check" /></svg>
-                    <span>Chỉ doanh nghiệp có <b>kết nối đã hoàn tất</b> trên sàn mới được đánh giá — chống review ảo.</span>
-                  </div>
-                  <p className="muted">Chưa có đánh giá nào cho doanh nghiệp này.</p>
-                </>
-              ) : (
-                <>
-                  <div className="rev-summary">
-                    <div className="rev-big">
-                      <div className="n">{avgOverall?.toFixed(1) ?? '—'}</div>
-                      <div className="stars" style={{ justifyContent: 'center', margin: '4px 0' }}>
-                        {avgOverall && (
-                          <span className="st">{'★'.repeat(Math.round(avgOverall))}</span>
-                        )}
-                      </div>
-                      <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
-                        {reviewCount} đánh giá xác thực
-                      </div>
-                    </div>
-                    {revCriteria.length > 0 && (
-                      <div className="rev-crit">
-                        {revCriteria.map((cr) => (
-                          <div key={cr.label}>
-                            <div className="between">
-                              <span>{cr.label}</span><b>{cr.val}</b>
-                            </div>
-                            <div className="progress">
-                              <div className="bar green" style={{ width: `${Math.round(cr.val / 5 * 100)}%` }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="pill-note mb-16">
-                    <svg className="ic"><use href="#ic-shield-check" /></svg>
-                    <span>Chỉ doanh nghiệp có <b>kết nối đã hoàn tất</b> trên sàn mới được đánh giá — chống review ảo.</span>
-                  </div>
-                  {(showAll ? reviews : reviews.slice(0, 5)).map((r) => {
-                    const rco = r.reviewer_company;
-                    const rName = rco?.name ?? 'Doanh nghiệp';
-                    const rIni = initials(rName);
-                    const rBg = rco ? colorFor(rco.id) : '#555';
-                    const stars = Math.round(r.overall ?? 0);
-                    return (
-                      <div className="review" key={r.id}>
-                        <div className="top">
-                          <div className="ava" style={{ background: rBg }}>{rIni}</div>
-                          <div style={{ flex: 1 }}>
-                            <h4>
-                              {rco ? (
-                                <a href={`/cong-ty/${rco.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{rName}</a>
-                              ) : rName}
-                            </h4>
-                            <div className="verified">
-                              <svg className="ic"><use href="#ic-shield-check" /></svg>
-                              Kết nối xác thực · {new Date(r.created_at).toLocaleDateString('vi-VN')}
-                            </div>
-                          </div>
-                          <div className="stars">
-                            <span className="st">{'★'.repeat(stars)}</span>
-                            {stars < 5 && <span className="st" style={{ opacity: 0.3 }}>{'★'.repeat(5 - stars)}</span>}
-                          </div>
-                        </div>
-                        {r.comment && <p>{r.comment}</p>}
-                        <ReviewReply reviewId={r.id} companyName={c.name} initial={r.reply ?? null} canReply={rel.canReply} />
-                      </div>
-                    );
-                  })}
-                  {reviewCount > 5 && !showAll && (
-                    <a className="btn btn-outline btn-block mt-16" href="?all=1#danhgia">
-                      Xem tất cả {reviewCount} đánh giá
-                    </a>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Hồ sơ năng lực */}
-            <div className="card-block" id="tailieu">
-              <h2>Hồ sơ năng lực</h2>
-              {verified.length > 0 ? verified.map((v) => (
-                <div className="doc-row" key={v.id}>
-                  <div className="ic-b">
-                    <svg className="ic"><use href={v.kind === 'capability_cert' ? '#ic-award' : '#ic-file-text'} /></svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h4>{VERIFY_KIND[v.kind] ?? v.kind}{v.cert_class ? ` · ${v.cert_class}` : ''}</h4>
-                    <small>Sàn Xây Dựng đã đối chiếu{v.verified_at ? ` ngày ${new Date(v.verified_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}` : ''}</small>
-                  </div>
-                  <span className="badge green">
-                    <svg className="ic"><use href="#ic-check" /></svg> Đã xác minh
-                  </span>
-                </div>
-              )) : (
-                <p className="muted">Chưa có giấy tờ nào được xác minh.</p>
-              )}
-              {!rel.isMember && (
-                <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>
-                  Cần hồ sơ năng lực chi tiết? <a href={`/chat?to=${c.id}`} style={{ color: 'var(--orange)', fontWeight: 600 }}>Nhắn tin cho doanh nghiệp</a>.
-                </p>
-              )}
-            </div>
-
-            {/* Nhân sự & Thiết bị */}
-            {(staff.length > 0 || equipment.length > 0) && (
-              <div className="card-block" id="nhansu">
-                {staff.length > 0 && (
-                  <>
-                    <h2>Nhân sự chủ chốt</h2>
-                    <div className="staff-grid mb-16">
-                      {staff.map((s) => {
-                        const sIni = s.full_name ? initials(s.full_name) : '?';
-                        const sBg = colorFor(s.id);
-                        return (
-                          <div className="staff" key={s.id}>
-                            {s.avatar_url ? (
-                              <img src={s.avatar_url} alt={s.full_name ?? ''} style={{ width: 60, height: 60, borderRadius: '50%', margin: '0 auto 10px', objectFit: 'cover', display: 'block' }} />
-                            ) : (
-                              <div className="a" style={{ background: sBg }}>{sIni}</div>
-                            )}
-                            <h4>{s.full_name ?? 'Nhân sự'}</h4>
-                            <small>
-                              {[s.title, s.experience_years ? `${s.experience_years} năm` : null].filter(Boolean).join(' · ')}
-                            </small>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-                {equipment.length > 0 && (
-                  <>
-                    <h2>Thiết bị chính</h2>
-                    <div className="grid-3" style={{ gap: 12 }}>
-                      {equipment.map((eq) => (
-                        <div className="stat-tile" key={eq.id} style={{ boxShadow: 'none', background: '#fafbfc' }}>
-                          {eq.quantity != null && <div className="num">{eq.quantity}</div>}
-                          <div className="lbl">{eq.name}</div>
-                          {eq.note && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{eq.note}</div>}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
+            {shown.map((k) => (
+              <Fragment key={k}>{sections[k]()}</Fragment>
+            ))}
           </div>
 
           {/* ── SIDEBAR ── */}
@@ -779,6 +982,18 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
               <ContactLink companyId={c.id} className="btn btn-orange btn-block mt-16" href={`/chat?to=${c.id}`}>
                 <svg className="ic"><use href="#ic-chat" /></svg> Gửi tin nhắn
               </ContactLink>
+              {settings.links?.zalo && (
+                <ContactLink companyId={c.id} className="btn btn-outline btn-block" style={{ marginTop: 8 }} href={settings.links.zalo} target="_blank" rel="nofollow noopener noreferrer">
+                  <svg className="ic"><use href="#ic-phone" /></svg> Chat qua Zalo
+                </ContactLink>
+              )}
+              {links.some((l) => l.kind !== 'zalo') && (
+                <div className="co-links">
+                  {links.filter((l) => l.kind !== 'zalo').map((l) => (
+                    <ContactLink key={l.kind} companyId={c.id} href={l.url} target="_blank" rel="nofollow noopener noreferrer">{LINK_META[l.kind].label}</ContactLink>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Regions */}
@@ -810,6 +1025,6 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
           </aside>
         </div>
       </section>
-    </>
+    </div>
   );
 }

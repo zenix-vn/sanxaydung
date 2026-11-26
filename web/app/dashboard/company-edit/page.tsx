@@ -11,17 +11,20 @@ export default async function CompanyEditPage() {
   if (!company) redirect('/dashboard');
 
   const id = company.id as string;
-  const [cats, provs, myCats, myLocs, projects, docs, services, staff, equipment, photos] = await Promise.all([
+  const [cats, provs, myCats, myLocs, projects, docs, services, staff, equipment, photos, gallery, partners, awards] = await Promise.all([
     supa.from('categories').select('id, name, group_key').order('sort_order'),
     supa.from('provinces').select('code, name').order('name'),
     supa.from('company_categories').select('category_id').eq('company_id', id),
     supa.from('company_locations').select('province_code').eq('company_id', id),
-    supa.from('projects').select('id, title, role, year, province_code, cover_url').eq('company_id', id).order('year', { ascending: false }),
+    supa.from('projects').select('id, title, role, year, province_code, cover_url, kind, is_featured').eq('company_id', id).order('year', { ascending: false }),
     supa.from('documents').select('id, title, file_url, visibility, size_bytes').eq('company_id', id).order('created_at', { ascending: false }),
     supa.from('services').select('*').eq('company_id', id).order('created_at'),
     supa.from('staff').select('*').eq('company_id', id),
     supa.from('equipment').select('*').eq('company_id', id),
     supa.from('media').select('id, url, caption, owner_id').eq('company_id', id).eq('owner_type', 'project').order('sort_order'),
+    supa.from('media').select('id, kind, url, caption, sort_order').eq('company_id', id).eq('owner_type', 'company').order('sort_order').order('created_at'),
+    supa.from('company_partners').select('*').eq('company_id', id).order('sort_order').order('created_at'),
+    supa.from('company_awards').select('*').eq('company_id', id).order('sort_order').order('created_at'),
   ]);
 
   return (
@@ -38,6 +41,9 @@ export default async function CompanyEditPage() {
       staff={(staff.data ?? []) as any}
       equipment={(equipment.data ?? []) as any}
       projectPhotos={(photos.data ?? []) as any}
+      gallery={(gallery.data ?? []) as any}
+      partners={(partners.data ?? []) as any}
+      awards={(awards.data ?? []) as any}
     />
   );
 }

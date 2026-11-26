@@ -1,0 +1,49 @@
+/* Các mục bổ sung trên trang hồ sơ doanh nghiệp (/cong-ty/[slug]) */
+.co-page .card-block{scroll-margin-top:128px}
+.co-lead{white-space:pre-line}
+.co-page .rich{margin-top:20px;padding-top:16px;border-top:1px solid var(--line-2)}
+.co-sub{font-size:14.5px;font-weight:700;color:var(--navy);margin:18px 0 10px}
+.co-note{font-size:12.5px;margin:-8px 0 0}
+
+.co-vm{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:20px}
+.co-vm>div{background:var(--orange-soft);border-radius:12px;padding:16px}
+.co-vm h3{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:800;color:var(--navy);margin-bottom:6px}
+.co-vm svg{width:17px;height:17px;color:var(--orange)}
+.co-vm p{font-size:13.5px;line-height:1.65;color:#31414f;white-space:pre-line;overflow-wrap:anywhere}
+.co-values{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px}
+.co-values li{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;color:#31414f;overflow-wrap:anywhere}
+.co-values svg{width:16px;height:16px;flex:none;margin-top:3px;color:var(--orange)}
+
+.proj-filter{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:14px}
+.proj-filter>div{display:flex;gap:8px;flex-wrap:wrap}
+.proj-filter .chip{font-family:inherit}
+.proj-filter .select{width:auto;margin-left:auto;padding-top:7px;padding-bottom:7px}
+.proj .img{position:relative}
+.proj.feat{border-color:var(--orange)}
+.proj-flag{position:absolute;left:8px;top:8px;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#fff;background:var(--orange);border-radius:6px;padding:3px 8px}
+.proj-flag svg{width:11px;height:11px;fill:currentColor}
+
+.co-partners{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.co-partners>*{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;border:1px solid var(--line);border-radius:12px;padding:14px 10px;text-decoration:none;min-width:0}
+.co-partners a:hover{border-color:var(--orange)}
+.co-partners .lg{width:100%;height:56px;display:grid;place-items:center;font-size:20px;font-weight:800;color:var(--navy)}
+.co-partners .lg img{max-width:100%;max-height:56px;object-fit:contain}
+.co-partners .nm{font-size:12.5px;font-weight:600;color:var(--navy);line-height:1.35;overflow-wrap:anywhere}
+.co-partners small{font-size:11px;color:var(--orange);font-weight:600}
+
+.co-awards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-top:14px}
+.co-awards>div{border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0;overflow-wrap:anywhere}
+.co-awards .im{display:grid;place-items:center;aspect-ratio:4/3;background:#f4f6f9;border-radius:8px;overflow:hidden;margin-bottom:10px;color:var(--orange)}
+.co-awards .im img{width:100%;height:100%;object-fit:contain}
+.co-awards .im svg{width:34px;height:34px}
+.co-awards h4{font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.35}
+.co-awards small{font-size:12px;color:var(--muted)}
+
+.co-row{display:block;padding:14px 0;border-bottom:1px solid var(--line-2);text-decoration:none;overflow-wrap:anywhere}
+.co-row:last-child{border-bottom:none}
+.co-row h4{font-size:14.5px;font-weight:700;color:var(--navy);margin:6px 0 3px}
+.co-row:hover h4{color:var(--orange)}
+.co-row p{font-size:13px;color:#31414f;margin-bottom:4px}
+.co-row small{font-size:12px;color:var(--muted)}
+
+@media(max-width:600px){.co-partners{grid-template-columns:repeat(2,1fr)}.co-awards{grid-template-columns:repeat(2,1fr);gap:10px}.proj-filter .select{margin-left:0}}
