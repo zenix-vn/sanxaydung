@@ -130,6 +130,7 @@ export default function ChatClient() {
   const [err, setErr] = useState<string | null>(null);
   const [listingTitle, setListingTitle] = useState<string | null>(null);
   const [findOpen, setFindOpen] = useState(false);
+  const [rtOk, setRtOk] = useState(false); // kênh realtime đang hoạt động
   const [find, setFind] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -205,6 +206,25 @@ export default function ChatClient() {
     },
     [supa],
   );
+
+  // Thêm tin vào khung đang mở (bỏ trùng theo id) và cập nhật dòng xem trước của hội thoại
+  const upsertMsgs = useCallback((convId: string, list: Msg[]) => {
+    if (!list.length) return;
+    if (convId === selRef.current) {
+      setMsgs((cur) => {
+        const ids = new Set(cur.map((x) => x.id));
+        const add = list.filter((m) => !ids.has(m.id));
+        return add.length ? [...cur, ...add].sort((a, b) => a.created_at.localeCompare(b.created_at)) : cur;
+      });
+    }
+    const last = list[list.length - 1];
+    setConvs((cs) => {
+      const idx = cs.findIndex((x) => x.id === convId);
+      if (idx === -1) return cs;
+      const upd: Conv = { ...cs[idx], last: preview(last), lastAt: last.created_at, last_message_at: last.created_at };
+      return [upd, ...cs.filter((_, i) => i !== idx)];
+    });
+  }, []);
 
   const openConv = useCallback(
     async (c: Conv) => {
@@ -302,11 +322,42 @@ export default function ChatClient() {
           return [upd, ...cs.filter((_, i) => i !== idx)];
         });
       })
-      .subscribe();
+      .subscribe((status) => setRtOk(status === 'SUBSCRIBED'));
     return () => {
+      setRtOk(false);
       supa.removeChannel(ch);
     };
   }, [supa, uid, loadConvs, markRead]);
+
+  // Dự phòng khi realtime chập chờn: hỏi tin mới của hội thoại đang mở (4s nếu mất realtime, 20s nếu đang có),
+  // và tải lại ngay khi người dùng quay lại tab.
+  const msgsRef = useRef<Msg[]>([]);
+  useEffect(() => {
+    msgsRef.current = msgs;
+  }, [msgs]);
+  useEffect(() => {
+    if (!uid || !selId) return;
+    let stop = false;
+    const poll = async () => {
+      if (stop || document.visibilityState !== 'visible') return;
+      const convId = selId;
+      const after = msgsRef.current[msgsRef.current.length - 1]?.created_at;
+      let q = supa.from('messages').select('*').eq('conversation_id', convId).order('created_at', { ascending: true }).limit(100);
+      if (after) q = q.gt('created_at', after);
+      const { data } = await q;
+      if (!stop && data?.length) upsertMsgs(convId, data as Msg[]);
+    };
+    const t = setInterval(poll, rtOk ? 20000 : 4000);
+    const onVis = () => document.visibilityState === 'visible' && poll();
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onVis);
+    return () => {
+      stop = true;
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onVis);
+    };
+  }, [supa, uid, selId, rtOk, upsertMsgs]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' });
@@ -333,16 +384,15 @@ export default function ChatClient() {
     if (!body || !sel || !uid || sending) return;
     setSending(true);
     setErr(null);
-    const { error } = await supa.from('messages').insert({
-      conversation_id: sel.id,
-      sender_company_id: sel.mineId,
-      sender_user_id: uid,
-      body,
-      kind: 'text',
-    });
+    const { data, error } = await supa
+      .from('messages')
+      .insert({ conversation_id: sel.id, sender_company_id: sel.mineId, sender_user_id: uid, body, kind: 'text' })
+      .select('*')
+      .single();
     setSending(false);
     if (error) return setErr(`Không gửi được: ${error.message}`);
     setText('');
+    upsertMsgs(sel.id, [data as Msg]); // hiện ngay, không chờ realtime
   }
 
   async function sendFile(f: File) {
@@ -357,18 +407,23 @@ export default function ChatClient() {
       setSending(false);
       return setErr(`Không tải được tệp: ${up.error.message}`);
     }
-    const { error } = await supa.from('messages').insert({
-      conversation_id: sel.id,
-      sender_company_id: sel.mineId,
-      sender_user_id: uid,
-      body: text.trim() || null,
-      kind: 'file',
-      attachment_url: path,
-      meta: { name: f.name.slice(0, 200), size: f.size, type: f.type },
-    });
+    const { data, error } = await supa
+      .from('messages')
+      .insert({
+        conversation_id: sel.id,
+        sender_company_id: sel.mineId,
+        sender_user_id: uid,
+        body: text.trim() || null,
+        kind: 'file',
+        attachment_url: path,
+        meta: { name: f.name.slice(0, 200), size: f.size, type: f.type },
+      })
+      .select('*')
+      .single();
     setSending(false);
     if (error) return setErr(`Không gửi được: ${error.message}`);
     setText('');
+    upsertMsgs(sel.id, [data as Msg]);
   }
 
   const findQ = find.trim().toLowerCase();
