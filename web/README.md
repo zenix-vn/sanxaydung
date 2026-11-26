@@ -19,15 +19,44 @@ web/
 │   ├── page.tsx                 # Trang chủ (SSR)
 │   ├── directory/               # Tìm kiếm doanh nghiệp (FTS tiếng Việt)
 │   ├── cong-ty/[slug]/          # Hồ sơ doanh nghiệp (SSR, tối ưu SEO)
-│   ├── marketplace/             # Tin đăng nhu cầu
-│   ├── login/                   # Đăng nhập (magic link)
+│   ├── marketplace/             # Tin đăng nhu cầu (lọc tỉnh/lĩnh vực/ngân sách, BOQ, gợi ý đối tác)
+│   ├── feed/ · feed/[id]/       # News Feed + trang bài viết & bình luận
+│   ├── chat/                    # Nhắn tin realtime (đính kèm tệp, tìm trong hội thoại)
+│   ├── ban-do/                  # Bản đồ doanh nghiệp theo tỉnh (Leaflet + OSM)
+│   ├── linh-vuc/[cat]/[tỉnh]/   # Trang SEO lĩnh vực × tỉnh (có trong sitemap)
+│   ├── so-sanh/                 # So sánh 2–3 doanh nghiệp
+│   ├── moi/[token]/             # Nhận lời mời tham gia doanh nghiệp
+│   ├── dashboard/               # Khu vực doanh nghiệp (layout + sidebar + chọn công ty)
+│   │   ├── listings/            #   tin đăng & báo giá (sửa/đóng/gia hạn/rút)
+│   │   ├── connections/         #   kết nối hợp tác → đánh giá
+│   │   ├── members/             #   thành viên & lời mời
+│   │   ├── stats/ · trust/      #   thống kê hồ sơ · lịch sử Trust Score
+│   │   ├── billing/             #   gói hiện tại & lịch sử thanh toán
+│   │   ├── saved/               #   đã lưu & so sánh
+│   │   └── notifications/       #   thông báo & kênh nhận
+│   ├── admin/                   # Quản trị sàn
+│   ├── login/                   # Đăng nhập (magic link / Google)
 │   └── api/v1/                  # REST API (web + mobile)
+├── components/                  # Pagination, Skeleton, LineChart, SaveButton, Boq, Track…
 ├── lib/
-│   ├── supabase/{server,client,api}.ts
+│   ├── supabase/{server,client,api,public,company}.ts
+│   ├── format.ts                # nhãn trạng thái, định dạng tiền/ngày dùng chung
 │   ├── types.ts                 # kiểu dữ liệu dùng chung
 │   └── http.ts                  # helper JSON + CORS
-└── middleware.ts                # CORS + preflight cho /api
+├── e2e/                         # Playwright smoke test
+└── middleware.ts                # CORS + bảo vệ /dashboard, /admin
 ```
+
+## Kiểm tra
+
+```bash
+npm run lint && npm run typecheck && npm run build
+npx playwright install chromium   # lần đầu
+npm run test:e2e                  # smoke test; chạy được cả khi không có Supabase
+E2E_BASE_URL=https://demo.sanxaydung.vn npm run test:e2e   # chạy với môi trường thật
+```
+
+CI (`.github/workflows/web-ci.yml`) chạy lint → typecheck → build → smoke test cho mọi PR đụng tới `web/`.
 
 ## API cho app mobile
 
