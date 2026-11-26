@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { requireAdmin, type AdminStats } from '@/lib/admin';
+import { requireAdmin, getAdminStats } from '@/lib/admin';
 import AdminShell from './AdminShell';
 import './admin.css';
 
@@ -7,9 +7,8 @@ export const metadata: Metadata = { title: { default: 'Quản trị', template: 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { supa, name, email, role } = await requireAdmin();
-  const { data } = await supa.rpc('admin_stats');
-  const s = (data ?? {}) as Partial<AdminStats>;
+  const { name, email, role } = await requireAdmin();
+  const s = (await getAdminStats()) ?? {};
   const counts = {
     verifications_pending: s.verifications_pending ?? 0,
     claims_pending: s.claims_pending ?? 0,

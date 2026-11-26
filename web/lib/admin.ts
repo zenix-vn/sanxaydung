@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { SUPABASE_URL } from '@/lib/env';
@@ -16,21 +17,37 @@ export interface AdminStats {
 /** Chặn truy cập: chưa đăng nhập → /login; không đủ quyền → 404 (không lộ sự tồn tại của /admin). */
 export async function requireAdmin(redirectTo = '/admin', min: PlatformRole = 'moderator') {
   if (!SUPABASE_URL) notFound();
+  const a = await loadAdmin();
+  if (!a.user) redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
+  if (!a.role || !hasRole(a.role, min)) notFound();
+  return { ...a, user: a.user, role: a.role };
+}
+
+// Layout + trang cùng gọi requireAdmin trong một request → gom về một lần (React cache);
+// quyền và hồ sơ lấy song song sau khi xác thực.
+const loadAdmin = cache(async () => {
   const supa = createSupabaseServer();
   const { data: { user } } = await supa.auth.getUser();
-  if (!user) redirect(`/login?redirect=${encodeURIComponent(redirectTo)}`);
-  const { data: r } = await supa.rpc('platform_role');
-  const role = (r as PlatformRole | null) ?? null;
-  if (!role || !hasRole(role, min)) notFound();
-  const { data: profile } = await supa.from('profiles').select('full_name, avatar_url').eq('id', user.id).maybeSingle();
+  if (!user) return { supa, user: null, role: null as PlatformRole | null, name: '', email: '' };
+  const [{ data: r }, { data: profile }] = await Promise.all([
+    supa.rpc('platform_role'),
+    supa.from('profiles').select('full_name, avatar_url').eq('id', user.id).maybeSingle(),
+  ]);
   return {
     supa,
     user,
-    role,
+    role: (r as PlatformRole | null) ?? null,
     name: (profile as { full_name: string | null } | null)?.full_name || user.email || 'Quản trị viên',
     email: user.email ?? '',
   };
-}
+});
+
+/** Số liệu tổng (admin_stats) — layout và trang tổng quan dùng chung một lần gọi mỗi request. */
+export const getAdminStats = cache(async () => {
+  const { supa } = await loadAdmin();
+  const { data } = await supa.rpc('admin_stats');
+  return (data ?? null) as Partial<AdminStats> | null;
+});
 
 export const PAGE_SIZE = 20;
 

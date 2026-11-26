@@ -44,9 +44,11 @@ export async function middleware(req: NextRequest) {
       },
     });
 
-    const { data: { user } } = await supa.auth.getUser();
+    // Chỉ để chuyển hướng khi chưa đăng nhập → đọc phiên từ cookie (tự làm mới token khi hết hạn),
+    // không gọi GoTrue mỗi request. Layout/trang vẫn xác thực thật bằng getUser().
+    const { data: { session } } = await supa.auth.getSession();
 
-    if (!user) {
+    if (!session) {
       const loginUrl = new URL('/login', req.url);
       loginUrl.searchParams.set('redirect', req.nextUrl.pathname);
       return NextResponse.redirect(loginUrl);

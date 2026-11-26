@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { requireAdmin, fmtDate, hasRole, type AdminStats } from '@/lib/admin';
+import { requireAdmin, getAdminStats, fmtDate, hasRole, type AdminStats } from '@/lib/admin';
 import { AUDIT_LABEL } from '@/lib/admin-labels';
 import { RankBars, WeeklyColumns } from '@/components/admin/charts';
 
@@ -32,7 +32,7 @@ export default async function AdminHome({ searchParams }: { searchParams: { w?: 
   const weeks = RANGES.includes(Number(searchParams.w)) ? Number(searchParams.w) : 12;
   const canAudit = hasRole(role, 'admin');
   const [{ data }, { data: logs }, { data: ins }] = await Promise.all([
-    supa.rpc('admin_stats'),
+    getAdminStats().then((data) => ({ data })),
     supa.from('audit_log').select('id, action, entity_type, created_at, profiles:actor_id ( full_name )').order('created_at', { ascending: false }).limit(8),
     supa.rpc('admin_insights', { _weeks: weeks }),
   ]);

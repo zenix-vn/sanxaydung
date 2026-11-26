@@ -9,6 +9,7 @@
 # Kiến trúc trên server (/opt):
 #   sxd-supabase/  Supabase RIÊNG (project "sxd": db, auth, rest, realtime, storage, kong → 127.0.0.1:8110)
 #   sxd-web/src    mã nguồn web; image `sxd-web` chạy container `sxd-web` → 127.0.0.1:3020
+#                  (server-side gọi thẳng sxd-rest / sxd-auth, bỏ qua Kong ~50 ms/request; xem web/lib/supabase/internal-fetch.ts)
 #   OpenLiteSpeed vhost: /usr/local/lsws/conf/vhosts/sanxaydung.vn (mẫu: deploy/ols/)
 # KHÔNG dùng chung stack /opt/supabase (thuộc app khác).
 set -euo pipefail
@@ -39,7 +40,7 @@ web() {
     docker build -q -t sxd-web:new --build-arg NEXT_PUBLIC_SUPABASE_URL=https://$DOMAIN --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=\"\$K\" . && \
     docker tag sxd-web:new sxd-web:latest && \
     (docker rm -f sxd-web >/dev/null 2>&1 || true) && \
-    docker run -d --name sxd-web --restart unless-stopped --network sxd_default -p 127.0.0.1:3020:3000 -e SUPABASE_INTERNAL_URL=http://sxd-kong:8000 --add-host $DOMAIN:host-gateway --memory 768m sxd-web:latest"
+    docker run -d --name sxd-web --restart unless-stopped --network sxd_default -p 127.0.0.1:3020:3000 -e SUPABASE_INTERNAL_URL=http://sxd-kong:8000 -e SUPABASE_INTERNAL_REST_URL=http://sxd-rest:3000 -e SUPABASE_INTERNAL_AUTH_URL=http://sxd-auth:9999 --add-host $DOMAIN:host-gateway --memory 768m sxd-web:latest"
 }
 
 backup() {

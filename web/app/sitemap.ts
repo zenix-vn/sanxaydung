@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/env';
 import { SITE_URL } from '@/lib/ui';
+import { serverFetch } from '@/lib/supabase/internal-fetch';
 import { slugifyVi } from '@/lib/slug';
 
 // Sitemap động: trang tĩnh + doanh nghiệp đã công khai + tin đăng đang mở.
@@ -32,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return out;
 
   try {
-    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+    const supa = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: serverFetch } });
     const { data } = await supa.rpc('sitemap_entries');
     (data ?? []).forEach((e: { kind: string; path: string; updated_at: string | null }) =>
       out.push({
