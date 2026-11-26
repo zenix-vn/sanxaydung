@@ -88,7 +88,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <h4>Hỗ trợ</h4>
                 <ul>
                   <li><a href="/huong-dan">Hướng dẫn sử dụng</a></li>
-                  <li><a href="/pricing">Bảng giá</a></li>
                   <li><a href="/cau-hoi-thuong-gap">Câu hỏi thường gặp</a></li>
                   <li><a href="/lien-he">Liên hệ</a></li>
                 </ul>

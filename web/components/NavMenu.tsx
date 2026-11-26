@@ -10,7 +10,6 @@ const LINKS = [
   { href: '/directory', label: 'Tìm nhà thầu' },
   { href: '/marketplace', label: 'Nhu cầu / Báo giá' },
   { href: '/feed', label: 'Tin tức' },
-  { href: '/pricing', label: 'Bảng giá' },
 ];
 
 export default function NavMenu() {

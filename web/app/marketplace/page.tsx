@@ -361,14 +361,6 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
                   </div>
 
                   <Pagination base="/marketplace" qs={qsOf({})} page={f.page} pages={pages} />
-
-                  <div className="pill-note mt-24">
-                    <svg className="ic"><use href="#ic-shield" /></svg>
-                    <span>
-                      Gói <b>ưu tiên đăng tin</b> giúp tin của bạn hiển thị đầu danh sách &amp; gắn nhãn &ldquo;Nổi bật&rdquo;.{' '}
-                      <a href="/pricing" style={{ color: 'var(--orange)', fontWeight: 600 }}>Xem gói →</a>
-                    </span>
-                  </div>
                 </>
               )}
             </div>

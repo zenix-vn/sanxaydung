@@ -4,7 +4,7 @@ import InfoPage from '@/components/InfoPage';
 export const metadata: Metadata = { title: 'Câu hỏi thường gặp' };
 
 const FAQ: [string, string][] = [
-  ['Đăng ký có mất phí không?', 'Tạo hồ sơ và sử dụng các tính năng cơ bản là miễn phí. Các gói nâng cao (huy hiệu Verified, hồ sơ nổi bật…) xem tại trang Bảng giá.'],
+  ['Đăng ký có mất phí không?', 'Không. Sàn Xây Dựng hoàn toàn miễn phí: tạo hồ sơ, xác minh doanh nghiệp, đăng nhu cầu, nhận báo giá, nhắn tin và đánh giá đối tác đều không mất phí.'],
   ['Hồ sơ doanh nghiệp của tôi đã có trên sàn, tôi nhận lại thế nào?', 'Đăng nhập Google bằng đúng email bạn đã dùng khi điền form đăng ký, vào mục Nhận hồ sơ để nhận ngay. Nếu email khác, gửi yêu cầu để đội ngũ duyệt thủ công.'],
   ['Doanh nghiệp không có mã số thuế có đăng ký được không?', 'Được. Mã số thuế không bắt buộc (ví dụ đội thi công nhỏ, cá nhân); số điện thoại là thông tin định danh chính. Có mã số thuế sẽ giúp bạn được xác minh và tăng điểm tin cậy.'],
   ['Huy hiệu Verified lấy thế nào?', 'Gửi mã số thuế, giấy phép kinh doanh hoặc chứng chỉ năng lực trong mục Xác minh. Sau khi đội ngũ kiểm tra hợp lệ, huy hiệu sẽ được cấp và điểm tin cậy tự cập nhật.'],

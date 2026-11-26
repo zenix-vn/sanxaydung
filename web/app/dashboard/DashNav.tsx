@@ -44,7 +44,6 @@ export default function DashNav({
       items: [
         { href: '/dashboard/verify', icon: 'ic-shield', label: 'Xác minh' },
         { href: '/dashboard/trust', icon: 'ic-trending', label: 'Trust Score' },
-        { href: '/dashboard/billing', icon: 'ic-award', label: 'Gói & thanh toán' },
         ...(isAdmin ? [{ href: '/dashboard/members', icon: 'ic-users', label: 'Thành viên & phân quyền' }] : []),
         { href: '/dashboard/notifications', icon: 'ic-bell', label: 'Thông báo', badge: badges.notifications },
         { href: '/dashboard/settings', icon: 'ic-settings', label: 'Cài đặt & quyền riêng tư' },

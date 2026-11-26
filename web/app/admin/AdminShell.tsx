@@ -35,8 +35,6 @@ const NAV: { h?: string; items: Item[] }[] = [
     h: 'Kinh doanh',
     items: [
       { href: '/admin/demand', label: 'Nhu cầu & báo giá', icon: 'ic-briefcase', min: 'admin' },
-      { href: '/admin/subscriptions', label: 'Gói & thanh toán', icon: 'ic-coin', min: 'admin' },
-      { href: '/admin/plans', label: 'Bảng giá', icon: 'ic-tag', min: 'admin' },
       { href: '/admin/ads', label: 'Quảng cáo', icon: 'ic-image', min: 'admin' },
     ],
   },

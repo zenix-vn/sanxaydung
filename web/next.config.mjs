@@ -4,6 +4,14 @@ const nextConfig = {
   output: 'standalone',
   poweredByHeader: false,
   compress: true,
+  // Sàn hiện miễn phí hoàn toàn: link cũ tới bảng giá / thanh toán chuyển về trang chủ
+  async redirects() {
+    return [
+      { source: '/pricing', destination: '/', permanent: true },
+      { source: '/pricing/:path*', destination: '/', permanent: true },
+      { source: '/dashboard/billing', destination: '/dashboard', permanent: false },
+    ];
+  },
   async headers() {
     const day = 'public, max-age=86400, stale-while-revalidate=604800';
     return [

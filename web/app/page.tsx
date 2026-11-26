@@ -95,7 +95,7 @@ const WHY = [
   { icon: 'ic-shield-check', t: 'Xác minh pháp lý', d: 'Mã số thuế, giấy phép kinh doanh và chứng chỉ năng lực được đội ngũ kiểm tra trước khi cấp huy hiệu.', href: '/huong-dan' },
   { icon: 'ic-award', t: 'Trust Score minh bạch', d: 'Điểm tin cậy tính tự động từ xác minh, đánh giá, dự án và độ hoàn thiện hồ sơ.', href: '/trust-score' },
   { icon: 'ic-thumb', t: 'Đánh giá xác thực', d: 'Chỉ doanh nghiệp đã hợp tác hoàn tất trên sàn mới được đánh giá — chống review ảo.', href: '/cau-hoi-thuong-gap' },
-  { icon: 'ic-coin', t: 'Miễn phí để bắt đầu', d: 'Tạo hồ sơ, tìm đối tác và nhận báo giá miễn phí; nâng cấp khi cần nổi bật hơn.', href: '/pricing' },
+  { icon: 'ic-coin', t: 'Hoàn toàn miễn phí', d: 'Tạo hồ sơ, xác minh, đăng nhu cầu, nhận báo giá và nhắn tin với đối tác — tất cả đều miễn phí.', href: '/huong-dan' },
 ];
 
 const FAQ: [string, string][] = [
@@ -484,7 +484,7 @@ export default async function HomePage() {
           <div className="cta-band">
             <div>
               <h2>Đưa doanh nghiệp của bạn lên Sàn Xây Dựng</h2>
-              <p>Hồ sơ năng lực số, huy hiệu xác minh và cơ hội nhận báo giá từ khắp cả nước — miễn phí để bắt đầu.</p>
+              <p>Hồ sơ năng lực số, huy hiệu xác minh và cơ hội nhận báo giá từ khắp cả nước — hoàn toàn miễn phí.</p>
             </div>
             <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
               <a className="btn btn-orange btn-lg" href="/login">Đăng ký miễn phí</a>

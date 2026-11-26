@@ -305,9 +305,9 @@ export default async function FeedPage({ searchParams }: { searchParams: { type?
               </div>
             )}
             <div className="side-card" style={{ background: 'linear-gradient(135deg,#021e48,#12439c)', color: '#fff', border: 'none' }}>
-              <h4 style={{ color: '#fff', fontSize: 15 }}>Nâng cấp hồ sơ nổi bật</h4>
-              <p style={{ fontSize: 13, color: '#c6d3e2', margin: '8px 0 14px' }}>Bài viết &amp; hồ sơ của bạn hiển thị ưu tiên với gói Professional.</p>
-              <a className="btn btn-orange btn-block" href="/pricing">Xem gói →</a>
+              <h4 style={{ color: '#fff', fontSize: 15 }}>Tăng uy tín hồ sơ</h4>
+              <p style={{ fontSize: 13, color: '#c6d3e2', margin: '8px 0 14px' }}>Hoàn thiện hồ sơ, xác minh doanh nghiệp và thêm dự án để được xếp cao hơn trong danh bạ — miễn phí.</p>
+              <a className="btn btn-orange btn-block" href="/dashboard/trust">Xem cách tăng điểm →</a>
             </div>
           </aside>
         </div>

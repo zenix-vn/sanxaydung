@@ -15,7 +15,6 @@ const STATIC: { path: string; priority: number; changeFrequency: MetadataRoute.S
   { path: '/feed', priority: 0.7, changeFrequency: 'hourly' },
   { path: '/ban-do', priority: 0.6, changeFrequency: 'weekly' },
   { path: '/linh-vuc', priority: 0.7, changeFrequency: 'weekly' },
-  { path: '/pricing', priority: 0.5, changeFrequency: 'monthly' },
   { path: '/huong-dan', priority: 0.4, changeFrequency: 'monthly' },
   { path: '/cau-hoi-thuong-gap', priority: 0.4, changeFrequency: 'monthly' },
   { path: '/trust-score', priority: 0.4, changeFrequency: 'monthly' },

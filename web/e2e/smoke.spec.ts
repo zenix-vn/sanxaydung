@@ -6,7 +6,6 @@ const PUBLIC = [
   { path: '/directory', heading: /nhà thầu|doanh nghiệp/i },
   { path: '/marketplace', heading: /Nhu cầu/i },
   { path: '/feed', heading: /./ },
-  { path: '/pricing', heading: /./ },
   { path: '/ban-do', heading: /Bản đồ/i },
   { path: '/linh-vuc', heading: /lĩnh vực/i },
   { path: '/so-sanh', heading: /So sánh/i },
@@ -50,6 +49,12 @@ test('bộ lọc marketplace giữ tham số trên URL', async ({ page, isMobile
     await page.locator('label.filter-btn').click();
   }
   await expect(page.getByRole('link', { name: 'Xóa bộ lọc' })).toBeVisible();
+});
+
+test('bảng giá đã gỡ: /pricing chuyển về trang chủ, menu không còn link', async ({ page }) => {
+  await page.goto('/pricing');
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator('a[href^="/pricing"]')).toHaveCount(0);
 });
 
 test('Image Optimization API bị chặn', async ({ request }) => {
