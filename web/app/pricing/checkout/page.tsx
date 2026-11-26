@@ -1,14 +1,16 @@
 import type { Metadata } from 'next';
 import { requireUserCompany } from '@/lib/supabase/company';
+import { getPlans } from '@/lib/plans-server';
+import { vnd, yearlyPrice } from '@/lib/plans';
 
 export const metadata: Metadata = { title: 'Thanh toán gói dịch vụ' };
 export const dynamic = 'force-dynamic';
 
-const PLANS: Record<string, { name: string; month?: number; year?: number; note?: string }> = {
-  professional: { name: 'Gói Professional', month: 990000, year: 9504000 },
+type Offer = { name: string; month?: number; year?: number; note?: string };
+// Dịch vụ mua thêm; giá các gói thành viên lấy từ bảng `plans`
+const ADDONS: Record<string, Offer> = {
   verified: { name: 'Gói Verified năng lực', month: 500000, note: 'Phí duyệt hồ sơ theo lần.' },
   'featured-listing': { name: 'Tin đăng ưu tiên (7 ngày)', month: 200000, note: 'Tính theo từng tin.' },
-  enterprise: { name: 'Gói Enterprise', note: 'Báo giá theo nhu cầu — đội ngũ sẽ liên hệ.' },
   banner: { name: 'Banner & gian hàng tài trợ', note: 'Báo giá theo lượt hiển thị.' },
 };
 
@@ -20,13 +22,18 @@ const BANK = {
   contact: process.env.NEXT_PUBLIC_PAY_CONTACT ?? 'hotro@sanxaydung.vn',
 };
 
-const vnd = (n: number) => `${n.toLocaleString('vi-VN')}₫`;
-
 export default async function CheckoutPage({ searchParams }: { searchParams: { plan?: string; billing?: string } }) {
-  const planKey = searchParams.plan && PLANS[searchParams.plan] ? searchParams.plan : 'professional';
+  const offers: Record<string, Offer> = { ...ADDONS };
+  for (const p of await getPlans()) {
+    if (p.price_month <= 0 && !p.features.contact) continue;
+    offers[p.id] = p.features.contact
+      ? { name: `Gói ${p.name}`, note: 'Báo giá theo nhu cầu — đội ngũ sẽ liên hệ.' }
+      : { name: `Gói ${p.name}`, month: p.price_month, year: yearlyPrice(p.price_month) };
+  }
+  const planKey = searchParams.plan && offers[searchParams.plan] ? searchParams.plan : 'professional';
   const yearly = searchParams.billing === 'year';
   const { company } = await requireUserCompany(`/pricing/checkout?plan=${planKey}&billing=${yearly ? 'year' : 'month'}`);
-  const plan = PLANS[planKey];
+  const plan: Offer = offers[planKey] ?? { name: 'Gói thành viên' };
   const amount = yearly && plan.year ? plan.year : plan.month;
   const code = company ? `SXD ${(company.slug as string).toUpperCase().slice(0, 20)} ${planKey.toUpperCase()}` : null;
 

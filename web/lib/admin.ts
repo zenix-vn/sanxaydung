@@ -42,7 +42,8 @@ export function pageOf(sp: { page?: string }) {
 export function fmtDate(iso: string | null | undefined, withTime = false) {
   if (!iso) return '—';
   const d = new Date(iso);
+  const timeZone = 'Asia/Ho_Chi_Minh'; // máy chủ chạy UTC
   return withTime
-    ? d.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : d.toLocaleDateString('vi-VN');
+    ? d.toLocaleString('vi-VN', { timeZone, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('vi-VN', { timeZone });
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { SUPABASE_URL } from '@/lib/env';
-import type { Company } from '@/lib/types';
+import SortSelect from './SortSelect';
+import AdSlot from '@/components/AdSlot';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +45,15 @@ type SP = {
   page?: string;
 };
 
-const fetchSearch = cachedPublic(async (sp: SP): Promise<Company[]> => {
+type Item = {
+  id: string; slug: string; name: string; logo_url: string | null; intro: string | null; verified_tier: string;
+  trust_score: number | null; size_range: string | null; founded_year: number | null; province: string | null; location_count: number;
+  categories: string[]; category_count: number; rating: number | null; review_count: number;
+};
+type Result = { total: number; items: Item[] };
+const PAGE_SIZE = 20;
+
+const fetchSearch = cachedPublic(async (sp: SP): Promise<Result> => {
   const supa = createSupabasePublic();
   let categoryId: string | null = null;
   if (sp.category) {
@@ -52,26 +61,29 @@ const fetchSearch = cachedPublic(async (sp: SP): Promise<Company[]> => {
     if (error) throw error;
     categoryId = data?.id ?? null;
   }
-  const page = Math.max(1, parseInt(sp.page ?? '1'));
-  const { data, error } = await supa.rpc('search_companies', {
+  const page = pageNo(sp.page);
+  const { data, error } = await supa.rpc('directory_search', {
     q: sp.q || null,
     _category: categoryId,
     _province: sp.province || null,
     _verified_only: sp.verified === 'true',
-    _limit: 20,
-    _offset: (page - 1) * 20,
     _group: sp.group || null,
+    _sort: sp.sort || 'trust',
+    _limit: PAGE_SIZE,
+    _offset: (page - 1) * PAGE_SIZE,
   });
   if (error) throw error;
-  return (data ?? []) as Company[];
-}, 'dir-search', 60);
+  return data as Result;
+}, 'dir-search-v2', 60);
 
-async function search(sp: SP): Promise<Company[]> {
-  if (!SUPABASE_URL) return [];
+const pageNo = (v?: string) => Math.max(1, parseInt(v ?? '1', 10) || 1);
+
+async function search(sp: SP): Promise<Result> {
+  if (!SUPABASE_URL) return { total: 0, items: [] };
   try {
     return await fetchSearch(sp);
   } catch {
-    return [];
+    return { total: 0, items: [] };
   }
 }
 
@@ -122,11 +134,12 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
     page: str(searchParams.page) || '1',
   };
 
-  const [companies, provinces, counts] = await Promise.all([search(sp), getProvinces(), getCounts()]);
+  const [{ items: companies, total }, provinces, counts] = await Promise.all([search(sp), getProvinces(), getCounts()]);
 
   const activeGroup = sp.group ?? '';
   const activeVerified = sp.verified === 'true';
-  const currentPage = Math.max(1, parseInt(sp.page ?? '1'));
+  const currentPage = pageNo(sp.page);
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Build query string helper (excluding 'page')
   const baseQs = Object.entries(sp)
@@ -138,7 +151,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
   const chips: { label: string; removeKey: string }[] = [];
   if (sp.q) chips.push({ label: `"${sp.q}"`, removeKey: 'q' });
   if (sp.group) chips.push({ label: GROUP_LABELS[sp.group] ?? sp.group, removeKey: 'group' });
-  if (sp.province) chips.push({ label: sp.province, removeKey: 'province' });
+  if (sp.province) chips.push({ label: provinces.find((p) => p.code === sp.province)?.name ?? sp.province, removeKey: 'province' });
   if (sp.verified) chips.push({ label: 'Đã xác minh', removeKey: 'verified' });
 
   const nActive = (sp.group ? 1 : 0) + (sp.verified ? 1 : 0);
@@ -160,10 +173,6 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
         .chips-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
         .chip-active{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:6px 12px;border-radius:20px;background:var(--navy);color:#fff;text-decoration:none}
         .chip-active svg{width:14px;height:14px}
-        .viewtoggle{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
-        .viewtoggle a{padding:8px 12px;color:var(--muted);display:grid;place-items:center;text-decoration:none}
-        .viewtoggle a.active{background:var(--navy);color:#fff}
-        .viewtoggle a svg{width:18px;height:18px}
         .sort-sel{width:auto;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;background:#fff;color:var(--text)}
         .list-comp{text-decoration:none}
       `}</style>
@@ -260,6 +269,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
 
           {/* RESULTS */}
           <div>
+            <AdSlot slot="directory_top" />
             {/* Active filter chips */}
             {chips.length > 0 && (
               <div className="chips-row">
@@ -277,7 +287,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
 
             <div className="toolbar">
               <div className="count">
-                Tìm thấy <b>{companies.length}</b> doanh nghiệp
+                Tìm thấy <b>{nf.format(total)}</b> doanh nghiệp
                 {activeGroup ? ` · ${GROUP_LABELS[activeGroup]}` : ''}
                 {sp.q ? ` · "${sp.q}"` : ''}
               </div>
@@ -287,21 +297,8 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
                   {sp.group && <input type="hidden" name="group" value={sp.group} />}
                   {sp.province && <input type="hidden" name="province" value={sp.province} />}
                   {sp.verified && <input type="hidden" name="verified" value={sp.verified} />}
-                  <select className="sort-sel" name="sort" defaultValue={sp.sort} onChange={undefined}>
-                    <option value="trust">Trust Score cao nhất</option>
-                    <option value="rating">Đánh giá tốt nhất</option>
-                    <option value="projects">Nhiều dự án nhất</option>
-                    <option value="updated">Mới cập nhật</option>
-                  </select>
+                  <SortSelect value={sp.sort ?? 'trust'} />
                 </form>
-                <div className="viewtoggle">
-                  <a className="active" title="Danh sách" href={`/directory${baseQs ? `?${baseQs}` : ''}`}>
-                    <svg className="ic"><use href="#ic-grid" /></svg>
-                  </a>
-                  <a title="Bản đồ" href={`/directory?${baseQs}&view=map`}>
-                    <svg className="ic"><use href="#ic-pin" /></svg>
-                  </a>
-                </div>
               </div>
             </div>
 
@@ -350,10 +347,10 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
                             )}
                           </div>
                           <div className="meta">
-                            {c.province_code && (
+                            {c.province && (
                               <span>
                                 <svg className="ic"><use href="#ic-pin" /></svg>
-                                {c.province_code}
+                                {c.province}{c.location_count > 1 ? ` +${c.location_count - 1}` : ''}
                               </span>
                             )}
                             {c.size_range && (
@@ -368,18 +365,22 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
                                 Thành lập {c.founded_year}
                               </span>
                             )}
-                            <span>
-                              <svg className="ic"><use href="#ic-star-f" /></svg>
-                              4.8 <span style={{ fontWeight: 400 }}>(12 đánh giá)</span>
-                            </span>
+                            {c.review_count > 0 && (
+                              <span>
+                                <svg className="ic"><use href="#ic-star-f" /></svg>
+                                {c.rating} <span style={{ fontWeight: 400 }}>({c.review_count} đánh giá)</span>
+                              </span>
+                            )}
                           </div>
                           {c.intro && (
                             <p className="tagline">{c.intro.slice(0, 120)}{c.intro.length > 120 ? '…' : ''}</p>
                           )}
-                          <div className="cats">
-                            <span className="badge gray">Tổng thầu</span>
-                            <span className="badge gray">Nhà cao tầng</span>
-                          </div>
+                          {c.categories.length > 0 && (
+                            <div className="cats">
+                              {c.categories.map((name) => <span key={name} className="badge gray">{name}</span>)}
+                              {c.category_count > c.categories.length && <span className="badge gray">+{c.category_count - c.categories.length}</span>}
+                            </div>
+                          )}
                         </div>
 
                         {/* Trust score + CTA */}
@@ -396,23 +397,25 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
                 </div>
 
                 {/* Pagination */}
-                {companies.length >= 20 && (
+                {pages > 1 && (
                   <div className="pagination">
                     {currentPage > 1 && (
-                      <a href={`/directory?${baseQs}&page=${currentPage - 1}`}>
+                      <a href={`/directory?${baseQs}&page=${currentPage - 1}`} aria-label="Trang trước">
                         <svg className="ic"><use href="#ic-chevron-left" /></svg>
                       </a>
                     )}
-                    {[currentPage - 1, currentPage, currentPage + 1, currentPage + 2]
-                      .filter((p) => p >= 1 && p <= currentPage + 2)
+                    {[currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2]
+                      .filter((p) => p >= 1 && p <= pages)
                       .map((p) => (
                         <a key={p} className={p === currentPage ? 'active' : ''} href={`/directory?${baseQs}&page=${p}`}>
                           {p}
                         </a>
                       ))}
-                    <a href={`/directory?${baseQs}&page=${currentPage + 1}`}>
-                      <svg className="ic"><use href="#ic-chevron-right" /></svg>
-                    </a>
+                    {currentPage < pages && (
+                      <a href={`/directory?${baseQs}&page=${currentPage + 1}`} aria-label="Trang sau">
+                        <svg className="ic"><use href="#ic-chevron-right" /></svg>
+                      </a>
+                    )}
                   </div>
                 )}
               </>

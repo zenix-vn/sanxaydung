@@ -24,6 +24,10 @@ svg.ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;str
 svg.ic.fill{fill:currentColor;stroke:none}
 .container{max-width:1200px;margin:0 auto;padding:0 20px}
 .muted{color:var(--muted);font-size:13px}
+.adslot{position:relative;margin-bottom:18px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#fff}
+.adslot a{display:block}
+.adslot img{display:block;width:100%;height:auto;max-height:260px;object-fit:cover}
+.adslot span{position:absolute;right:8px;top:8px;font-size:10.5px;font-weight:600;background:rgba(2,30,72,.62);color:#fff;border-radius:5px;padding:2px 7px;pointer-events:none}
 .notice{background:#fff7ed;border:1px solid #fed7aa;color:#9a5b00;padding:14px 16px;border-radius:10px;margin:16px 0;font-size:14px}
 
 /* ---------- Buttons ---------- */

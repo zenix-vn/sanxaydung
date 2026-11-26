@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { requireAdmin, pageOf, fmtDate, hasRole, ROLE_LABEL, PAGE_SIZE, type PlatformRole } from '@/lib/admin';
 import { colorFor } from '@/lib/ui';
-import { Act, Empty, Pager, Who } from '@/components/admin/ui';
+import { Empty, ExportLink, Pager, Who } from '@/components/admin/ui';
+import UserActions from './UserActions';
 
 export const metadata: Metadata = { title: 'Người dùng & phân quyền' };
 type U = {
@@ -10,7 +11,6 @@ type U = {
 };
 
 const ROLE_BADGE: Record<PlatformRole, string> = { owner: 'o', admin: 'b', moderator: 'g' };
-const ROLE_HELP = 'Chủ sở hữu: toàn quyền, phân quyền cho người khác. Quản trị viên: mọi thao tác vận hành, khóa tài khoản. Kiểm duyệt viên: chỉ xử lý xác minh, claim, đăng ký đối tác và kiểm duyệt nội dung.';
 const FILTERS = [
   { v: '', l: 'Tất cả' }, { v: 'staff', l: 'Nhân sự quản trị' }, { v: 'owner', l: ROLE_LABEL.owner },
   { v: 'admin', l: ROLE_LABEL.admin }, { v: 'moderator', l: ROLE_LABEL.moderator }, { v: 'banned', l: 'Bị khóa' },
@@ -31,7 +31,7 @@ export default async function UsersPage({ searchParams }: { searchParams: { q?: 
       <div className="adm-h"><div>
         <h1>Người dùng & phân quyền</h1>
         <p>Tài khoản đã đăng ký. Thông tin chỉ để tra cứu hỗ trợ — không chia sẻ ra ngoài.{!isOwner && ' Chỉ Chủ sở hữu mới phân quyền được.'}</p>
-      </div></div>
+      </div><ExportLink kind="users" /></div>
       <form className="adm-bar adm-search" action="/admin/users">
         <input name="q" defaultValue={q} placeholder="Tên, email hoặc SĐT…" aria-label="Tìm kiếm" style={{ flex: '1 1 280px' }} />
         <select name="f" defaultValue={f} aria-label="Lọc theo vai trò">{FILTERS.map((x) => <option key={x.v} value={x.v}>{x.l}</option>)}</select>
@@ -47,7 +47,7 @@ export default async function UsersPage({ searchParams }: { searchParams: { q?: 
               const label = u.full_name || u.email || 'Chưa đặt tên';
               return (
                 <tr key={u.id}>
-                  <td><Who name={self ? `${label} (bạn)` : label} sub={u.email} color={colorFor(u.id)} /></td>
+                  <td><Who name={self ? `${label} (bạn)` : label} sub={u.email} color={colorFor(u.id)} href={`/admin/users/${u.id}`} /></td>
                   <td>{u.phone ?? '—'}</td>
                   <td className="num">{u.companies}</td>
                   <td>{fmtDate(u.created_at)}</td>
@@ -59,23 +59,8 @@ export default async function UsersPage({ searchParams }: { searchParams: { q?: 
                     {u.banned && !u.deleted && <> <span className="bdg r">Bị khóa</span></>}
                   </td>
                   <td><div className="acts">
-                    {isOwner && !self && !u.deleted && !u.banned && (
-                      <Act label="Phân quyền" icon="ic-shield-check" fn="admin_set_user_role" args={{ _user: u.id }} fieldArgs={{ role: '_role' }}
-                        confirm={{
-                          title: `Phân quyền · ${label}`, message: ROLE_HELP, confirmLabel: 'Lưu',
-                          fields: [{ key: 'role', label: 'Vai trò', type: 'select', defaultValue: u.role ?? 'member', options: [
-                            { value: 'member', label: ROLE_LABEL.member }, { value: 'moderator', label: ROLE_LABEL.moderator },
-                            { value: 'admin', label: ROLE_LABEL.admin }, { value: 'owner', label: ROLE_LABEL.owner },
-                          ] }],
-                        }} success="Đã cập nhật vai trò" />
-                    )}
-                    {!self && !u.deleted && !u.role && (u.banned ? (
-                      <Act label="Mở khóa" tone="p" fn="admin_set_user_banned" args={{ _user: u.id, _ban: false }}
-                        confirm={{ title: `Mở khóa ${label}?`, message: 'Người dùng đăng nhập lại được bình thường.', confirmLabel: 'Mở khóa' }} success="Đã mở khóa" />
-                    ) : (
-                      <Act label="Khóa" tone="d" fn="admin_set_user_banned" args={{ _user: u.id, _ban: true }} fieldArgs={{ reason: '_reason' }}
-                        confirm={{ title: `Khóa tài khoản ${label}?`, message: 'Đăng xuất khỏi mọi thiết bị và không đăng nhập lại được cho tới khi mở khóa. Hồ sơ doanh nghiệp của họ vẫn giữ nguyên.', confirmLabel: 'Khóa tài khoản', fields: [{ key: 'reason', label: 'Lý do', type: 'textarea', required: true }] }} success="Đã khóa tài khoản" />
-                    ))}
+                    <a className="ab" href={`/admin/users/${u.id}`}>Chi tiết</a>
+                    <UserActions user={u} label={label} self={self} isOwner={isOwner} />
                   </div></td>
                 </tr>
               );

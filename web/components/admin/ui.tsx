@@ -13,6 +13,8 @@ export interface Field {
   required?: boolean;
   defaultValue?: string;
   placeholder?: string;
+  /** câu soạn sẵn, bấm để điền (cho ô textarea) */
+  suggestions?: string[];
 }
 export interface ConfirmOpts {
   title: string;
@@ -20,6 +22,8 @@ export interface ConfirmOpts {
   confirmLabel?: string;
   danger?: boolean;
   fields?: Field[];
+  /** hộp thoại chỉ để thông báo: ẩn nút Hủy */
+  infoOnly?: boolean;
 }
 type Toast = { id: number; kind: 'ok' | 'err' | 'info'; text: string };
 interface Ctx {
@@ -85,7 +89,12 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
                     {f.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : f.type === 'textarea' ? (
-                  <textarea id={`f-${f.key}`} rows={3} autoFocus={i === 0} placeholder={f.placeholder} value={dlg.vals[f.key]} onChange={(e) => setDlg({ ...dlg, vals: { ...dlg.vals, [f.key]: e.target.value } })} />
+                  <>
+                    {f.suggestions && (
+                      <div className="adm-chips">{f.suggestions.map((s) => <button type="button" key={s} aria-pressed={dlg.vals[f.key] === s} onClick={() => setDlg({ ...dlg, err: undefined, vals: { ...dlg.vals, [f.key]: s } })}>{s}</button>)}</div>
+                    )}
+                    <textarea id={`f-${f.key}`} rows={3} autoFocus={i === 0} placeholder={f.placeholder} value={dlg.vals[f.key]} onChange={(e) => setDlg({ ...dlg, vals: { ...dlg.vals, [f.key]: e.target.value } })} />
+                  </>
                 ) : (
                   <input id={`f-${f.key}`} type={f.type ?? 'text'} autoFocus={i === 0} placeholder={f.placeholder} value={dlg.vals[f.key]} onChange={(e) => setDlg({ ...dlg, vals: { ...dlg.vals, [f.key]: e.target.value } })} />
                 )}
@@ -93,7 +102,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
             ))}
             {dlg.err && <p style={{ color: 'var(--red)', margin: '8px 0 0' }}>{dlg.err}</p>}
             <div className="ft">
-              <button type="button" className="ab" onClick={() => close(null)}>Hủy</button>
+              {!dlg.o.infoOnly && <button type="button" className="ab" onClick={() => close(null)}>Hủy</button>}
               <button type="submit" className={`ab ${dlg.o.danger ? 'd' : 'p'}`} autoFocus={!(dlg.o.fields ?? []).length} style={dlg.o.danger ? { background: 'var(--red)', color: '#fff', borderColor: 'var(--red)' } : undefined}>
                 {dlg.o.confirmLabel ?? 'Xác nhận'}
               </button>
@@ -197,6 +206,15 @@ export function Status({ s }: { s: string }) {
   return <span className={`bdg ${TONE[s] ?? ''}`}>{LABEL[s] ?? s}</span>;
 }
 
+/** Tải toàn bộ danh sách dạng CSV (chỉ quản trị viên; mỗi lần tải đều ghi nhật ký). */
+export function ExportLink({ kind }: { kind: 'companies' | 'registrations' | 'users' | 'subscriptions' | 'payments' | 'audit' }) {
+  return (
+    <a className="ab" href={`/admin/export/${kind}`} download>
+      <svg className="ic"><use href="#ic-download" /></svg> Xuất CSV
+    </a>
+  );
+}
+
 export function Empty({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="adm-empty">
@@ -241,12 +259,12 @@ export function Pager({ base, params, page, total, size }: { base: string; param
   );
 }
 
-export function Who({ name, sub, logo, color }: { name: string; sub?: string | null; logo?: string | null; color: string }) {
+export function Who({ name, sub, logo, color, href }: { name: string; sub?: string | null; logo?: string | null; color: string; href?: string }) {
   const ini = name.split(' ').filter((w) => w.length > 1).slice(-2).map((w) => w[0].toUpperCase()).join('') || '?';
   return (
     <div className="who">
       <span className="a" style={{ background: color }}>{logo ? <img src={logo} alt="" /> : ini}</span>
-      <div><b>{name}</b>{sub && <small>{sub}</small>}</div>
+      <div><b>{href ? <Link href={href}>{name}</Link> : name}</b>{sub && <small>{sub}</small>}</div>
     </div>
   );
 }

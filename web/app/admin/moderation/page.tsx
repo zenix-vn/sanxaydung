@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { requireAdmin, pageOf, fmtDate, PAGE_SIZE } from '@/lib/admin';
 import { Act, Empty, Pager, Status, Tabs } from '@/components/admin/ui';
+import { Check, CheckAll, Queue, WorkCell, type BulkAction, type QueueMeta } from '@/components/admin/queue';
 
 export const metadata: Metadata = { title: 'Kiểm duyệt nội dung' };
 const ENTITY: Record<string, string> = { post: 'Bài viết', listing: 'Tin đăng', marketplace_listing: 'Tin đăng', review: 'Đánh giá', company: 'Doanh nghiệp' };
@@ -9,8 +10,13 @@ const norm = (t: string | null) => (t === 'marketplace_listing' ? 'listing' : t 
 type Rep = { id: string; entity_type: string | null; entity_id: string | null; reason: string | null; status: string; created_at: string; profiles: { full_name: string | null } | null };
 type Item = { id: string; status: string; created_at: string; title?: string | null; body?: string | null; comment?: string | null; companies?: { name: string; slug: string } | null; target?: { name: string; slug: string } | null };
 
+const BULK: BulkAction[] = [
+  { action: 'resolved', label: 'Đã xử lý', tone: 'p', message: 'Đóng các báo cáo đã chọn. Thao tác này không ẩn nội dung — dùng "Ẩn & đóng" ở từng dòng nếu cần gỡ.' },
+  { action: 'dismissed', label: 'Bỏ qua', message: 'Đóng các báo cáo vì không vi phạm.' },
+];
+
 export default async function ModerationPage({ searchParams }: { searchParams: { tab?: string; page?: string } }) {
-  const { supa } = await requireAdmin('/admin/moderation');
+  const { supa, user } = await requireAdmin('/admin/moderation');
   const tab = ['reports', 'posts', 'listings', 'reviews'].includes(searchParams.tab ?? '') ? searchParams.tab! : 'reports';
   const { page, from, to } = pageOf(searchParams);
   const { count: openReports } = await supa.from('reports').select('id', { count: 'exact', head: true }).in('status', ['open', 'reviewing']);
@@ -38,9 +44,13 @@ export default async function ModerationPage({ searchParams }: { searchParams: {
     (rv.data ?? []).forEach((x: { id: string; comment: string | null; status: string }) => info.set(x.id, { text: x.comment?.slice(0, 90) || '(không lời bình)', status: x.status }));
     (c.data ?? []).forEach((x: { id: string; name: string; slug: string }) => info.set(x.id, { text: x.name, href: `/cong-ty/${x.slug}` }));
 
+    const { data: meta } = await supa.rpc('admin_queue_meta', { _kind: 'report', _ids: reps.map((r) => r.id) });
+    const isOpen = (r: Rep) => r.status === 'open' || r.status === 'reviewing';
+    const labels = Object.fromEntries(reps.filter(isOpen).map((r) => [r.id, (r.entity_id && info.get(r.entity_id)?.text) || r.reason || 'Báo cáo']));
     body = reps.length === 0 ? <Empty title="Chưa có báo cáo nào" hint="Báo cáo vi phạm từ người dùng sẽ hiện ở đây." /> : (
+      <Queue kind="report" meId={user.id} meta={(meta ?? {}) as QueueMeta} labels={labels} actions={BULK}>
       <div className="adm-tw"><table className="adm-t">
-        <thead><tr><th>Nội dung bị báo cáo</th><th>Lý do</th><th>Người báo cáo</th><th>Lúc</th><th>Trạng thái</th><th /></tr></thead>
+        <thead><tr><th className="chk"><CheckAll /></th><th>Nội dung bị báo cáo</th><th>Lý do</th><th>Người báo cáo</th><th>Lúc</th><th>Trạng thái</th><th>Phụ trách</th><th /></tr></thead>
         <tbody>{reps.map((r) => {
           const e = r.entity_id ? info.get(r.entity_id) : undefined;
           const t = norm(r.entity_type);
@@ -48,6 +58,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: {
           const open = r.status === 'open' || r.status === 'reviewing';
           return (
             <tr key={r.id}>
+              <td className="chk">{open && <Check id={r.id} />}</td>
               <td><span className="bdg b">{ENTITY[r.entity_type ?? ''] ?? r.entity_type ?? '?'}</span>
                 <div className="clip" style={{ marginTop: 5 }}>{e ? (e.href ? <a href={e.href} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--navy)', fontWeight: 600 }}>{e.text}</a> : e.text) : <span className="muted">Đã bị xóa</span>}</div>
                 {e?.status === 'hidden' || e?.status === 'closed' ? <small className="muted">Đang bị ẩn</small> : null}
@@ -56,6 +67,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: {
               <td>{r.profiles?.full_name ?? '—'}</td>
               <td>{fmtDate(r.created_at, true)}</td>
               <td><Status s={r.status} /></td>
+              <td>{open && <WorkCell id={r.id} />}</td>
               <td><div className="acts">
                 {open && canHide && (
                   <Act label="Ẩn & đóng" tone="d" fn="admin_moderate" args={{ _entity: t, _id: r.entity_id, _hide: true }} fieldArgs={{ reason: '_reason' }}
@@ -69,6 +81,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: {
           );
         })}</tbody>
       </table></div>
+      </Queue>
     );
   } else {
     const cfg = {

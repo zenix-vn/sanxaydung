@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import AdSlot from '@/components/AdSlot';
 import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { SUPABASE_URL } from '@/lib/env';
 import type { Listing } from '@/lib/types';
@@ -128,6 +129,7 @@ export default async function MarketplacePage({ searchParams }: { searchParams: 
       </div>
 
       <section className="block" style={{ paddingTop: 26, background: 'var(--bg)' }}>
+        <div className="container"><AdSlot slot="marketplace_top" /></div>
         <div className="container">
           {/* Type tabs (pill style) */}
           <div className="type-tabs">

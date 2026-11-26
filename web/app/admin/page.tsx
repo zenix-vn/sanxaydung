@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { requireAdmin, fmtDate, hasRole, type AdminStats } from '@/lib/admin';
+import { AUDIT_LABEL } from '@/lib/admin-labels';
+import { RankBars, WeeklyColumns } from '@/components/admin/charts';
 
 const KPI: { k: keyof AdminStats; label: string; icon: string; tone?: string; sub?: (s: AdminStats) => string | null }[] = [
   { k: 'companies_total', label: 'Doanh nghiệp', icon: 'ic-building', sub: (s) => `${s.companies_published} công khai · ${s.companies_verified} đã xác minh` },
@@ -17,27 +19,28 @@ const QUEUES: { k: keyof AdminStats; href: string; label: string; hint: string }
   { k: 'reports_open', href: '/admin/moderation', label: 'Báo cáo vi phạm', hint: 'Nội dung bị người dùng báo cáo' },
 ];
 
-const ACTION_LABEL: Record<string, string> = {
-  'verification.approved': 'Duyệt xác minh', 'verification.rejected': 'Từ chối xác minh',
-  'company.claim_approved': 'Duyệt claim hồ sơ', 'company.claim_rejected': 'Từ chối claim hồ sơ',
-  'company.status_suspended': 'Đình chỉ doanh nghiệp', 'company.status_published': 'Công khai doanh nghiệp',
-  'moderation.hide': 'Ẩn nội dung', 'moderation.restore': 'Khôi phục nội dung',
-  'subscription.granted': 'Cấp gói', 'subscription.cancelled': 'Hủy gói',
-  'user.role_owner': 'Cấp quyền Chủ sở hữu', 'user.role_admin': 'Cấp quyền Quản trị viên', 'user.role_moderator': 'Cấp quyền Kiểm duyệt viên', 'user.role_member': 'Thu hồi quyền quản trị',
-  'user.banned': 'Khóa tài khoản', 'user.unbanned': 'Mở khóa tài khoản',
+const RANGES = [8, 12, 26];
+type Week = { week: string; users: number; companies: number; verified: number; quotes: number };
+type Insights = {
+  weeks: Week[]; funnel: { total: number; claimed: number; verified: number; paid: number | null };
+  registrations: { total: number; pending: number; approved: number };
+  provinces: { name: string; n: number }[]; categories: { name: string; n: number }[]; no_location: number; no_category: number;
 };
 
-export default async function AdminHome() {
+export default async function AdminHome({ searchParams }: { searchParams: { w?: string } }) {
   const { supa, role } = await requireAdmin();
+  const weeks = RANGES.includes(Number(searchParams.w)) ? Number(searchParams.w) : 12;
   const canAudit = hasRole(role, 'admin');
-  const [{ data }, { data: logs }] = await Promise.all([
+  const [{ data }, { data: logs }, { data: ins }] = await Promise.all([
     supa.rpc('admin_stats'),
     supa.from('audit_log').select('id, action, entity_type, created_at, profiles:actor_id ( full_name )').order('created_at', { ascending: false }).limit(8),
+    supa.rpc('admin_insights', { _weeks: weeks }),
   ]);
+  const insights = ins as Insights | null;
+  const series = (k: Exclude<keyof Week, 'week'>) => (insights?.weeks ?? []).map((x) => ({ label: `${x.week.slice(8)}/${x.week.slice(5, 7)}`, value: x[k] }));
   const s = data as AdminStats | null;
   if (!s) return <div className="adm-card"><div className="bd">Không tải được số liệu. Kiểm tra migration <code>admin_console</code>.</div></div>;
 
-  const max = Math.max(1, ...s.series.map((d) => d.users + d.companies));
   const todo = s.verifications_pending + s.claims_pending + s.registrations_pending + s.reports_open;
 
   return (
@@ -79,22 +82,39 @@ export default async function AdminHome() {
         </div>
       </div>
 
-      <div className="adm-grid2">
-        <div className="adm-card">
-          <div className="hd"><h2>Đăng ký mới · 14 ngày qua</h2><span className="muted">Người dùng + doanh nghiệp</span></div>
-          <div className="bd">
-            <div className="adm-chart" role="img" aria-label="Biểu đồ đăng ký mới 14 ngày">
-              {s.series.map((d) => {
-                const v = d.users + d.companies;
-                return (
-                  <div className="col" key={d.day} title={`${fmtDate(d.day)}: ${d.users} người dùng, ${d.companies} doanh nghiệp, ${d.listings} tin`}>
-                    <div className="bar" style={{ height: `${Math.max(3, (v / max) * 100)}%` }} />
-                    <small>{d.day.slice(8)}</small>
-                  </div>
-                );
-              })}
-            </div>
+      {insights && (
+        <>
+          <div className="viz-filter" role="group" aria-label="Khoảng thời gian">
+            <span>Xu hướng theo tuần</span>
+            <nav className="adm-tabs">{RANGES.map((n) => <Link key={n} href={`/admin?w=${n}`} scroll={false} className={n === weeks ? 'on' : ''}>{n} tuần</Link>)}</nav>
           </div>
+          <div className="viz-multi">
+            <WeeklyColumns title="Người dùng mới" data={series('users')} />
+            <WeeklyColumns title="Hồ sơ mới" data={series('companies')} />
+            <WeeklyColumns title="Doanh nghiệp được xác minh" data={series('verified')} note="Tính theo ngày quản trị duyệt." />
+            <WeeklyColumns title="Báo giá đã gửi" data={series('quotes')} />
+          </div>
+        </>
+      )}
+
+      <div className="adm-grid2">
+        <div className="adm-stack">
+          {insights && (
+            <>
+              <RankBars title="Chuyển đổi hồ sơ" hint="Mỗi mốc tính trên tổng số hồ sơ" of={insights.funnel.total}
+                data={[
+                  { label: 'Hồ sơ trên sàn', value: insights.funnel.total },
+                  { label: 'Đã có chủ', value: insights.funnel.claimed },
+                  { label: 'Đã xác minh', value: insights.funnel.verified },
+                  ...(insights.funnel.paid == null ? [] : [{ label: 'Đang trả phí', value: insights.funnel.paid }]),
+                ]}
+                footer={<>Đăng ký đối tác từ biểu mẫu: {insights.registrations.total} bản · {insights.registrations.approved} đã duyệt · {insights.registrations.pending} đang chờ.</>} />
+              <RankBars title="Tỉnh/thành có nhiều doanh nghiệp" hint="10 nơi dẫn đầu" data={insights.provinces.map((x) => ({ label: x.name, value: x.n }))}
+                footer={<>Một doanh nghiệp hoạt động ở nhiều tỉnh được tính ở mỗi tỉnh. {insights.no_location} hồ sơ chưa khai khu vực.</>} />
+              <RankBars title="Lĩnh vực phổ biến" hint="10 lĩnh vực dẫn đầu" data={insights.categories.map((x) => ({ label: x.name, value: x.n }))}
+                footer={<>Một doanh nghiệp có thể thuộc nhiều lĩnh vực. {insights.no_category} hồ sơ chưa chọn lĩnh vực.</>} />
+            </>
+          )}
         </div>
         <div className="adm-card">
           <div className="hd"><h2>Hoạt động gần đây</h2>{canAudit && <Link href="/admin/audit" style={{ color: 'var(--orange)', fontWeight: 600, fontSize: 13 }}>Xem tất cả</Link>}</div>
@@ -106,7 +126,7 @@ export default async function AdminHome() {
             <ul className="adm-log">
               {(logs as unknown as { id: string; action: string; created_at: string; profiles: { full_name: string | null } | null }[]).map((l) => (
                 <li key={l.id}>
-                  <span><b style={{ color: 'var(--navy)' }}>{ACTION_LABEL[l.action] ?? l.action}</b><br /><small>{l.profiles?.full_name ?? 'Hệ thống'}</small></span>
+                  <span><b style={{ color: 'var(--navy)' }}>{AUDIT_LABEL[l.action] ?? l.action}</b><br /><small>{l.profiles?.full_name ?? 'Hệ thống'}</small></span>
                   <small>{fmtDate(l.created_at, true)}</small>
                 </li>
               ))}

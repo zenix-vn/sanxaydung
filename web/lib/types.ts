@@ -117,6 +117,7 @@ export interface Review {
   comment: string | null;
   status: string;
   created_at: string;
+  reply?: string | null;
   reviewer_company?: { id: string; name: string; slug: string; logo_url: string | null } | null;
 }
 
@@ -125,6 +126,7 @@ export interface CompanyDetail extends Company {
   company_locations?: { provinces: Province | null }[];
   projects?: Project[];
   trust_scores?: { score: number; breakdown: Record<string, number> } | null;
+  company_verifications?: { id: string; kind: string; cert_class: string | null; status: string; verified_at: string | null }[];
   services?: Service[];
   staff?: Staff[];
   equipment?: Equipment[];

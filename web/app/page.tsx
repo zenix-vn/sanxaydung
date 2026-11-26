@@ -3,6 +3,7 @@ import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { SUPABASE_URL } from '@/lib/env';
 import { SITE_URL } from '@/lib/ui';
 import CompanyCard from '@/components/CompanyCard';
+import AdSlot from '@/components/AdSlot';
 
 export const dynamic = 'force-dynamic';
 
@@ -311,6 +312,8 @@ export default async function HomePage() {
       )}
 
       {/* ===== CATEGORIES ===== */}
+      <AdSlot slot="home_banner" wrap />
+
       <section className="block">
         <div className="container">
           <div className="sec-head">

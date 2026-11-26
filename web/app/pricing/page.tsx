@@ -1,8 +1,45 @@
 import type { Metadata } from 'next';
+import { getPlans } from '@/lib/plans-server';
+import { limitText, shortVnd, yearlyPrice, type Plan } from '@/lib/plans';
 
 export const metadata: Metadata = { title: 'Bảng giá gói thành viên' };
 
-export default function PricingPage({ searchParams }: { searchParams: { billing?: string } }) {
+export const dynamic = 'force-dynamic';
+
+const LOOK: Record<string, { icon: string; bg: string; fg: string }> = {
+  free: { icon: 'ic-building', bg: '#eef2f6', fg: 'var(--muted)' },
+  professional: { icon: 'ic-trending', bg: 'var(--orange-soft)', fg: 'var(--orange)' },
+  enterprise: { icon: 'ic-award', bg: 'var(--blue-soft)', fg: 'var(--blue)' },
+};
+
+function PlanCard({ plan: p, yearly }: { plan: Plan; yearly: boolean }) {
+  const look = LOOK[p.id] ?? LOOK.free;
+  const pop = p.id === 'professional';
+  const paid = p.price_month > 0 && !p.features.contact;
+  const checkout = `/pricing/checkout?plan=${p.id}&billing=${yearly ? 'year' : 'month'}`;
+  return (
+    <div className={`plan${pop ? ' pop' : ''}`}>
+      {pop && <div className="tagpop">Phổ biến nhất</div>}
+      <div className="pico" style={{ background: look.bg, color: look.fg }}><svg className="ic"><use href={`#${look.icon}`} /></svg></div>
+      <div className="pname">{p.name}</div>
+      {p.features.contact ? <div className="price">Liên hệ</div>
+        : !paid ? <div className="price">0₫ <small>/tháng</small></div>
+        : <div className="price">{shortVnd(yearly ? yearlyPrice(p.price_month) / 12 : p.price_month)} <small>/tháng{yearly ? ` · ${shortVnd(yearlyPrice(p.price_month))}/năm` : ''}</small></div>}
+      <p className="pdesc">{p.features.desc}</p>
+      <ul>
+        {(p.features.bullets ?? []).map((b) => <li key={b}><svg className="ic"><use href="#ic-check" /></svg> {b.startsWith('Toàn bộ') ? <b>{b}</b> : b}</li>)}
+        {(p.features.excluded ?? []).map((b) => <li key={b} className="off"><svg className="ic"><use href="#ic-x" /></svg> {b}</li>)}
+      </ul>
+      {p.features.contact ? <a className="btn btn-navy btn-block" href={checkout}>Liên hệ tư vấn</a>
+        : paid ? <a className={`btn ${pop ? 'btn-orange' : 'btn-navy'} btn-block`} href={checkout}>Chọn {p.name}</a>
+        : <a className="btn btn-outline btn-block" href="/login#register">Bắt đầu miễn phí</a>}
+    </div>
+  );
+}
+
+export default async function PricingPage({ searchParams }: { searchParams: { billing?: string } }) {
+  const plans = await getPlans();
+  const limit = (id: string, k: 'listings' | 'members') => limitText(plans.find((p) => p.id === id)?.features[k]);
   const yearly = searchParams.billing === 'year';
   const q = (plan: string) => `/pricing/checkout?plan=${plan}&billing=${yearly ? 'year' : 'month'}`;
   return (
@@ -64,67 +101,9 @@ export default function PricingPage({ searchParams }: { searchParams: { billing?
 
       <section className="block" style={{ paddingTop: 0 }}>
         <div className="container">
-          <div className="plans">
-            {/* Free */}
-            <div className="plan">
-              <div className="pico" style={{ background: '#eef2f6', color: 'var(--muted)' }}>
-                <svg className="ic"><use href="#ic-building" /></svg>
-              </div>
-              <div className="pname">Free</div>
-              <div className="price">0₫ <small>/tháng</small></div>
-              <p className="pdesc">Tạo hiện diện số &amp; bắt đầu kết nối cơ bản.</p>
-              <ul>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Company Page cơ bản</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Xác minh pháp lý (MST/GPKD)</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Đăng 3 tin nhu cầu/tháng</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Chat &amp; nhận báo giá</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Nhận đánh giá xác thực</li>
-                <li className="off"><svg className="ic"><use href="#ic-x" /></svg> Hồ sơ nổi bật</li>
-                <li className="off"><svg className="ic"><use href="#ic-x" /></svg> Analytics nâng cao</li>
-              </ul>
-              <a className="btn btn-outline btn-block" href="/login#register">Bắt đầu miễn phí</a>
-            </div>
-
-            {/* Professional */}
-            <div className="plan pop">
-              <div className="tagpop">Phổ biến nhất</div>
-              <div className="pico" style={{ background: 'var(--orange-soft)', color: 'var(--orange)' }}>
-                <svg className="ic"><use href="#ic-trending" /></svg>
-              </div>
-              <div className="pname">Professional</div>
-              <div className="price">{yearly ? '792K' : '990K'} <small>/tháng{yearly ? ' · 9,5 triệu/năm' : ''}</small></div>
-              <p className="pdesc">Cho doanh nghiệp muốn tăng cơ hội &amp; nổi bật.</p>
-              <ul>
-                <li><svg className="ic"><use href="#ic-check" /></svg> <b>Toàn bộ gói Free</b></li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Hồ sơ &amp; tin đăng <b>nổi bật</b></li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Đăng tin không giới hạn</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Analytics: lượt xem, nguồn khách</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Video giới thiệu &amp; album mở rộng</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Huy hiệu ưu tiên tìm kiếm</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> 10 thành viên</li>
-              </ul>
-              <a className="btn btn-orange btn-block" href={q('professional')}>Chọn Professional</a>
-            </div>
-
-            {/* Enterprise */}
-            <div className="plan">
-              <div className="pico" style={{ background: 'var(--blue-soft)', color: 'var(--blue)' }}>
-                <svg className="ic"><use href="#ic-award" /></svg>
-              </div>
-              <div className="pname">Enterprise</div>
-              <div className="price">Liên hệ</div>
-              <p className="pdesc">Cho tổng thầu &amp; tập đoàn cần quy mô &amp; tích hợp.</p>
-              <ul>
-                <li><svg className="ic"><use href="#ic-check" /></svg> <b>Toàn bộ gói Professional</b></li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Analytics &amp; benchmark ngành</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Báo cáo thị trường độc quyền</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Thành viên &amp; phân quyền không giới hạn</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> Hỗ trợ ưu tiên + account manager</li>
-                <li><svg className="ic"><use href="#ic-check" /></svg> API tích hợp (GĐ3)</li>
-              </ul>
-              <a className="btn btn-navy btn-block" href={q('enterprise')}>Liên hệ tư vấn</a>
-            </div>
-          </div>
+          {plans.length === 0
+            ? <div className="card-block" style={{ marginTop: 20, textAlign: 'center' }}>Chưa tải được bảng giá. Vui lòng thử lại sau ít phút.</div>
+            : <div className="plans">{plans.map((p) => <PlanCard key={p.id} plan={p} yearly={yearly} />)}</div>}
 
           {/* Add-ons */}
           <h2 className="section-title" style={{ margin: '44px 0 4px' }}>Dịch vụ mua thêm</h2>
@@ -166,10 +145,10 @@ export default function PricingPage({ searchParams }: { searchParams: { billing?
             </thead>
             <tbody>
               <tr><td>Company Page &amp; hồ sơ năng lực</td><td><svg className="ic"><use href="#ic-check" /></svg></td><td><svg className="ic"><use href="#ic-check" /></svg></td><td><svg className="ic"><use href="#ic-check" /></svg></td></tr>
-              <tr><td>Tin đăng nhu cầu / tháng</td><td>3</td><td>Không giới hạn</td><td>Không giới hạn</td></tr>
+              <tr><td>Tin đăng nhu cầu / tháng</td><td>{limit('free', 'listings')}</td><td>{limit('professional', 'listings')}</td><td>{limit('enterprise', 'listings')}</td></tr>
               <tr><td>Hồ sơ &amp; tin nổi bật</td><td>—</td><td><svg className="ic"><use href="#ic-check" /></svg></td><td><svg className="ic"><use href="#ic-check" /></svg></td></tr>
               <tr><td>Analytics doanh nghiệp</td><td>Cơ bản</td><td>Nâng cao</td><td>Nâng cao + benchmark</td></tr>
-              <tr><td>Số thành viên</td><td>3</td><td>10</td><td>Không giới hạn</td></tr>
+              <tr><td>Số thành viên</td><td>{limit('free', 'members')}</td><td>{limit('professional', 'members')}</td><td>{limit('enterprise', 'members')}</td></tr>
               <tr><td>Báo cáo thị trường</td><td>—</td><td>—</td><td><svg className="ic"><use href="#ic-check" /></svg></td></tr>
               <tr><td>API tích hợp</td><td>—</td><td>—</td><td><svg className="ic"><use href="#ic-check" /></svg></td></tr>
               <tr><td>Hỗ trợ</td><td>Email</td><td>Ưu tiên</td><td>Account manager</td></tr>

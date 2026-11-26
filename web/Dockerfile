@@ -22,6 +22,8 @@ ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
+# Next ghi cache dữ liệu (unstable_cache/ISR) vào .next khi chạy
+RUN mkdir -p .next/cache && chown -R node:node .next
 USER node
 EXPOSE 3000
 CMD ["node", "server.js"]

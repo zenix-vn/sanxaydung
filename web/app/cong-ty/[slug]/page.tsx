@@ -10,6 +10,8 @@ import { getMe, canAdmin } from '@/lib/me';
 import { SITE_URL } from '@/lib/ui';
 import ConnectButton, { type ExistingConn } from './ConnectButton';
 import ReviewForm, { type Eligible } from './ReviewForm';
+import ReviewReply from './ReviewReply';
+import { VERIFY_KIND } from '@/lib/admin-labels';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,13 +73,14 @@ const fetchCompany = cachedPublic(async (slug: string): Promise<CompanyDetail | 
          company_locations ( provinces (*) ),
          projects ( * ),
          trust_scores ( score, breakdown ),
+         company_verifications ( id, kind, cert_class, status, verified_at ),
          services ( * ),
          staff ( * ),
          equipment ( * ),
          reviews!target_company_id (
            id, connection_id, reviewer_company_id, target_company_id,
            score_quality, score_progress, score_cost, score_cooperation,
-           score_safety, score_warranty, overall, comment, status, created_at,
+           score_safety, score_warranty, overall, comment, status, created_at, reply,
            reviewer_company:companies!reviewer_company_id ( id, name, slug, logo_url )
          )`,
       )
@@ -85,6 +88,7 @@ const fetchCompany = cachedPublic(async (slug: string): Promise<CompanyDetail | 
       .eq('status', 'published')
       .is('deleted_at', null)
       .eq('reviews.status', 'published')
+      .eq('company_verifications.status', 'verified')
       .order('created_at', { referencedTable: 'reviews', ascending: false })
       .maybeSingle();
     if (error) throw error;
@@ -103,7 +107,7 @@ async function getCompany(slug: string): Promise<CompanyDetail | null> {
 async function getRelation(companyId: string) {
   const me = await getMe();
   const mine = me.companies.filter((c) => c.id !== companyId);
-  const out = { loggedIn: !!me.userId, isMember: me.companies.some((c) => c.id === companyId), mine, existing: null as ExistingConn | null, eligible: [] as Eligible[] };
+  const out = { loggedIn: !!me.userId, isMember: me.companies.some((c) => c.id === companyId), canReply: me.companies.some((c) => c.id === companyId && canAdmin(c)), mine, existing: null as ExistingConn | null, eligible: [] as Eligible[] };
   if (!me.userId || !mine.length) return out;
   try {
     const supa = createSupabaseServer();
@@ -185,6 +189,8 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
   const ini = initials(c.name);
   const logoColor = TIER_COLORS[c.verified_tier] ?? '#12439c';
 
+  const verified = c.company_verifications ?? [];
+  const capability = verified.find((v) => v.kind === 'capability_cert');
   const services = c.services ?? [];
   const staff = c.staff ?? [];
   const equipment = c.equipment ?? [];
@@ -282,9 +288,9 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                     <svg className="ic"><use href="#ic-star-f" /></svg> Đối tác vàng
                   </span>
                 )}
-                {(c.verified_tier === 'capability' || c.verified_tier === 'gold') && (
+                {(c.verified_tier === 'capability' || capability) && (
                   <span className="verify capability">
-                    <svg className="ic"><use href="#ic-award" /></svg> Chứng chỉ năng lực Hạng I
+                    <svg className="ic"><use href="#ic-award" /></svg> Chứng chỉ năng lực{capability?.cert_class ? ` ${capability.cert_class}` : ''}
                   </span>
                 )}
                 {c.verified_tier !== 'none' && (
@@ -528,6 +534,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                           </div>
                         </div>
                         {r.comment && <p>{r.comment}</p>}
+                        <ReviewReply reviewId={r.id} companyName={c.name} initial={r.reply ?? null} canReply={rel.canReply} />
                       </div>
                     );
                   })}
@@ -543,49 +550,26 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
             {/* Hồ sơ năng lực */}
             <div className="card-block" id="tailieu">
               <h2>Hồ sơ năng lực</h2>
-              {c.verified_tier !== 'none' ? (
-                <>
-                  <div className="doc-row">
-                    <div className="ic-b">
-                      <svg className="ic"><use href="#ic-file-text" /></svg>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h4>Giấy chứng nhận đăng ký kinh doanh</h4>
-                      <small>PDF · Công khai · Đã xác minh</small>
-                    </div>
-                    <span className="badge green">
-                      <svg className="ic"><use href="#ic-check" /></svg> Verified
-                    </span>
+              {verified.length > 0 ? verified.map((v) => (
+                <div className="doc-row" key={v.id}>
+                  <div className="ic-b">
+                    <svg className="ic"><use href={v.kind === 'capability_cert' ? '#ic-award' : '#ic-file-text'} /></svg>
                   </div>
-                  {(c.verified_tier === 'capability' || c.verified_tier === 'gold') && (
-                    <div className="doc-row">
-                      <div className="ic-b">
-                        <svg className="ic"><use href="#ic-award" /></svg>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <h4>Chứng chỉ năng lực hoạt động xây dựng Hạng I</h4>
-                        <small>PDF · Công khai · Bộ Xây dựng cấp</small>
-                      </div>
-                      <span className="badge green">
-                        <svg className="ic"><use href="#ic-check" /></svg> Verified
-                      </span>
-                    </div>
-                  )}
-                  <div className="doc-row">
-                    <div className="ic-b" style={{ background: '#f3f4f6', color: '#6b7280' }}>
-                      <svg className="ic"><use href="#ic-lock" /></svg>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <h4>Hồ sơ năng lực đầy đủ (Company Profile)</h4>
-                      <small>PDF · Chỉ đối tác đã kết nối</small>
-                    </div>
-                    <a className="btn btn-outline btn-sm" href="/login">
-                      <svg className="ic"><use href="#ic-download" /></svg> Yêu cầu
-                    </a>
+                  <div style={{ flex: 1 }}>
+                    <h4>{VERIFY_KIND[v.kind] ?? v.kind}{v.cert_class ? ` · ${v.cert_class}` : ''}</h4>
+                    <small>Sàn Xây Dựng đã đối chiếu{v.verified_at ? ` ngày ${new Date(v.verified_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}` : ''}</small>
                   </div>
-                </>
-              ) : (
-                <p className="muted">Doanh nghiệp chưa tải lên hồ sơ năng lực.</p>
+                  <span className="badge green">
+                    <svg className="ic"><use href="#ic-check" /></svg> Đã xác minh
+                  </span>
+                </div>
+              )) : (
+                <p className="muted">Chưa có giấy tờ nào được xác minh.</p>
+              )}
+              {!rel.isMember && (
+                <p className="muted" style={{ fontSize: 13, marginTop: 12 }}>
+                  Cần hồ sơ năng lực chi tiết? <a href={`/chat?to=${c.id}`} style={{ color: 'var(--orange)', fontWeight: 600 }}>Nhắn tin cho doanh nghiệp</a>.
+                </p>
               )}
             </div>
 
@@ -704,10 +688,10 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                   <span className="v">{c.founded_year}</span>
                 </div>
               )}
-              {(c.verified_tier === 'capability' || c.verified_tier === 'gold') && (
+              {capability?.cert_class && (
                 <div className="kv">
                   <span className="k">Hạng năng lực</span>
-                  <span className="v">Hạng I</span>
+                  <span className="v">{capability.cert_class}</span>
                 </div>
               )}
               {c.size_range && (
