@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 import NotificationBell from './NotificationBell';
 
 const LINKS = [
@@ -18,10 +18,18 @@ export default function NavMenu() {
   const [loggedIn, setLoggedIn] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
-    const supa = createSupabaseBrowser();
-    supa.auth.getUser().then(({ data: { user } }) => setLoggedIn(!!user));
-    const { data } = supa.auth.onAuthStateChange((_e, session) => setLoggedIn(!!session?.user));
-    return () => data.subscription.unsubscribe();
+    // Chỉ cần biết đã đăng nhập chưa → phiên lưu sẵn trong trình duyệt (INITIAL_SESSION), không gọi máy chủ
+    let unsub: (() => void) | undefined;
+    let alive = true;
+    loadSupa().then((supa) => {
+      if (!alive) return;
+      const { data } = supa.auth.onAuthStateChange((_e, session) => setLoggedIn(!!session?.user));
+      unsub = () => data.subscription.unsubscribe();
+    });
+    return () => {
+      alive = false;
+      unsub?.();
+    };
   }, []);
 
   // Điều hướng phía client không tải lại trang → tự đóng menu di động (checkbox #navtoggle)

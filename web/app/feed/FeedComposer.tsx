@@ -1,7 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 import { useMe } from '@/lib/me-client';
 import { canEdit } from '@/lib/roles';
 
@@ -48,7 +48,7 @@ export default function FeedComposer() {
     setBusy(true);
     setErr(null);
     try {
-      const supa = createSupabaseBrowser();
+      const supa = await loadSupa();
       const { data: post, error } = await supa
         .from('posts')
         .insert({ company_id: cid, author_id: me.userId, type, title: title.trim() || null, body: body.trim() || null })

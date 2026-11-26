@@ -18,58 +18,23 @@ async function getDashboardData() {
 
   const companyId = company.id as string;
 
-  // Thành viên
-  const { data: members } = await supa
-    .from('company_members')
-    .select('*, profiles ( full_name, avatar_url )')
-    .eq('company_id', companyId)
-    .eq('status', 'active')
-    .order('created_at');
-
-  // Thông báo chưa đọc (gần nhất)
-  const { data: notifications } = await supa
-    .from('notifications')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('is_read', false)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  // Tin đăng của công ty
-  const { data: listings } = await supa
-    .from('marketplace_listings')
-    .select('id, title, type, status, quote_count, created_at')
-    .eq('company_id', companyId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  // Trust Score
-  const { data: trustScore } = await supa
-    .from('trust_scores')
-    .select('score, breakdown')
-    .eq('company_id', companyId)
-    .maybeSingle();
-
-  // Báo giá nhận được trên tin của công ty
-  const { data: received } = await supa
-    .from('quotes')
-    .select('id, amount, status, created_at, company:companies ( name, slug ), listing:marketplace_listings!inner ( id, title, company_id )')
-    .eq('listing.company_id', companyId)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  // Báo giá công ty đã gửi
-  const { data: sent } = await supa
-    .from('quotes')
-    .select('id, amount, status, created_at, listing:marketplace_listings ( id, title )')
-    .eq('company_id', companyId)
-    .order('created_at', { ascending: false })
-    .limit(5);
-
-  // Số liệu thống kê (count only)
+  // Mọi truy vấn độc lập → chạy song song (trước đây chạy lần lượt ~10 vòng gọi DB)
   const head = { count: 'exact' as const, head: true };
-  const [openL, recvN, sentN, unreadN] = await Promise.all([
+  const [
+    { data: members },
+    { data: notifications },
+    { data: listings },
+    { data: trustScore },
+    { data: received },
+    { data: sent },
+    openL, recvN, sentN, unreadN,
+  ] = await Promise.all([
+    supa.from('company_members').select('*, profiles ( full_name, avatar_url )').eq('company_id', companyId).eq('status', 'active').order('created_at'),
+    supa.from('notifications').select('*').eq('user_id', user.id).eq('is_read', false).order('created_at', { ascending: false }).limit(5),
+    supa.from('marketplace_listings').select('id, title, type, status, quote_count, created_at').eq('company_id', companyId).is('deleted_at', null).order('created_at', { ascending: false }).limit(5),
+    supa.from('trust_scores').select('score, breakdown').eq('company_id', companyId).maybeSingle(),
+    supa.from('quotes').select('id, amount, status, created_at, company:companies ( name, slug ), listing:marketplace_listings!inner ( id, title, company_id )').eq('listing.company_id', companyId).order('created_at', { ascending: false }).limit(5),
+    supa.from('quotes').select('id, amount, status, created_at, listing:marketplace_listings ( id, title )').eq('company_id', companyId).order('created_at', { ascending: false }).limit(5),
     supa.from('marketplace_listings').select('id', head).eq('company_id', companyId).eq('status', 'open').is('deleted_at', null),
     supa.from('quotes').select('id, listing:marketplace_listings!inner(company_id)', head).eq('listing.company_id', companyId),
     supa.from('quotes').select('id', head).eq('company_id', companyId),

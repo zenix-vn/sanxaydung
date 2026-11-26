@@ -26,24 +26,22 @@ const loadUserCompany = cache(async () => {
   const { data: { user } } = await supa.auth.getUser();
   if (!user) return { supa, user: null, company: null as Record<string, any> | null, role: null as Membership['role'] | null, companies: [] as CompanyOption[] };
 
+  // Một truy vấn: mọi công ty user là thành viên, kèm đủ hồ sơ (trước đây 2 vòng gọi nối tiếp)
   const { data: rows } = await supa
     .from('company_members')
-    .select('company_id, role, created_at, companies ( id, name, slug, logo_url )')
+    .select('company_id, role, created_at, companies ( * )')
     .eq('user_id', user.id)
     .eq('status', 'active')
     .order('created_at', { ascending: true });
 
-  const memberships = ((rows ?? []) as unknown as { company_id: string; role: Membership['role']; companies: Omit<CompanyOption, 'role'> | null }[])
+  const memberships = ((rows ?? []) as unknown as { company_id: string; role: Membership['role']; companies: Record<string, any> | null }[])
     .filter((r) => r.companies);
-  const companies: CompanyOption[] = memberships.map((r) => ({ ...r.companies!, role: r.role }));
+  const companies: CompanyOption[] = memberships.map((r) => ({
+    id: r.companies!.id, name: r.companies!.name, slug: r.companies!.slug, logo_url: r.companies!.logo_url ?? null, role: r.role,
+  }));
 
   const wanted = cookies().get(ACTIVE_CO_COOKIE)?.value;
   const active = memberships.find((m) => m.company_id === wanted) ?? memberships[0];
-
-  let company: Record<string, any> | null = null;
-  if (active) {
-    const { data } = await supa.from('companies').select('*').eq('id', active.company_id).maybeSingle();
-    company = (data as Record<string, any> | null) ?? null;
-  }
+  const company: Record<string, any> | null = active?.companies ?? null;
   return { supa, user, company, role: (company ? active?.role ?? null : null) as Membership['role'] | null, companies };
 });

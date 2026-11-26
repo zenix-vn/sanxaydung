@@ -4,7 +4,7 @@ import { SUPABASE_URL } from '@/lib/env';
 import SortSelect from './SortSelect';
 import Pagination from '@/components/Pagination';
 import { TIER_COLORS } from '@/lib/format';
-import { initials } from '@/lib/ui';
+import { initials, thumb } from '@/lib/ui';
 import AdSlot from '@/components/AdSlot';
 import { TrackImpressions } from '@/components/Track';
 
@@ -316,7 +316,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Ra
                         {/* Logo */}
                         <div className="lg" style={{ background: c.logo_url ? '#fff' : color }}>
                           {c.logo_url ? (
-                            <img src={c.logo_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 10 }} />
+                            <img src={thumb(c.logo_url, 128)} alt={c.name} width={64} height={64} loading="lazy" decoding="async" style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 10 }} />
                           ) : ini}
                         </div>
 

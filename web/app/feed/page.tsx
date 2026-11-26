@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { SUPABASE_URL } from '@/lib/env';
-import { colorFor, initials, timeAgo } from '@/lib/ui';
+import { colorFor, initials, thumb, timeAgo } from '@/lib/ui';
 import FeedComposer from './FeedComposer';
 import LikeButton from './LikeButton';
 import ShareButton from '@/components/ShareButton';
@@ -52,7 +52,8 @@ async function getPosts(type?: string, before?: string): Promise<{ posts: PostRo
       .limit(PAGE_SIZE + 1);
     if (type && POST_TYPE_MAP[type]) q = q.eq('type', type);
     if (before) q = q.lt('created_at', before); // keyset theo created_at
-    const { data } = await q;
+    // Bài viết và người dùng hiện tại lấy song song
+    const [{ data }, { data: { user } }] = await Promise.all([q, supa.auth.getUser()]);
     const rows = (data ?? []) as unknown as PostRow[];
     const hasMore = rows.length > PAGE_SIZE;
     const posts = rows.slice(0, PAGE_SIZE);
@@ -60,24 +61,17 @@ async function getPosts(type?: string, before?: string): Promise<{ posts: PostRo
 
     const ids = posts.map((p) => p.id);
     // Ảnh: bảng media dùng owner_type/owner_id (không có FK tới posts)
-    const { data: med } = await supa
-      .from('media')
-      .select('owner_id, url, kind, sort_order')
-      .eq('owner_type', 'post')
-      .in('owner_id', ids)
-      .order('sort_order');
+    const [{ data: med }, { data: rx }] = await Promise.all([
+      supa.from('media').select('owner_id, url, kind, sort_order').eq('owner_type', 'post').in('owner_id', ids).order('sort_order'),
+      user ? supa.from('post_reactions').select('post_id').eq('user_id', user.id).in('post_id', ids) : Promise.resolve({ data: [] as { post_id: string }[] }),
+    ]);
     const byPost = new Map<string, { url: string; kind: string }[]>();
     for (const m of (med ?? []) as { owner_id: string; url: string; kind: string }[]) {
       byPost.set(m.owner_id, [...(byPost.get(m.owner_id) ?? []), { url: m.url, kind: m.kind }]);
     }
     posts.forEach((p) => (p.media = byPost.get(p.id) ?? []));
 
-    const liked = new Set<string>();
-    const { data: { user } } = await supa.auth.getUser();
-    if (user) {
-      const { data: rx } = await supa.from('post_reactions').select('post_id').eq('user_id', user.id).in('post_id', ids);
-      (rx ?? []).forEach((r: { post_id: string }) => liked.add(r.post_id));
-    }
+    const liked = new Set<string>(((rx ?? []) as { post_id: string }[]).map((r) => r.post_id));
     return { posts, liked, hasMore };
   } catch {
     return { posts: [], liked: new Set(), hasMore: false };
@@ -213,8 +207,9 @@ export default async function FeedPage({ searchParams }: { searchParams: { type?
                       <a href={co ? `/cong-ty/${co.slug}` : '#'} style={{ textDecoration: 'none' }}>
                         {co?.logo_url ? (
                           <img
-                            src={co.logo_url}
+                            src={thumb(co.logo_url, 92)}
                             alt={co.name}
+                            loading="lazy"
                             style={{ width: 46, height: 46, borderRadius: 11, objectFit: 'cover', flexShrink: 0 }}
                           />
                         ) : (
@@ -291,7 +286,7 @@ export default async function FeedPage({ searchParams }: { searchParams: { type?
                 {suggestions.map((c) => (
                   <div className="sugg" key={c.id}>
                     {c.logo_url ? (
-                      <img src={c.logo_url} alt={c.name} style={{ width: 38, height: 38, borderRadius: 9, objectFit: 'cover', flex: 'none' }} />
+                      <img src={thumb(c.logo_url, 76)} alt={c.name} loading="lazy" style={{ width: 38, height: 38, borderRadius: 9, objectFit: 'cover', flex: 'none' }} />
                     ) : (
                       <span className="ava-s" style={{ background: colorFor(c.id) }}>{initials(c.name)}</span>
                     )}

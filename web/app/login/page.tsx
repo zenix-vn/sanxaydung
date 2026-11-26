@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { safeRedirect } from '@/lib/phone';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 
 export default function LoginPage() {
   const [tab, setTab] = useState<'login' | 'register'>('login');
@@ -20,7 +20,7 @@ export default function LoginPage() {
   async function oauth(provider: 'google') {
     setError(null);
     setLoading(true);
-    const supa = createSupabaseBrowser();
+    const supa = await loadSupa();
     const { error } = await supa.auth.signInWithOAuth({
       provider,
       options: { redirectTo: `${window.location.origin}/login/callback?redirect=${encodeURIComponent(redirectTo)}` },

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 
 /** Phản hồi của doanh nghiệp dưới một đánh giá; chủ/quản trị doanh nghiệp được viết và sửa. */
 export default function ReviewReply({ reviewId, companyName, initial, canReply }: {
@@ -16,7 +16,7 @@ export default function ReviewReply({ reviewId, companyName, initial, canReply }
     e.preventDefault();
     setBusy(true); setErr(null);
     const text = (draft ?? '').trim();
-    const { error } = await createSupabaseBrowser().rpc('reply_review', { _review: reviewId, _reply: text || null });
+    const { error } = await (await loadSupa()).rpc('reply_review', { _review: reviewId, _reply: text || null });
     setBusy(false);
     if (error) return setErr(error.message);
     setReply(text || null); setDraft(null);

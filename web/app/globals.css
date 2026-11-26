@@ -68,7 +68,7 @@ header{background:var(--navy);color:#fff;position:sticky;top:0;z-index:100}
 
 /* ---------- Hero ---------- */
 .hero{position:relative;background:linear-gradient(115deg,rgba(2,30,72,.95),rgba(2,30,72,.74)),
-      url("https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1600&q=80") center/cover;
+      url("https://images.unsplash.com/photo-1541888946425-d81bb19240f5?auto=format&fit=crop&w=1280&q=60") center/cover;
       color:#fff;padding:56px 0 30px}
 .hero-grid{display:grid;grid-template-columns:1.55fr 1fr;gap:40px;align-items:start}
 .eyebrow{color:var(--orange-2);font-weight:700;font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}

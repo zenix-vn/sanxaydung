@@ -1,6 +1,7 @@
 'use client';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 import { timeAgo } from '@/lib/ui';
 
 interface Noti {
@@ -16,7 +17,14 @@ interface Noti {
 // Chuông thông báo: tải 15 thông báo gần nhất, đếm chưa đọc, cập nhật tức thì qua Realtime.
 // Chưa đăng nhập → không hiển thị gì.
 export default function NotificationBell() {
-  const supa = useMemo(() => createSupabaseBrowser(), []);
+  const [supa, setSupa] = useState<SupabaseClient | null>(null);
+  useEffect(() => {
+    let alive = true;
+    loadSupa().then((c) => alive && setSupa(c));
+    return () => {
+      alive = false;
+    };
+  }, []);
   const [uid, setUid] = useState<string | null>(null);
   const [items, setItems] = useState<Noti[]>([]);
   const [unread, setUnread] = useState(0);
@@ -25,6 +33,7 @@ export default function NotificationBell() {
 
   const load = useCallback(
     async (id: string) => {
+      if (!supa) return;
       const [list, cnt] = await Promise.all([
         supa.from('notifications').select('id, type, title, body, link, is_read, created_at').eq('user_id', id).order('created_at', { ascending: false }).limit(15),
         supa.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', id).eq('is_read', false),
@@ -36,13 +45,8 @@ export default function NotificationBell() {
   );
 
   useEffect(() => {
-    let alive = true;
-    supa.auth.getUser().then(({ data: { user } }) => {
-      if (!alive || !user) return;
-      setUid(user.id);
-      load(user.id);
-    });
-    // Theo dõi đăng nhập/đăng xuất
+    if (!supa) return;
+    // INITIAL_SESSION (phát ngay khi đăng ký) + đăng nhập/đăng xuất về sau → một nguồn duy nhất, không tải trùng
     const { data: sub } = supa.auth.onAuthStateChange((_e, session) => {
       const id = session?.user?.id ?? null;
       setUid(id);
@@ -52,14 +56,11 @@ export default function NotificationBell() {
         setUnread(0);
       }
     });
-    return () => {
-      alive = false;
-      sub.subscription.unsubscribe();
-    };
+    return () => sub.subscription.unsubscribe();
   }, [supa, load]);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || !supa) return;
     const ch = supa
       .channel(`noti-${uid}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${uid}` }, (p) => {
@@ -84,14 +85,14 @@ export default function NotificationBell() {
   }, [open]);
 
   async function markAll() {
-    if (!uid || !unread) return;
+    if (!uid || !unread || !supa) return;
     setItems((cur) => cur.map((n) => ({ ...n, is_read: true })));
     setUnread(0);
     await supa.from('notifications').update({ is_read: true }).eq('user_id', uid).eq('is_read', false);
   }
 
   async function openItem(n: Noti) {
-    if (!n.is_read) {
+    if (!n.is_read && supa) {
       setItems((cur) => cur.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
       setUnread((u) => Math.max(0, u - 1));
       await supa.from('notifications').update({ is_read: true }).eq('id', n.id);

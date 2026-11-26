@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 
 export interface Eligible { connectionId: string; reviewerId: string; reviewerName: string }
 
@@ -31,7 +31,7 @@ export default function ReviewForm({ targetId, eligible }: { targetId: string; e
     if (CRITERIA.some(([k]) => !scores[k])) return setErr('Vui lòng chấm đủ 6 tiêu chí (1–5 sao).');
     setBusy(true);
     setErr(null);
-    const { error } = await createSupabaseBrowser().rpc('submit_review', {
+    const { error } = await (await loadSupa()).rpc('submit_review', {
       _connection: chosen.connectionId,
       _reviewer: chosen.reviewerId,
       _target: targetId,

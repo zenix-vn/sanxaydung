@@ -1,6 +1,6 @@
 'use client';
 import { useEffect } from 'react';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 
 // Mỗi phiên trình duyệt chỉ đếm 1 lần / công ty / loại / ngày
 function once(key: string) {
@@ -16,12 +16,12 @@ function once(key: string) {
 
 export function trackContact(companyId: string) {
   if (!once(`c:${companyId}`)) return;
-  createSupabaseBrowser().rpc('track_company', { _company: companyId, _kind: 'contact' }).then(() => undefined);
+  loadSupa().then((s) => s.rpc('track_company', { _company: companyId, _kind: 'contact' })).catch(() => undefined);
 }
 
 export function TrackView({ companyId }: { companyId: string }) {
   useEffect(() => {
-    if (once(`v:${companyId}`)) createSupabaseBrowser().rpc('track_company', { _company: companyId, _kind: 'view' }).then(() => undefined);
+    if (once(`v:${companyId}`)) loadSupa().then((s) => s.rpc('track_company', { _company: companyId, _kind: 'view' })).catch(() => undefined);
   }, [companyId]);
   return null;
 }
@@ -30,7 +30,7 @@ export function TrackImpressions({ ids }: { ids: string[] }) {
   const key = ids.join(',');
   useEffect(() => {
     const fresh = ids.filter((id) => once(`i:${id}`));
-    if (fresh.length) createSupabaseBrowser().rpc('track_impressions', { _ids: fresh.slice(0, 50) }).then(() => undefined);
+    if (fresh.length) loadSupa().then((s) => s.rpc('track_impressions', { _ids: fresh.slice(0, 50) })).catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return null;

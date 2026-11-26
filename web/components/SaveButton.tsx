@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 
 /** Nút lưu / bỏ lưu doanh nghiệp hoặc tin đăng vào danh sách cá nhân. */
 export default function SaveButton({ kind, itemId, className = 'btn btn-outline', compact }: { kind: 'company' | 'listing'; itemId: string; className?: string; compact?: boolean }) {
@@ -9,8 +9,9 @@ export default function SaveButton({ kind, itemId, className = 'btn btn-outline'
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const supa = createSupabaseBrowser();
-    supa.auth.getUser().then(async ({ data: { user } }) => {
+    loadSupa().then(async (supa) => {
+      const { data: { session } } = await supa.auth.getSession();
+      const user = session?.user;
       setUid(user?.id ?? null);
       if (!user) return;
       const { data } = await supa.from('saved_items').select('item_id').eq('user_id', user.id).eq('kind', kind).eq('item_id', itemId).maybeSingle();
@@ -25,7 +26,7 @@ export default function SaveButton({ kind, itemId, className = 'btn btn-outline'
     }
     if (!uid || busy) return;
     setBusy(true);
-    const supa = createSupabaseBrowser();
+    const supa = await loadSupa();
     const { error } = saved
       ? await supa.from('saved_items').delete().eq('user_id', uid).eq('kind', kind).eq('item_id', itemId)
       : await supa.from('saved_items').insert({ user_id: uid, kind, item_id: itemId });

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
 import { useMe } from '@/lib/me-client';
-import { colorFor, fmtMoney, initials } from '@/lib/ui';
+import { colorFor, fmtMoney, initials, thumb } from '@/lib/ui';
 
 interface Co {
   id: string;
@@ -106,7 +106,7 @@ function Ava({ co, cls = '', size }: { co: Co | null; cls?: string; size?: numbe
   const name = co?.name ?? '?';
   const st = size ? { width: size, height: size } : {};
   if (co?.logo_url) {
-    return <img src={co.logo_url} alt={name} className={cls} style={{ ...st, objectFit: 'cover', borderRadius: 11, flex: 'none' }} />;
+    return <img src={thumb(co.logo_url, 128)} alt={name} loading="lazy" className={cls} style={{ ...st, objectFit: 'cover', borderRadius: 11, flex: 'none' }} />;
   }
   return (
     <span className={cls} style={{ background: colorFor(co?.id ?? name), ...st }}>

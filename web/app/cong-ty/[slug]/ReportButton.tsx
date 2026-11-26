@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 
 const REASONS = ['Thông tin sai sự thật / mạo danh', 'Nội dung lừa đảo hoặc spam', 'Xâm phạm quyền / thông tin cá nhân', 'Khác'];
 
@@ -14,7 +14,7 @@ export default function ReportButton({ companyId }: { companyId: string }) {
 
   async function submit() {
     setState('busy'); setErr(null);
-    const supa = createSupabaseBrowser();
+    const supa = await loadSupa();
     const { data: { user } } = await supa.auth.getUser();
     if (!user) { window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`; return; }
     const { error } = await supa.from('reports').insert({

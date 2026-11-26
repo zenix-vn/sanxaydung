@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 import type { MyCompany } from '@/lib/roles';
 
 /** Hook client: người dùng + doanh nghiệp của họ. `ready=false` khi đang tải. */
@@ -14,8 +14,10 @@ export function useMe() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const supa = createSupabaseBrowser();
-      const { data: { user } } = await supa.auth.getUser();
+      const supa = await loadSupa();
+      // Chỉ để hiển thị giao diện → đọc phiên tại chỗ; quyền thật vẫn do RLS kiểm tra phía máy chủ
+      const { data: { session } } = await supa.auth.getSession();
+      const user = session?.user ?? null;
       if (!user) {
         if (alive) setState({ ready: true, userId: null, companies: [] });
         return;

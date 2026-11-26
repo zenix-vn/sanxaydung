@@ -6,7 +6,7 @@ import type { Listing } from '@/lib/types';
 import QuoteForm from './QuoteForm';
 import QuoteActions from './QuoteActions';
 import { getMe } from '@/lib/me';
-import { colorFor, initials, fmtMoney } from '@/lib/ui';
+import { colorFor, initials, fmtMoney, thumb } from '@/lib/ui';
 
 import { TIER_LABELS, QUOTE_STATUS } from '@/lib/format';
 import SaveButton from '@/components/SaveButton';
@@ -313,7 +313,7 @@ export default async function MarketplaceDetailPage({ params }: { params: { id: 
                   return (
                     <div key={q.id} className="quote-item">
                       {co?.logo_url ? (
-                        <img src={co.logo_url} alt={name} className="qa" style={{ objectFit: 'cover' }} />
+                        <img src={thumb(co.logo_url, 96)} alt={name} className="qa" loading="lazy" style={{ objectFit: 'cover' }} />
                       ) : (
                         <span className="qa" style={{ background: colorFor(co?.id ?? name) }}>{initials(name)}</span>
                       )}

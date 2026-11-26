@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 
 export default function LikeButton({ postId, initialLiked, initialCount }: { postId: string; initialLiked: boolean; initialCount: number }) {
   const [liked, setLiked] = useState(initialLiked);
@@ -10,7 +10,7 @@ export default function LikeButton({ postId, initialLiked, initialCount }: { pos
   async function toggle() {
     if (busy) return;
     setBusy(true);
-    const supa = createSupabaseBrowser();
+    const supa = await loadSupa();
     const { data: { user } } = await supa.auth.getUser();
     if (!user) {
       window.location.href = `/login?redirect=${encodeURIComponent('/feed')}`;

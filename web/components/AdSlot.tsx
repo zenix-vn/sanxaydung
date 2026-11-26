@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/env';
 
 type Ad = { id: string; title: string | null; creative_url: string; target_url: string; company: string | null };
@@ -22,7 +22,7 @@ export default function AdSlot({ slot, wrap }: { slot: 'home_banner' | 'director
   useEffect(() => {
     if (!SUPABASE_URL) return;
     let gone = false;
-    createSupabaseBrowser().rpc('ad_serve', { _slot: slot }).then(({ data }) => { if (!gone && data) setAd(data as Ad); });
+    loadSupa().then((s) => s.rpc('ad_serve', { _slot: slot })).then(({ data }) => { if (!gone && data) setAd(data as Ad); }).catch(() => undefined);
     return () => { gone = true; };
   }, [slot]);
 

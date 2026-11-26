@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { createSupabaseBrowser } from '@/lib/supabase/client';
+import { supa as loadSupa } from '@/lib/supabase/lazy';
 
 export interface MyCo { id: string; name: string; role: string }
 export interface ExistingConn { id: string; status: string; mineId: string; iAmTarget: boolean }
@@ -26,7 +26,7 @@ export default function ConnectButton({ targetId, mine, existing, loggedIn }: { 
     if (busy || (ask && !confirm(ask))) return;
     setBusy(true);
     setErr(null);
-    const { error } = await createSupabaseBrowser().rpc(fn, args);
+    const { error } = await (await loadSupa()).rpc(fn, args);
     setBusy(false);
     if (error) return setErr(error.message);
     router.refresh();

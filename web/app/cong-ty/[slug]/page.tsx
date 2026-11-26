@@ -10,7 +10,7 @@ import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { SUPABASE_URL } from '@/lib/env';
 import type { CompanyDetail } from '@/lib/types';
 import { getMe, canAdmin } from '@/lib/me';
-import { SITE_URL } from '@/lib/ui';
+import { SITE_URL, thumb } from '@/lib/ui';
 import ConnectButton, { type ExistingConn } from './ConnectButton';
 import ReviewForm, { type Eligible } from './ReviewForm';
 import ReviewReply from './ReviewReply';
@@ -293,7 +293,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
           height: 220,
           background: c.cover_url
             ? `linear-gradient(rgba(2,30,72,.3),rgba(2,30,72,.1)),url(${c.cover_url}) center/cover`
-            : 'linear-gradient(120deg,rgba(2,30,72,.9),rgba(2,30,72,.6)),url(https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1600&q=80) center/cover',
+            : 'linear-gradient(120deg,rgba(2,30,72,.9),rgba(2,30,72,.6)),url(https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1280&q=60) center/cover',
         }}
       />
 
@@ -303,7 +303,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
           <div className="ph-inner">
             {/* Logo */}
             <div className="ph-logo" style={{ background: logoColor }}>
-              {c.logo_url ? <img src={c.logo_url} alt={c.name} /> : ini}
+              {c.logo_url ? <img src={thumb(c.logo_url, 200)} alt={c.name} /> : ini}
             </div>
 
             {/* Name + badges + meta */}
