@@ -1,6 +1,7 @@
 import {
-  AWARD_KINDS, PARTNER_KINDS, safeHttpUrl, type About, type Award, type Partner,
+  AWARD_KINDS, PARTNER_KINDS, safeHttpUrl, type About, type Award, type Branch, type Faq, type Milestone, type Partner,
 } from '@/lib/profile';
+import BranchMap from './BranchMap';
 import { LISTING_TYPE_LABEL, POST_TYPES, fmtDate, fmtRange } from '@/lib/format';
 import { initials, thumb, timeAgo } from '@/lib/ui';
 import { plainText } from '@/lib/richtext';
@@ -129,6 +130,69 @@ export function ListingsSection({ items }: { items: CoListing[] }) {
             {[fmtRange(l.budget_from, l.budget_to) ?? 'Thương lượng', l.deadline ? `Hạn ${fmtDate(l.deadline)}` : null, `Đăng ${timeAgo(l.created_at).toLowerCase()}`].filter(Boolean).join(' · ')}
           </small>
         </a>
+      ))}
+    </div>
+  );
+}
+
+export function MilestonesSection({ items }: { items: Milestone[] }) {
+  return (
+    <div className="card-block" id="moc">
+      <h2>Mốc phát triển</h2>
+      <ol className="co-timeline">
+        {[...items].sort((a, b) => a.year - b.year).map((m) => {
+          const img = safeHttpUrl(m.image_url);
+          return (
+            <li key={m.id}>
+              <span className="yr">{m.year}</span>
+              <div>
+                <h4>{m.title}</h4>
+                {m.description && <p>{m.description}</p>}
+                {img && <a href={img} target="_blank" rel="noopener noreferrer"><img src={img} alt={m.title} loading="lazy" /></a>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
+export function BranchesSection({ items, provinces }: { items: Branch[]; provinces: Map<string, string> }) {
+  const pins = items.filter((b) => b.lat != null && b.lng != null).map((b) => ({ name: b.name, lat: Number(b.lat), lng: Number(b.lng) }));
+  return (
+    <div className="card-block" id="chinhanh">
+      <h2>Chi nhánh &amp; văn phòng</h2>
+      <div className="co-branches">
+        {items.map((b) => {
+          const province = b.province_code ? provinces.get(b.province_code) : null;
+          const where = [b.address, province].filter(Boolean).join(', ');
+          const query = b.lat != null && b.lng != null ? `${b.lat},${b.lng}` : where;
+          const tel = b.phone?.replace(/[^\d+]/g, '');
+          return (
+            <div key={b.id}>
+              <h4>{b.name}</h4>
+              {where && <p><svg className="ic"><use href="#ic-pin" /></svg> {where}</p>}
+              {b.phone && <p><svg className="ic"><use href="#ic-phone" /></svg> {tel ? <a href={`tel:${tel}`}>{b.phone}</a> : b.phone}</p>}
+              {query && <a className="dir" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`} target="_blank" rel="nofollow noopener noreferrer">Chỉ đường →</a>}
+            </div>
+          );
+        })}
+      </div>
+      {pins.length > 0 && <BranchMap pins={pins} />}
+    </div>
+  );
+}
+
+export function FaqSection({ items }: { items: Faq[] }) {
+  return (
+    <div className="card-block" id="faq">
+      <h2>Câu hỏi thường gặp</h2>
+      {items.map((f) => (
+        <details className="co-faq" key={f.id}>
+          <summary>{f.question}</summary>
+          <p>{f.answer}</p>
+        </details>
       ))}
     </div>
   );

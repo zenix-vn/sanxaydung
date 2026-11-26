@@ -47,3 +47,47 @@
 .co-row small{font-size:12px;color:var(--muted)}
 
 @media(max-width:600px){.co-partners{grid-template-columns:repeat(2,1fr)}.co-awards{grid-template-columns:repeat(2,1fr);gap:10px}.proj-filter .select{margin-left:0}}
+
+/* Ảnh bìa động */
+.co-cover{overflow:hidden}
+.cv-layer{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background-size:cover;background-position:var(--cover-pos,center);transition:opacity .8s}
+.co-tagline{z-index:2;pointer-events:none}
+.cv-nav{position:absolute;right:14px;top:12px;z-index:3;display:flex;align-items:center;gap:7px}
+.cv-nav button{width:10px;height:10px;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.5);box-shadow:0 0 4px rgba(0,0,0,.5);cursor:pointer}
+.cv-nav button.on{background:#fff;transform:scale(1.25)}
+.cv-nav .pp{width:26px;height:26px;background:rgba(0,0,0,.45);color:#fff;font-size:9px;margin-left:4px}
+@media(max-width:900px){.cv-nav{top:auto;bottom:10px}}
+
+.co-banner{background:#fff4e8;border-bottom:1px solid #ffe1bd;color:#8a4f08;font-size:13.5px}
+.co-banner .container{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;padding-top:10px;padding-bottom:10px}
+.co-banner a{font-weight:700;color:#8a4f08;text-decoration:underline}
+
+.co-staff-cert{display:inline-block;margin-top:6px;font-size:11.5px;font-weight:600;color:var(--navy);background:var(--orange-soft);border-radius:6px;padding:3px 8px}
+.co-staff-bio{font-size:12.5px;color:#31414f;margin-top:8px;line-height:1.55}
+.staff{overflow-wrap:anywhere}
+
+.co-timeline{list-style:none;margin:0;padding:0}
+.co-timeline li{display:grid;grid-template-columns:62px 1fr;gap:18px;position:relative;padding-bottom:22px}
+.co-timeline li::before{content:"";position:absolute;left:70px;top:6px;bottom:-6px;width:2px;background:var(--line)}
+.co-timeline li:last-child{padding-bottom:0}
+.co-timeline li:last-child::before{display:none}
+.co-timeline li>div{position:relative;padding-left:12px;min-width:0;overflow-wrap:anywhere}
+.co-timeline li>div::before{content:"";position:absolute;left:-14px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--orange);border:2px solid #fff;z-index:1}
+.co-timeline .yr{font-size:17px;font-weight:800;color:var(--orange);line-height:1.2}
+.co-timeline h4{font-size:14.5px;font-weight:700;color:var(--navy);line-height:1.4}
+.co-timeline p{font-size:13.5px;color:#31414f;margin-top:4px;white-space:pre-line}
+.co-timeline img{display:block;max-width:min(320px,100%);max-height:200px;border-radius:10px;margin-top:8px}
+
+.co-branches{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.co-branches>div{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0;overflow-wrap:anywhere}
+.co-branches h4{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.co-branches p{display:flex;gap:8px;font-size:13px;color:#31414f;margin-top:4px}
+.co-branches p svg{width:15px;height:15px;flex:none;margin-top:3px;color:var(--orange)}
+.co-branches .dir{display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--orange)}
+.br-map{height:320px;border-radius:12px;background:#e6ebf1;margin-top:14px;position:relative;z-index:0}
+
+.co-faq{border-bottom:1px solid var(--line-2)}
+.co-faq:last-child{border-bottom:none}
+.co-faq summary{cursor:pointer;padding:13px 0;font-size:14px;font-weight:700;color:var(--navy);overflow-wrap:anywhere}
+.co-faq summary::marker{color:var(--orange)}
+.co-faq p{font-size:13.5px;line-height:1.65;color:#31414f;padding:0 0 14px 18px;white-space:pre-line;overflow-wrap:anywhere}

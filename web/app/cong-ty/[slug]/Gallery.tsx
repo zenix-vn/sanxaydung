@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { parseVideo, type GalleryItem } from '@/lib/profile';
+import ReportButton from './ReportButton';
 
 const PREVIEW = 8;
 
 /** Lưới ảnh/video + xem toàn màn hình. `items` đã được lọc hợp lệ ở server. */
-export default function Gallery({ items, companyName }: { items: GalleryItem[]; companyName: string }) {
+export default function Gallery({ items, companyName, reportable }: { items: GalleryItem[]; companyName: string; reportable: boolean }) {
   const [open, setOpen] = useState<number | null>(null);
   const ref = useRef<HTMLDialogElement>(null);
   const touchX = useRef<number | null>(null);
@@ -47,7 +48,11 @@ export default function Gallery({ items, companyName }: { items: GalleryItem[]; 
         aria-label={`Thư viện của ${companyName}`}
         onClose={() => setOpen(null)}
         onClick={(e) => { if ((e.target as HTMLElement).dataset.backdrop) setOpen(null); }}
-        onKeyDown={(e) => { if (e.key === 'ArrowLeft') step(-1); if (e.key === 'ArrowRight') step(1); }}
+        onKeyDown={(e) => {
+          if ((e.target as HTMLElement).matches('input,textarea,select')) return; // đang soạn báo cáo
+          if (e.key === 'ArrowLeft') step(-1);
+          if (e.key === 'ArrowRight') step(1);
+        }}
         onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
         onTouchEnd={(e) => {
           const dx = touchX.current === null ? 0 : e.changedTouches[0].clientX - touchX.current;
@@ -68,6 +73,7 @@ export default function Gallery({ items, companyName }: { items: GalleryItem[]; 
                 {cur.caption && <b>{cur.caption}</b>}
                 <span>{open + 1} / {n}</span>
                 {curVideo && <a href={curVideo.url} target="_blank" rel="noopener noreferrer">Mở trên {curVideo.provider === 'youtube' ? 'YouTube' : 'Facebook'}</a>}
+                {reportable && <ReportButton key={cur.id} entityType="media" entityId={cur.id} up />}
               </figcaption>
             </figure>
             {n > 1 && <button type="button" className="lb-btn lb-next" onClick={() => step(1)} aria-label="Sau"><svg className="ic"><use href="#ic-chevron-right" /></svg></button>}

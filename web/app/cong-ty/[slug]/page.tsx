@@ -6,9 +6,8 @@ import { TrackView, ContactLink } from '@/components/Track';
 import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { createSupabaseServer } from '@/lib/supabase/server';
-import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
-import { SUPABASE_URL } from '@/lib/env';
-import type { CompanyDetail } from '@/lib/types';
+import { getCompany, getContent, getSharedDocs } from './data';
+import CoverBanner from './CoverBanner';
 import { getMe, canAdmin } from '@/lib/me';
 import { SITE_URL, thumb } from '@/lib/ui';
 import ConnectButton, { type ExistingConn } from './ConnectButton';
@@ -16,14 +15,14 @@ import ReviewForm, { type Eligible } from './ReviewForm';
 import ReviewReply from './ReviewReply';
 import Gallery from './Gallery';
 import ProjectsGrid from './ProjectsGrid';
-import { AboutBlocks, AwardsSection, ListingsSection, PartnersSection, PostsSection, type CoListing, type CoPost } from './ShowcaseSections';
+import { AboutBlocks, AwardsSection, BranchesSection, FaqSection, ListingsSection, MilestonesSection, PartnersSection, PostsSection } from './ShowcaseSections';
 import RichText from '@/components/RichText';
 import { plainText } from '@/lib/richtext';
 import './profile.css';
 import {
-  LINK_KINDS, LINK_META, MAX_AWARDS, MAX_FEATURED, MAX_GALLERY, MAX_PARTNERS,
-  brandVars, coverPosition, cssUrl, parseProfileSettings, parseVideo, safeHttpUrl, sectionOrder,
-  type Award, type GalleryItem, type Partner, type SectionKey,
+  CTA_LABELS, LINK_KINDS, LINK_META, MAX_FEATURED, RESPONSE_LABELS,
+  brandVars, coverPosition, cssUrl, parseProfileSettings, sectionOrder,
+  type SectionKey,
 } from '@/lib/profile';
 import { VERIFY_KIND } from '@/lib/admin-labels';
 
@@ -77,142 +76,7 @@ function maskTaxCode(code: string | null) {
   return code.slice(0, 4) + '●'.repeat(code.length - 5) + code.slice(-1);
 }
 
-const fetchCompany = cachedPublic(async (slug: string): Promise<CompanyDetail | null> => {
-    const supa = createSupabasePublic();
-    const { data, error } = await supa
-      .from('companies')
-      .select(
-        `*,
-         company_categories ( categories (*) ),
-         company_locations ( provinces (*) ),
-         projects ( * ),
-         trust_scores ( score, breakdown ),
-         company_verifications ( id, kind, cert_class, status, verified_at ),
-         services ( * ),
-         staff ( * ),
-         equipment ( * ),
-         reviews!target_company_id (
-           id, connection_id, reviewer_company_id, target_company_id,
-           score_quality, score_progress, score_cost, score_cooperation,
-           score_safety, score_warranty, overall, comment, status, created_at, reply,
-           reviewer_company:companies!reviewer_company_id ( id, name, slug, logo_url )
-         )`,
-      )
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .is('deleted_at', null)
-      .eq('reviews.status', 'published')
-      .eq('company_verifications.status', 'verified')
-      .order('created_at', { referencedTable: 'reviews', ascending: false })
-      .maybeSingle();
-    if (error) throw error;
-    return (data as CompanyDetail) ?? null;
-}, 'company', 30);
-
-async function getCompany(slug: string): Promise<CompanyDetail | null> {
-  if (!SUPABASE_URL) return null;
-  try {
-    return await fetchCompany(slug);
-  } catch {
-    return null;
-  }
-}
-
-const fetchProjectPhotos = cachedPublic(async (companyId: string) => {
-  const { data, error } = await createSupabasePublic()
-    .from('media')
-    .select('owner_id, url')
-    .eq('company_id', companyId)
-    .eq('owner_type', 'project')
-    .eq('kind', 'image')
-    .order('sort_order');
-  if (error) throw error;
-  return (data ?? []) as { owner_id: string; url: string }[];
-}, 'project-photos', 60);
-
-async function getProjectPhotos(companyId: string) {
-  try {
-    const rows = await fetchProjectPhotos(companyId);
-    return rows.reduce((m, r) => m.set(r.owner_id, [...(m.get(r.owner_id) ?? []), r.url]), new Map<string, string[]>());
-  } catch {
-    return new Map<string, string[]>();
-  }
-}
-
-const fetchGallery = cachedPublic(async (companyId: string) => {
-  const { data, error } = await createSupabasePublic()
-    .from('media')
-    .select('id, kind, url, caption')
-    .eq('company_id', companyId)
-    .eq('owner_type', 'company')
-    .order('sort_order')
-    .order('created_at')
-    .limit(MAX_GALLERY);
-  if (error) throw error;
-  return (data ?? []) as GalleryItem[];
-}, 'company-gallery', 30);
-
-async function getGallery(companyId: string): Promise<GalleryItem[]> {
-  try {
-    const rows = await fetchGallery(companyId);
-    // Bỏ link không hợp lệ (media.url do thành viên ghi trực tiếp được)
-    return rows.filter((m) => (m.kind === 'video' ? parseVideo(m.url) : safeHttpUrl(m.url)));
-  } catch {
-    return [];
-  }
-}
-
-type SharedDoc = { id: string; title: string; file_url: string; visibility: 'public' | 'connections'; size_bytes: number | null };
-
-/** Tài liệu chia sẻ ra ngoài mà người đang xem được phép thấy (RLS lọc theo phiên) — không cache. */
-async function getSharedDocs(companyId: string): Promise<SharedDoc[]> {
-  if (!SUPABASE_URL) return [];
-  try {
-    const { data } = await createSupabaseServer()
-      .from('documents')
-      .select('id, title, file_url, visibility, size_bytes')
-      .eq('company_id', companyId)
-      .in('visibility', ['public', 'connections'])
-      .order('created_at', { ascending: false });
-    return (data ?? []) as SharedDoc[];
-  } catch {
-    return [];
-  }
-}
-
 const fmtSize = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
-
-// Các mục phụ: lỗi truy vấn chỉ làm mục đó trống, không làm hỏng cả trang
-const fetchExtras = cachedPublic(async (companyId: string) => {
-  const db = createSupabasePublic();
-  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
-  const [partners, awards, posts, listings] = await Promise.all([
-    db.from('company_partners').select('*, linked:companies!linked_company_id ( slug, name, logo_url, status )')
-      .eq('company_id', companyId).order('sort_order').order('created_at').limit(MAX_PARTNERS),
-    db.from('company_awards').select('*').eq('company_id', companyId).order('sort_order').order('created_at').limit(MAX_AWARDS),
-    db.from('posts').select('id, type, title, body, like_count, comment_count, created_at')
-      .eq('company_id', companyId).eq('status', 'published').is('deleted_at', null).order('created_at', { ascending: false }).limit(30),
-    db.from('marketplace_listings').select('id, type, title, budget_from, budget_to, deadline, created_at')
-      .eq('company_id', companyId).eq('status', 'open').is('deleted_at', null).or(`deadline.is.null,deadline.gte.${today}`)
-      .order('created_at', { ascending: false }).limit(10),
-  ]);
-  const failed = [partners, awards, posts, listings].find((r) => r.error);
-  if (failed) throw failed.error;
-  return {
-    partners: (partners.data ?? []) as unknown as Partner[],
-    awards: (awards.data ?? []) as Award[],
-    posts: (posts.data ?? []) as CoPost[],
-    listings: (listings.data ?? []) as CoListing[],
-  };
-}, 'company-extras', 30);
-
-async function getExtras(companyId: string) {
-  try {
-    return await fetchExtras(companyId);
-  } catch {
-    return { partners: [], awards: [], posts: [], listings: [] } as { partners: Partner[]; awards: Award[]; posts: CoPost[]; listings: CoListing[] };
-  }
-}
 
 async function getRelation(companyId: string) {
   const me = await getMe();
@@ -253,14 +117,22 @@ async function getRelation(companyId: string) {
   return out;
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const c = await getCompany(params.slug);
+type PageProps = { params: { slug: string }; searchParams: { all?: string; khach?: string } };
+
+/** Người xem có phải thành viên của doanh nghiệp này không. */
+const isMemberOf = async (slug: string) => (await getMe()).companies.some((c) => c.slug === slug);
+
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+  const member = await isMemberOf(params.slug);
+  const c = await getCompany(params.slug, member);
   if (!c) return { title: 'Không tìm thấy doanh nghiệp' };
+  const summary = c.intro || plainText(c.description ?? '').slice(0, 300);
   return {
     title: c.name,
-    description: c.intro || plainText(c.description ?? '').slice(0, 300) || `Hồ sơ năng lực ${c.name} trên Sàn Xây Dựng.`,
+    description: summary || `Hồ sơ năng lực ${c.name} trên Sàn Xây Dựng.`,
     alternates: { canonical: `${SITE_URL}/cong-ty/${c.slug}` },
-    openGraph: { title: c.name, description: c.intro ?? plainText(c.description ?? '').slice(0, 200), images: c.logo_url ? [c.logo_url] : [], url: `${SITE_URL}/cong-ty/${c.slug}`, type: 'website' },
+    openGraph: { title: c.name, description: summary.slice(0, 200), images: c.logo_url ? [c.logo_url] : [], url: `${SITE_URL}/cong-ty/${c.slug}`, type: 'website' },
+    ...(c.status !== 'published' || searchParams.khach ? { robots: { index: false } } : {}),
   };
 }
 
@@ -285,11 +157,15 @@ function fmtPrice(from: number | null, to: number | null, unit: string | null): 
   return s;
 }
 
-export default async function CompanyPage({ params, searchParams }: { params: { slug: string }; searchParams: { all?: string } }) {
+export default async function CompanyPage({ params, searchParams }: PageProps) {
   const showAll = searchParams?.all === '1';
-  const c = await getCompany(params.slug);
+  const member = await isMemberOf(params.slug);
+  const c = await getCompany(params.slug, member);
   if (!c) notFound();
-  const [rel, photos, gallery, docs, extras] = await Promise.all([getRelation(c.id), getProjectPhotos(c.id), getGallery(c.id), getSharedDocs(c.id), getExtras(c.id)]);
+  // "Xem như khách": thành viên thấy đúng những gì người lạ chưa đăng nhập thấy
+  const asGuest = member && searchParams?.khach === '1';
+  const [relation, { photos, gallery, extras }, docs] = await Promise.all([getRelation(c.id), getContent(c.id, member), getSharedDocs(c.id, asGuest)]);
+  const rel = asGuest ? { loggedIn: false, isMember: false, canReply: false, mine: [], existing: null, eligible: [] as Eligible[] } : relation;
   const settings = parseProfileSettings(c.profile_settings);
   const links = LINK_KINDS.flatMap((k) => (settings.links?.[k] ? [{ kind: k, url: settings.links[k]! }] : []));
   const sameAs = [
@@ -308,7 +184,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
   const verified = c.company_verifications ?? [];
   const capability = verified.find((v) => v.kind === 'capability_cert');
   const services = c.services ?? [];
-  const staff = c.staff ?? [];
+  const staff = [...(c.staff ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const equipment = c.equipment ?? [];
   const reviews = (c.reviews ?? []).filter((r) => r.status === 'published');
   const reviewCount = reviews.length;
@@ -344,6 +220,12 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
       : {}),
   };
 
+  // Tên tỉnh cho các chi nhánh
+  const branchCodes = Array.from(new Set(extras.branches.map((b) => b.province_code).filter((x): x is string => !!x)));
+  const branchProvinces: { code: string; name: string }[] = branchCodes.length
+    ? ((await createSupabaseServer().from('provinces').select('code, name').in('code', branchCodes)).data ?? [])
+    : [];
+
   // Phần giới thiệu dài; bỏ qua nếu chỉ lặp lại mô tả ngắn
   const longText = c.description && c.description.trim() !== c.intro?.trim() ? c.description : '';
   // Dự án ghim đứng đầu, còn lại theo năm mới nhất
@@ -365,11 +247,26 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
     tailieu: 'Hồ sơ năng lực',
     giaithuong: extras.awards.length ? 'Giải thưởng' : null,
     nhansu: staff.length || equipment.length ? 'Nhân sự & Thiết bị' : null,
+    moc: extras.milestones.length ? 'Mốc phát triển' : null,
+    chinhanh: extras.branches.length ? `Chi nhánh (${extras.branches.length})` : null,
+    faq: extras.faqs.length ? 'Hỏi đáp' : null,
     baidang: extras.posts.length ? 'Bài đăng' : null,
     tindang: extras.listings.length ? `Tin đăng (${extras.listings.length})` : null,
   };
   const hidden = settings.sections?.hidden ?? [];
   const shown = sectionOrder(settings.sections?.order).filter((k) => tabs[k] && !hidden.includes(k));
+
+  // Nút liên hệ chính do doanh nghiệp chọn; thiếu dữ liệu thì quay về "Nhắn tin"
+  const tel = c.phone?.replace(/[^\d+]/g, '') || null;
+  const cta =
+    settings.cta === 'call' && tel ? { href: `tel:${tel}`, label: CTA_LABELS.call, icon: 'ic-phone' }
+    : settings.cta === 'zalo' && settings.links?.zalo ? { href: settings.links.zalo, label: CTA_LABELS.zalo, icon: 'ic-chat', external: true }
+    : settings.cta === 'quote' ? { href: `/chat?to=${c.id}&compose=quote`, label: CTA_LABELS.quote, icon: 'ic-clipboard' }
+    : null;
+  const provinceNames = new Map<string, string>(branchProvinces.map((p) => [p.code, p.name]));
+  const faqLd = shown.includes('faq')
+    ? { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: extras.faqs.map((f) => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) }
+    : null;
 
   const sections: Record<SectionKey, () => ReactNode> = {
     gioithieu: () => (
@@ -377,7 +274,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
         <div className="card-block" id="gioithieu">
           <h2>
             Giới thiệu
-            <ReportButton companyId={c.id} />
+            <ReportButton entityType="company" entityId={c.id} />
           </h2>
           {c.intro && <p className="prose co-lead">{c.intro}</p>}
           {!c.intro && !longText && !settings.about && <p className="muted">Chưa có thông tin giới thiệu.</p>}
@@ -430,7 +327,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
         {gallery.length > 0 && (
           <div className="card-block" id="thuvien">
             <h2>Hình ảnh &amp; video</h2>
-            <Gallery items={gallery} companyName={c.name} />
+            <Gallery items={gallery} companyName={c.name} reportable={!rel.isMember} />
           </div>
         )}
       </>
@@ -623,7 +520,7 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                     return (
                       <div className="staff" key={s.id}>
                         {s.avatar_url ? (
-                          <img src={s.avatar_url} alt={s.full_name ?? ''} style={{ width: 60, height: 60, borderRadius: '50%', margin: '0 auto 10px', objectFit: 'cover', display: 'block' }} />
+                          <img src={s.avatar_url} alt={s.full_name ?? ''} loading="lazy" style={{ width: 76, height: 76, borderRadius: '50%', margin: '0 auto 10px', objectFit: 'cover', display: 'block' }} />
                         ) : (
                           <div className="a" style={{ background: sBg }}>{sIni}</div>
                         )}
@@ -631,6 +528,8 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                         <small>
                           {[s.title, s.experience_years ? `${s.experience_years} năm` : null].filter(Boolean).join(' · ')}
                         </small>
+                        {s.certificate && <div><span className="co-staff-cert">{s.certificate}</span></div>}
+                        {s.bio && <p className="co-staff-bio">{s.bio}</p>}
                       </div>
                     );
                   })}
@@ -655,6 +554,21 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
         )}
       </>
     ),
+    moc: () => (
+      <>
+        <MilestonesSection items={extras.milestones} />
+      </>
+    ),
+    chinhanh: () => (
+      <>
+        <BranchesSection items={extras.branches} provinces={provinceNames} />
+      </>
+    ),
+    faq: () => (
+      <>
+        <FaqSection items={extras.faqs} />
+      </>
+    ),
     baidang: () => (
       <>
         <PostsSection items={extras.posts} showAll={showAll} />
@@ -669,7 +583,22 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
 
   return (
     <div className={settings.brand_color ? 'co-page co-brand' : 'co-page'} style={settings.brand_color ? (brandVars(settings.brand_color) as CSSProperties) : undefined}>
-      <TrackView companyId={c.id} />
+      {!member && <TrackView companyId={c.id} />}
+      {faqLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, '\\u003c') }} />}
+      {member && (asGuest || c.status !== 'published') && (
+        <div className="co-banner">
+          <div className="container">
+            <span>
+              {asGuest ? <><b>Đang xem như khách.</b> Đây là những gì người chưa đăng nhập nhìn thấy.</> : null}
+              {c.status !== 'published' ? ' Hồ sơ chưa công khai: hiện chỉ thành viên xem được trang này.' : null}
+            </span>
+            <span className="row" style={{ gap: 14 }}>
+              {asGuest && <a href={`/cong-ty/${c.slug}`}>Thoát chế độ khách</a>}
+              <a href="/dashboard/company-edit">Sửa hồ sơ</a>
+            </span>
+          </div>
+        </div>
+      )}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }} />
       <style dangerouslySetInnerHTML={{ __html: `
         .svc{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--line-2)}
@@ -741,11 +670,13 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
       <div
         className="co-cover"
         style={{
+          ['--cover-pos' as string]: coverPosition(settings),
           background: c.cover_url
             ? `linear-gradient(rgba(2,30,72,.3),rgba(2,30,72,.1)),${cssUrl(c.cover_url)} ${coverPosition(settings)}/cover`
             : 'linear-gradient(120deg,rgba(2,30,72,.9),rgba(2,30,72,.6)),url(https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1280&q=60) center/cover',
         }}
       >
+        <CoverBanner images={settings.banner?.images ?? []} video={settings.banner?.video ?? null} position={coverPosition(settings)} />
         {settings.tagline && (
           <div className="co-tagline">
             <div className="container"><p>{settings.tagline}</p></div>
@@ -823,6 +754,10 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                 <a className="btn btn-outline" href="/dashboard/company-edit">
                   <svg className="ic"><use href="#ic-edit" /></svg> Sửa hồ sơ
                 </a>
+              ) : cta ? (
+                <ContactLink companyId={c.id} className="btn btn-navy" href={cta.href} {...(cta.external ? { target: '_blank', rel: 'nofollow noopener noreferrer' } : {})}>
+                  <svg className="ic"><use href={`#${cta.icon}`} /></svg> {cta.label}
+                </ContactLink>
               ) : (
                 <ContactLink companyId={c.id} className="btn btn-outline" href={`/chat?to=${c.id}`}>
                   <svg className="ic"><use href="#ic-chat" /></svg> Nhắn tin
@@ -949,7 +884,12 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
               {c.phone && (
                 <div className="kv">
                   <span className="k">Điện thoại</span>
-                  <span className="v">{maskPhone(c.phone)}</span>
+                  {settings.cta === 'call' && tel ? (
+                    // doanh nghiệp chọn "Gọi ngay" → công khai đầy đủ số
+                    <ContactLink companyId={c.id} className="v" href={`tel:${tel}`} style={{ color: 'var(--orange)' }}>{c.phone}</ContactLink>
+                  ) : (
+                    <span className="v">{maskPhone(c.phone)}</span>
+                  )}
                 </div>
               )}
               {c.email && (
@@ -977,6 +917,18 @@ export default async function CompanyPage({ params, searchParams }: { params: { 
                 <div className="kv">
                   <span className="k">Địa chỉ</span>
                   <span className="v" style={{ maxWidth: 170 }}>{c.address}</span>
+                </div>
+              )}
+              {settings.hours && (
+                <div className="kv">
+                  <span className="k">Giờ làm việc</span>
+                  <span className="v" style={{ whiteSpace: 'pre-line', overflowWrap: 'anywhere' }}>{settings.hours}</span>
+                </div>
+              )}
+              {settings.response && (
+                <div className="kv">
+                  <span className="k">Thường phản hồi</span>
+                  <span className="v">{RESPONSE_LABELS[settings.response]}</span>
                 </div>
               )}
               <ContactLink companyId={c.id} className="btn btn-orange btn-block mt-16" href={`/chat?to=${c.id}`}>

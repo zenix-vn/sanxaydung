@@ -122,7 +122,7 @@ type Row = Record<string, any> & { id: string };
 function CrudList({
   table, companyId, fields, rows: initial, disabled, onMsg, render, emptyText, addLabel,
 }: {
-  table: 'services' | 'staff' | 'equipment';
+  table: 'services' | 'equipment';
   companyId: string; fields: Field[]; rows: Row[]; disabled: boolean; onMsg: Msg;
   render: (r: Row) => React.ReactNode; emptyText: string; addLabel: string;
 }) {
@@ -245,28 +245,6 @@ export function ServicesEditor(p: { companyId: string; rows: Row[]; disabled: bo
           <b style={{ color: 'var(--navy)' }}>{r.name}</b>
           {fmtRange(r.price_from, r.price_to, r.price_unit) && <span className="muted" style={{ fontSize: 12.5 }}> · {fmtRange(r.price_from, r.price_to, r.price_unit)}</span>}
           {r.description && <div className="muted" style={{ fontSize: 12.5 }}>{String(r.description).slice(0, 140)}</div>}
-        </>
-      )}
-    />
-  );
-}
-
-export function StaffEditor(p: { companyId: string; rows: Row[]; disabled: boolean; onMsg: Msg }) {
-  return (
-    <CrudList
-      {...p}
-      table="staff"
-      addLabel="Thêm nhân sự"
-      emptyText="Chưa có nhân sự chủ chốt. Giới thiệu chỉ huy trưởng, kỹ sư chính để tăng độ tin cậy."
-      fields={[
-        { key: 'full_name', label: 'Họ tên', required: true },
-        { key: 'title', label: 'Chức danh', placeholder: 'vd. Chỉ huy trưởng' },
-        { key: 'experience_years', label: 'Số năm kinh nghiệm', type: 'number' },
-      ]}
-      render={(r) => (
-        <>
-          <b style={{ color: 'var(--navy)' }}>{r.full_name}</b>
-          <span className="muted" style={{ fontSize: 12.5 }}>{[r.title, r.experience_years ? `${r.experience_years} năm KN` : null].filter(Boolean).map((x) => ` · ${x}`).join('')}</span>
         </>
       )}
     />

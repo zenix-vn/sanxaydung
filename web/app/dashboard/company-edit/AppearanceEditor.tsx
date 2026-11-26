@@ -2,7 +2,7 @@
 import {
   BRAND_PRESETS, LINK_KINDS, LINK_META, MAX_HIGHLIGHTS, MAX_HL_LABEL, MAX_HL_VALUE, MAX_TAGLINE,
   cssUrl, normalizeLink, parseProfileSettings, readableBrand, sectionOrder,
-  type Highlight, type LinkKind, type ProfileSettings, type SectionKey,
+  type CtaKind, type Highlight, type LinkKind, type ProfileSettings, type SectionKey,
 } from '@/lib/profile';
 
 /** Trạng thái form (cho phép giá trị đang gõ dở), lưu cùng nút "Lưu" của trang. */
@@ -17,6 +17,11 @@ export type ProfileForm = {
   values: string; // mỗi dòng một giá trị
   order: SectionKey[];
   hidden: SectionKey[];
+  cta: CtaKind;
+  hours: string;
+  response: string;
+  bannerImages: string[];
+  bannerVideo: string;
 };
 
 export function toProfileForm(raw: unknown): ProfileForm {
@@ -32,6 +37,11 @@ export function toProfileForm(raw: unknown): ProfileForm {
     values: s.about?.values?.join('\n') ?? '',
     order: sectionOrder(s.sections?.order),
     hidden: s.sections?.hidden ?? [],
+    cta: s.cta ?? 'message',
+    hours: s.hours ?? '',
+    response: s.response ?? '',
+    bannerImages: s.banner?.images ?? [],
+    bannerVideo: s.banner?.video ?? '',
   };
 }
 
@@ -51,13 +61,15 @@ export function buildProfileSettings(f: ProfileForm): { settings: ProfileSetting
       highlights: f.highlights, links: f.links,
       about: { vision: f.vision, mission: f.mission, values: f.values.split('\n') },
       sections: { order: f.order, hidden: f.hidden },
+      cta: f.cta, hours: f.hours, response: f.response,
+      banner: { images: f.bannerImages, video: f.bannerVideo },
     }),
   };
 }
 
 type Props = { value: ProfileForm; onChange: (v: ProfileForm) => void; disabled: boolean };
 
-export function AppearanceEditor({ value, onChange, disabled, cover }: Props & { cover: string | null }) {
+export function AppearanceEditor({ value, onChange, disabled, cover, canBrand, children }: Props & { cover: string | null; canBrand: boolean; children?: React.ReactNode }) {
   const set = (patch: Partial<ProfileForm>) => onChange({ ...value, ...patch });
   const shown = value.brand_color ? readableBrand(value.brand_color) : null;
   const pos = `${value.focus.x}% ${value.focus.y}%`;
@@ -73,16 +85,17 @@ export function AppearanceEditor({ value, onChange, disabled, cover }: Props & {
     <div className="card-block" id="appearance">
       <h2>Giao diện trang hồ sơ</h2>
       <p className="muted mb-16">Màu thương hiệu, khẩu hiệu và cách hiển thị ảnh bìa. Bấm “Lưu” ở cuối trang để áp dụng.</p>
+      {!canBrand && <p className="hint mb-8">Chỉ chủ sở hữu hoặc quản trị viên đổi được màu thương hiệu.</p>}
 
       <div className="field-group">
         <label>Màu thương hiệu</label>
         <div className="swatches">
-          <button type="button" className={`sw auto ${!value.brand_color ? 'on' : ''}`} disabled={disabled} onClick={() => set({ brand_color: '' })}>Mặc định</button>
+          <button type="button" className={`sw auto ${!value.brand_color ? 'on' : ''}`} disabled={disabled || !canBrand} onClick={() => set({ brand_color: '' })}>Mặc định</button>
           {BRAND_PRESETS.map((c) => (
-            <button key={c} type="button" className={`sw ${value.brand_color === c ? 'on' : ''}`} style={{ background: c }} disabled={disabled} onClick={() => set({ brand_color: c })} aria-label={`Màu ${c}`} aria-pressed={value.brand_color === c} />
+            <button key={c} type="button" className={`sw ${value.brand_color === c ? 'on' : ''}`} style={{ background: c }} disabled={disabled || !canBrand} onClick={() => set({ brand_color: c })} aria-label={`Màu ${c}`} aria-pressed={value.brand_color === c} />
           ))}
           <label className="sw-custom">
-            <input type="color" value={value.brand_color || '#f18a1c'} disabled={disabled} onChange={(e) => set({ brand_color: e.target.value })} />
+            <input type="color" value={value.brand_color || '#f18a1c'} disabled={disabled || !canBrand} onChange={(e) => set({ brand_color: e.target.value })} />
             Màu khác
           </label>
         </div>
@@ -122,6 +135,7 @@ export function AppearanceEditor({ value, onChange, disabled, cover }: Props & {
           <div className="hint">Hãy tải ảnh bìa ở mục “Logo &amp; ảnh bìa” trước.</div>
         )}
       </div>
+      {children}
     </div>
   );
 }

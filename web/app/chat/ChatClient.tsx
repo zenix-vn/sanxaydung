@@ -259,6 +259,8 @@ export default function ChatClient() {
       const cParam = params.get('c');
       const to = params.get('to');
       const listing = params.get('listing');
+      // Từ nút "Yêu cầu báo giá" trên hồ sơ: soạn sẵn lời mở đầu, người dùng sửa rồi tự gửi
+      const prefill = () => { if (params.get('compose') === 'quote') setText('Chào anh/chị, tôi muốn yêu cầu báo giá cho hạng mục: '); };
       if (cParam) {
         const c = list.find((x) => x.id === cParam);
         if (c) openConv(c);
@@ -266,7 +268,7 @@ export default function ChatClient() {
         const existing = list.find(
           (x) => x.other?.id === to && (!listing || (x.context_type === 'listing' && x.context_id === listing)),
         );
-        if (existing) return openConv(existing);
+        if (existing) { openConv(existing); prefill(); return; }
         const mine = myIds[0];
         const { data, error } = await supa.rpc('start_conversation', {
           _as_company: mine,
@@ -280,7 +282,7 @@ export default function ChatClient() {
         }
         const fresh = await loadConvs();
         const c = fresh.find((x) => x.id === (data as string));
-        if (c) openConv(c);
+        if (c) { openConv(c); prefill(); }
       } else if (list[0] && window.matchMedia('(min-width: 761px)').matches) {
         openConv(list[0]);
       }

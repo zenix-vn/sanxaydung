@@ -138,6 +138,7 @@ export default function GalleryEditor({
               <div className="ge-img" draggable={!locked} onDragStart={(e) => { e.dataTransfer.setData('text/plain', m.id); setDrag(m.id); }} onDragEnd={() => setDrag(null)}>
                 {src ? <img src={src} alt={m.caption ?? ''} loading="lazy" draggable={false} /> : <span>{v ? 'Video Facebook' : 'Link lỗi, nên xóa'}</span>}
                 {m.kind === 'video' && <i><svg className="ic"><use href="#ic-video" /></svg> Video</i>}
+                {m.hidden_at && <em title="Quản trị sàn đã ẩn mục này vì bị báo cáo. Khách không còn thấy.">Đã bị sàn ẩn</em>}
               </div>
               <input className="input" key={m.caption ?? ''} defaultValue={m.caption ?? ''} maxLength={140} placeholder="Chú thích" disabled={disabled} aria-label="Chú thích" onBlur={(e) => saveCaption(m, e.target.value)} />
               {!disabled && (

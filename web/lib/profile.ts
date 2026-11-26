@@ -1,6 +1,7 @@
 // Tùy biến trang hồ sơ doanh nghiệp — dùng chung client lẫn server.
 // profile_settings và media.url do thành viên công ty ghi trực tiếp qua API nên LUÔN
 // phải làm sạch ở đây trước khi hiển thị.
+import { SUPABASE_URL } from '@/lib/env';
 
 export const LINK_KINDS = ['zalo', 'facebook', 'youtube', 'linkedin', 'tiktok'] as const;
 export type LinkKind = (typeof LINK_KINDS)[number];
@@ -22,7 +23,7 @@ export type Highlight = { value: string; label: string };
 
 // ---------- Các mục trên trang hồ sơ ----------
 /** Thứ tự mặc định. Khóa cũng là id neo (#...) trên trang công khai. */
-export const SECTION_KEYS = ['gioithieu', 'duan', 'thuvien', 'dichvu', 'doitac', 'danhgia', 'tailieu', 'giaithuong', 'nhansu', 'baidang', 'tindang'] as const;
+export const SECTION_KEYS = ['gioithieu', 'duan', 'thuvien', 'dichvu', 'doitac', 'danhgia', 'tailieu', 'giaithuong', 'nhansu', 'moc', 'chinhanh', 'faq', 'baidang', 'tindang'] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 export const SECTION_LABELS: Record<SectionKey, string> = {
   gioithieu: 'Giới thiệu',
@@ -34,6 +35,9 @@ export const SECTION_LABELS: Record<SectionKey, string> = {
   tailieu: 'Hồ sơ năng lực',
   giaithuong: 'Giải thưởng & chứng nhận',
   nhansu: 'Nhân sự & thiết bị',
+  moc: 'Mốc phát triển',
+  chinhanh: 'Chi nhánh',
+  faq: 'Câu hỏi thường gặp',
   baidang: 'Bài đăng',
   tindang: 'Tin đang đăng',
 };
@@ -52,6 +56,12 @@ export interface ProfileSettings {
   links?: Partial<Record<LinkKind, string>>;
   about?: About;
   sections?: { order?: SectionKey[]; hidden?: SectionKey[] };
+  /** Nút liên hệ chính ở đầu trang (mặc định: nhắn tin) */
+  cta?: Exclude<CtaKind, 'message'>;
+  hours?: string;
+  response?: ResponseKind;
+  /** Ảnh chạy tiếp sau ảnh bìa, hoặc video thay ảnh bìa */
+  banner?: { images?: string[]; video?: string };
 }
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -129,7 +139,23 @@ export function parseProfileSettings(raw: unknown): ProfileSettings {
   const hidden = sectionKeys(rs.hidden).filter((k) => !LOCKED_SECTIONS.includes(k));
   const custom = order.some((k, i) => k !== SECTION_KEYS[i]);
   if (custom || hidden.length) out.sections = { ...(custom ? { order } : {}), ...(hidden.length ? { hidden } : {}) };
+
+  if (typeof r.cta === 'string' && r.cta !== 'message' && r.cta in CTA_LABELS) out.cta = r.cta as ProfileSettings['cta'];
+  const hours = str(r.hours, MAX_HOURS);
+  if (hours) out.hours = hours;
+  if (typeof r.response === 'string' && Object.prototype.hasOwnProperty.call(RESPONSE_LABELS, r.response)) out.response = r.response as ResponseKind;
+
+  const rb = obj(r.banner);
+  const images = Array.isArray(rb.images) ? rb.images.filter((u): u is string => isOwnFile(u, 'company-gallery')).slice(0, MAX_BANNERS) : [];
+  const video = isOwnFile(rb.video, 'company-videos') ? (rb.video as string) : null;
+  if (images.length || video) out.banner = { ...(images.length ? { images } : {}), ...(video ? { video } : {}) };
   return out;
+}
+
+/** URL đúng là file công khai trong bucket của sàn. */
+export function isOwnFile(url: unknown, bucket: 'company-gallery' | 'company-videos'): url is string {
+  return typeof url === 'string' && url.length <= 500 && !!SUPABASE_URL && !/[\s"'()\\]/.test(url)
+    && url.startsWith(`${SUPABASE_URL.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/`);
 }
 
 const sectionKeys = (v: unknown): SectionKey[] =>
@@ -140,6 +166,25 @@ export function sectionOrder(saved: unknown): SectionKey[] {
   const first = sectionKeys(saved);
   return [...first, ...SECTION_KEYS.filter((k) => !first.includes(k))];
 }
+
+// ---------- Liên hệ ----------
+export type CtaKind = 'message' | 'call' | 'zalo' | 'quote';
+export const CTA_LABELS: Record<CtaKind, string> = {
+  message: 'Nhắn tin',
+  call: 'Gọi ngay',
+  zalo: 'Chat Zalo',
+  quote: 'Yêu cầu báo giá',
+};
+export type ResponseKind = '1h' | '4h' | '24h' | '3d';
+export const RESPONSE_LABELS: Record<ResponseKind, string> = {
+  '1h': 'Trong vòng 1 giờ',
+  '4h': 'Trong vài giờ',
+  '24h': 'Trong 24 giờ',
+  '3d': 'Trong 1–3 ngày làm việc',
+};
+export const MAX_HOURS = 200;
+export const MAX_BANNERS = 4;
+export const MAX_VIDEO_BYTES = 15 * 1024 * 1024;
 
 // ---------- Màu thương hiệu ----------
 export const BRAND_PRESETS = ['#c2620a', '#c0392b', '#a4133c', '#6d28d9', '#12439c', '#0369a1', '#0f766e', '#0d6b3f', '#7a5a0f', '#374151'];
@@ -216,7 +261,7 @@ export function parseVideo(input: unknown): Video | null {
 
 // ---------- Thư viện ----------
 export const MAX_GALLERY = 60;
-export type GalleryItem = { id: string; kind: 'image' | 'video'; url: string; caption: string | null; sort_order?: number | null };
+export type GalleryItem = { id: string; kind: 'image' | 'video'; url: string; caption: string | null; sort_order?: number | null; hidden_at?: string | null };
 
 // ---------- Dự án ----------
 export const PROJECT_KINDS: Record<string, string> = {
@@ -247,4 +292,22 @@ export type Award = { id: string; kind: 'certificate' | 'award'; title: string; 
 export function normalizeWebsite(input: string): string | null {
   const u = toUrl(input);
   return u && u.hostname.includes('.') ? u.href.slice(0, 300) : null;
+}
+
+// ---------- Chi nhánh, mốc phát triển, câu hỏi thường gặp ----------
+export const MAX_BRANCHES = 20;
+export const MAX_MILESTONES = 40;
+export const MAX_FAQS = 30;
+export const MAX_STAFF = 40;
+
+export type Branch = { id: string; name: string; address: string | null; province_code: string | null; phone: string | null; lat: number | null; lng: number | null; sort_order?: number };
+export type Milestone = { id: string; year: number; title: string; description: string | null; image_url: string | null; sort_order?: number };
+export type Faq = { id: string; question: string; answer: string; sort_order?: number };
+
+/** "21.028511, 105.804817" (định dạng Google Maps sao chép) → tọa độ. null nếu không hợp lệ. */
+export function parseLatLng(input: string): { lat: number; lng: number } | null {
+  const m = input.trim().match(/^\(?\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*\)?$/);
+  if (!m) return null;
+  const lat = Number(m[1]), lng = Number(m[2]);
+  return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat: +lat.toFixed(6), lng: +lng.toFixed(6) } : null;
 }

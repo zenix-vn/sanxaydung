@@ -1,15 +1,16 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase/client';
-import { ServicesEditor, StaffEditor, EquipmentEditor, type Photo } from './PortfolioEditor';
+import { ServicesEditor, EquipmentEditor, type Photo } from './PortfolioEditor';
 import ProjectsEditor, { type Project } from './ProjectsEditor';
-import { PartnersEditor, AwardsEditor } from './ShowcaseEditor';
+import { PartnersEditor, AwardsEditor, StaffEditor, MilestonesEditor, BranchesEditor, FaqEditor } from './ShowcaseEditor';
+import { BannerFields, ContactFields } from './ExtraSettings';
 import { AboutFields, SectionsEditor } from './ContentEditors';
 import RichTextEditor from './RichTextEditor';
 import { AppearanceEditor, HighlightsEditor, LinksEditor, toProfileForm, buildProfileSettings } from './AppearanceEditor';
 import GalleryEditor from './GalleryEditor';
 import { shrinkImage } from '@/lib/image';
-import { cssUrl, type Award, type GalleryItem, type Partner } from '@/lib/profile';
+import { cssUrl, type Award, type Branch, type Faq, type GalleryItem, type Milestone, type Partner } from '@/lib/profile';
 
 type Company = Record<string, any>;
 type Cat = { id: string; name: string; group_key: string };
@@ -29,10 +30,10 @@ function slugify(s: string) {
 const ext = (f: File) => (f.name.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 export default function CompanyEditForm(props: {
-  company: Company; canEdit: boolean; categories: Cat[]; provinces: Prov[];
+  company: Company; canEdit: boolean; canAdmin: boolean; categories: Cat[]; provinces: Prov[];
   initialCategoryIds: string[]; initialProvinceCodes: string[]; initialProjects: Project[]; initialDocs: Doc[];
   services: any[]; staff: any[]; equipment: any[]; projectPhotos: (Photo & { owner_id: string })[];
-  gallery: GalleryItem[]; partners: Partner[]; awards: Award[];
+  gallery: GalleryItem[]; partners: Partner[]; awards: Award[]; milestones: Milestone[]; branches: Branch[]; faqs: Faq[];
 }) {
   const supa = useMemo(() => createSupabaseBrowser(), []);
   const co = props.company;
@@ -67,6 +68,8 @@ export default function CompanyEditForm(props: {
   const toggle = (arr: string[], v: string, fn: (a: string[]) => void) =>
     fn(arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const disabled = !props.canEdit || busy;
+  // Tên, đường dẫn, pháp lý, trạng thái, màu thương hiệu: chỉ chủ sở hữu / quản trị (CSDL cũng chặn)
+  const adminOnly = disabled || !props.canAdmin;
 
   async function upload(original: File, kind: 'logo' | 'cover') {
     setMsg(null);
@@ -119,6 +122,17 @@ export default function CompanyEditForm(props: {
         profile_settings: built.settings,
       };
       if (publish) patch.status = 'published';
+      if (!props.canAdmin) {
+        for (const k of ['name', 'slug', 'legal_name']) delete patch[k];
+        // Giữ đúng màu đang lưu (quản trị có thể vừa đổi) — biên tập viên không được ghi đè
+        const { data: cur, error: e0 } = await supa.from('companies').select('profile_settings').eq('id', co.id).single();
+        if (e0) throw e0;
+        const color = (cur.profile_settings as Record<string, unknown> | null)?.brand_color;
+        const next: Record<string, unknown> = { ...built.settings };
+        if (color === undefined) delete next.brand_color;
+        else next.brand_color = color;
+        patch.profile_settings = next;
+      }
       const { data, error } = await supa.from('companies').update(patch).eq('id', co.id)
         .select('profile_completeness, status, slug').single();
       if (error) throw error.code === '23505' ? new Error('Đường dẫn này đã có doanh nghiệp khác dùng.') : error;
@@ -138,7 +152,7 @@ export default function CompanyEditForm(props: {
         const { error: e } = await supa.from('company_locations').insert(locs.map((province_code) => ({ company_id: co.id, province_code })));
         if (e) throw e;
       }
-      setMsg({ ok: true, text: publish ? 'Đã lưu & xuất bản hồ sơ.' : 'Đã lưu nháp.' });
+      setMsg({ ok: true, text: publish ? 'Đã lưu & xuất bản hồ sơ.' : data.status === 'published' ? 'Đã lưu thay đổi.' : 'Đã lưu nháp.' });
     } catch (err) {
       setMsg({ ok: false, text: (err as Error).message });
     } finally {
@@ -226,6 +240,8 @@ export default function CompanyEditForm(props: {
         .sw{width:32px;height:32px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}
         .sw.auto{width:auto;border-radius:20px;padding:0 12px;font-size:12.5px;font-weight:600;color:var(--navy);background:#fff}
         .sw.on{box-shadow:0 0 0 3px var(--navy)}
+        .sw:disabled,.sw-custom input:disabled{opacity:.35;cursor:not-allowed}
+        .sw.on:disabled{opacity:1}
         .swatches label.sw-custom{display:flex;align-items:center;gap:8px;margin:0;font-size:12.5px;cursor:pointer}
         .sw-custom input{width:36px;height:32px;padding:0;border:none;background:none;cursor:pointer}
         .sw-demo{display:inline-block;color:#fff;font-weight:700;border-radius:8px;padding:5px 12px;margin:0 6px}
@@ -287,6 +303,15 @@ export default function CompanyEditForm(props: {
         .sc-hits button{text-align:left;border:none;background:none;padding:6px;border-radius:6px;cursor:pointer;font:600 13px inherit;color:var(--navy)}
         .sc-hits button:hover{background:#f6f8fb}
         .sec-order{list-style:none;margin:0;padding:0}
+        .loc-map{height:260px;border-radius:10px;border:1px solid var(--line);background:#e6ebf1;position:relative;z-index:0}
+        .bn-list{display:flex;flex-wrap:wrap;gap:10px}
+        .bn{position:relative;width:150px;height:64px;border-radius:8px;background:#e6ebf1 center/cover}
+        .bn button{position:absolute;right:4px;top:4px;width:22px;height:22px;border:none;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;display:grid;place-items:center;cursor:pointer}
+        .bn button svg{width:12px;height:12px}
+        .bn.add{display:flex;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--line);background:#fff;color:var(--muted);font:600 12.5px inherit;cursor:pointer}
+        .bn.add svg{width:18px;height:18px}
+        .bn-video{display:block;max-width:100%;width:420px;border-radius:10px;background:#000}
+        .ge-img em{position:absolute;left:0;right:0;bottom:0;font-style:normal;font-size:11px;font-weight:700;text-align:center;color:#fff;background:rgba(192,57,43,.92);padding:3px}
         .sec-order li{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-2);font-size:13.5px}
         .sec-order li:last-child{border-bottom:none}
         .sec-order .n{width:22px;color:var(--muted);font-size:12px}
@@ -309,9 +334,19 @@ export default function CompanyEditForm(props: {
           </div>
           <div className="between">
             <h1>Chỉnh sửa hồ sơ doanh nghiệp</h1>
-            <a className="btn btn-ghost" href={`/cong-ty/${co.slug}`}>
-              <svg className="ic"><use href="#ic-eye" /></svg> Xem trước
-            </a>
+            <div className="row wrap" style={{ gap: 8 }}>
+              {props.canEdit && (
+                <a className="btn btn-ghost" href="/dashboard/company-edit/history">
+                  <svg className="ic"><use href="#ic-clock" /></svg> Lịch sử
+                </a>
+              )}
+              <a className="btn btn-ghost" href={`/cong-ty/${f.slug || co.slug}`} target="_blank" rel="noopener">
+                <svg className="ic"><use href="#ic-building" /></svg> Xem trang
+              </a>
+              <a className="btn btn-ghost" href={`/cong-ty/${f.slug || co.slug}?khach=1`} target="_blank" rel="noopener">
+                <svg className="ic"><use href="#ic-eye" /></svg> Xem như khách
+              </a>
+            </div>
           </div>
         </div>
       </section>
@@ -332,6 +367,9 @@ export default function CompanyEditForm(props: {
               <a href="#awards"><svg className="ic"><use href="#ic-award" /></svg> Giải thưởng</a>
               <a href="#services"><svg className="ic"><use href="#ic-tag" /></svg> Dịch vụ</a>
               <a href="#staff"><svg className="ic"><use href="#ic-users" /></svg> Nhân sự &amp; thiết bị</a>
+              <a href="#milestones"><svg className="ic"><use href="#ic-calendar" /></svg> Mốc phát triển</a>
+              <a href="#branches"><svg className="ic"><use href="#ic-pin" /></svg> Chi nhánh</a>
+              <a href="#faqs"><svg className="ic"><use href="#ic-chat" /></svg> Câu hỏi thường gặp</a>
               <a href="#docs"><svg className="ic"><use href="#ic-folder" /></svg> Hồ sơ năng lực</a>
               <a href="#contact"><svg className="ic"><use href="#ic-phone" /></svg> Liên hệ &amp; mạng xã hội</a>
               <a href="#layout"><svg className="ic"><use href="#ic-sliders" /></svg> Bố cục trang</a>
@@ -360,21 +398,22 @@ export default function CompanyEditForm(props: {
             <div className="card-block" id="basic">
               <h2>Thông tin cơ bản</h2>
               <p className="muted mb-16">Thông tin nhận diện doanh nghiệp trên nền tảng.</p>
+              {props.canEdit && !props.canAdmin && <p className="hint mb-8">Bạn là biên tập viên: tên hiển thị, đường dẫn và tên pháp lý chỉ chủ sở hữu hoặc quản trị viên sửa được.</p>}
               <div className="form-row">
                 <div className="field-group">
                   <label>Tên hiển thị <span className="req">*</span></label>
-                  <input className="input" value={f.name} onChange={set('name')} disabled={disabled} />
+                  <input className="input" value={f.name} onChange={set('name')} disabled={adminOnly} />
                 </div>
                 <div className="field-group">
                   <label>Đường dẫn hồ sơ (slug)</label>
-                  <input className="input" value={f.slug} onChange={set('slug')} disabled={disabled} />
+                  <input className="input" value={f.slug} onChange={set('slug')} disabled={adminOnly} />
                   <div className="hint">sanxaydung.vn/cong-ty/<b>{slugify(f.slug) || '…'}</b></div>
                 </div>
               </div>
               <div className="form-row">
                 <div className="field-group">
                   <label>Tên pháp lý</label>
-                  <input className="input" value={f.legal_name} onChange={set('legal_name')} disabled={disabled} />
+                  <input className="input" value={f.legal_name} onChange={set('legal_name')} disabled={adminOnly} />
                 </div>
                 <div className="field-group">
                   <label>
@@ -417,7 +456,9 @@ export default function CompanyEditForm(props: {
               <input ref={coverRef} type="file" accept="image/*" hidden onChange={(e) => { const x = e.target.files?.[0]; if (x) upload(x, 'cover'); e.target.value = ''; }} />
             </div>
 
-            <AppearanceEditor value={profile} onChange={setProfile} disabled={disabled} cover={cover} />
+            <AppearanceEditor value={profile} onChange={setProfile} disabled={disabled} cover={cover} canBrand={props.canAdmin}>
+              <BannerFields value={profile} onChange={setProfile} disabled={disabled} companyId={co.id} onMsg={setMsg} />
+            </AppearanceEditor>
 
             <div className="card-block" id="field">
               <h2>Lĩnh vực &amp; khu vực hoạt động</h2>
@@ -470,12 +511,18 @@ export default function CompanyEditForm(props: {
               <ServicesEditor companyId={co.id} rows={props.services} disabled={!props.canEdit} onMsg={setMsg} />
             </div>
 
-            <div className="card-block" id="staff">
-              <h2>Nhân sự chủ chốt</h2>
-              <StaffEditor companyId={co.id} rows={props.staff} disabled={!props.canEdit} onMsg={setMsg} />
-              <h2 style={{ marginTop: 24 }}>Máy móc &amp; thiết bị</h2>
+            <StaffEditor companyId={co.id} initial={props.staff} disabled={!props.canEdit} onMsg={setMsg} />
+
+            <div className="card-block" id="equipment">
+              <h2>Máy móc &amp; thiết bị</h2>
               <EquipmentEditor companyId={co.id} rows={props.equipment} disabled={!props.canEdit} onMsg={setMsg} />
             </div>
+
+            <MilestonesEditor companyId={co.id} initial={props.milestones} disabled={!props.canEdit} onMsg={setMsg} />
+
+            <BranchesEditor companyId={co.id} initial={props.branches} provinces={props.provinces} disabled={!props.canEdit} onMsg={setMsg} />
+
+            <FaqEditor companyId={co.id} initial={props.faqs} disabled={!props.canEdit} onMsg={setMsg} />
 
             <div className="card-block" id="docs">
               <h2 className="between">
@@ -527,6 +574,7 @@ export default function CompanyEditForm(props: {
                 </div>
               </div>
               <div className="field-group"><label>Địa chỉ</label><input className="input" value={f.address} onChange={set('address')} disabled={disabled} /></div>
+              <ContactFields value={profile} onChange={setProfile} disabled={disabled} hasPhone={!!f.phone.trim()} />
               <LinksEditor value={profile} onChange={setProfile} disabled={disabled} />
             </div>
 
@@ -534,10 +582,21 @@ export default function CompanyEditForm(props: {
 
             <div className="savebar">
               <a className="btn btn-outline" href="/dashboard">Hủy</a>
-              <button type="button" className="btn btn-outline" disabled={disabled} onClick={() => save(false)}>Lưu nháp</button>
-              <button type="button" className="btn btn-orange" disabled={disabled} onClick={() => save(true)}>
-                <svg className="ic"><use href="#ic-check" /></svg> {busy ? 'Đang lưu…' : 'Lưu & xuất bản'}
-              </button>
+              {status === 'published' ? (
+                // Hồ sơ đang công khai: lưu là áp dụng ngay, không có "bản nháp"
+                <button type="button" className="btn btn-orange" disabled={disabled} onClick={() => save(false)}>
+                  <svg className="ic"><use href="#ic-check" /></svg> {busy ? 'Đang lưu…' : 'Lưu thay đổi'}
+                </button>
+              ) : (
+                <>
+                  <button type="button" className={`btn ${props.canAdmin && status === 'draft' ? 'btn-outline' : 'btn-orange'}`} disabled={disabled} onClick={() => save(false)}>{status === 'draft' ? 'Lưu nháp' : 'Lưu'}</button>
+                  {props.canAdmin && status === 'draft' && (
+                    <button type="button" className="btn btn-orange" disabled={disabled} onClick={() => save(true)}>
+                      <svg className="ic"><use href="#ic-check" /></svg> {busy ? 'Đang lưu…' : 'Lưu & xuất bản'}
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

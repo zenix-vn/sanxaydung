@@ -4,7 +4,7 @@ import { Act, Empty, Pager, Status, Tabs } from '@/components/admin/ui';
 import { Check, CheckAll, Queue, WorkCell, type BulkAction, type QueueMeta } from '@/components/admin/queue';
 
 export const metadata: Metadata = { title: 'Kiểm duyệt nội dung' };
-const ENTITY: Record<string, string> = { post: 'Bài viết', listing: 'Tin đăng', marketplace_listing: 'Tin đăng', review: 'Đánh giá', company: 'Doanh nghiệp' };
+const ENTITY: Record<string, string> = { post: 'Bài viết', listing: 'Tin đăng', marketplace_listing: 'Tin đăng', review: 'Đánh giá', company: 'Doanh nghiệp', media: 'Ảnh/video' };
 const norm = (t: string | null) => (t === 'marketplace_listing' ? 'listing' : t ?? '');
 
 type Rep = { id: string; entity_type: string | null; entity_id: string | null; reason: string | null; status: string; created_at: string; profiles: { full_name: string | null } | null };
@@ -32,17 +32,24 @@ export default async function ModerationPage({ searchParams }: { searchParams: {
     const reps = (data ?? []) as unknown as Rep[];
     // Lấy tiêu đề nội dung bị báo cáo
     const ids = (t: string) => reps.filter((r) => norm(r.entity_type) === t && r.entity_id).map((r) => r.entity_id!);
-    const [p, l, rv, c] = await Promise.all([
+    const [p, l, rv, c, md] = await Promise.all([
       ids('post').length ? supa.from('posts').select('id, title, body, status').in('id', ids('post')) : { data: [] },
       ids('listing').length ? supa.from('marketplace_listings').select('id, title, status').in('id', ids('listing')) : { data: [] },
       ids('review').length ? supa.from('reviews').select('id, comment, status').in('id', ids('review')) : { data: [] },
       ids('company').length ? supa.from('companies').select('id, name, slug').in('id', ids('company')) : { data: [] },
+      ids('media').length ? supa.from('media').select('id, url, kind, caption, hidden_at, companies ( name )').in('id', ids('media')) : { data: [] },
     ]);
     const info = new Map<string, { text: string; status?: string; href?: string }>();
     (p.data ?? []).forEach((x: { id: string; title: string | null; body: string | null; status: string }) => info.set(x.id, { text: x.title || x.body?.slice(0, 90) || '(không nội dung)', status: x.status }));
     (l.data ?? []).forEach((x: { id: string; title: string; status: string }) => info.set(x.id, { text: x.title, status: x.status, href: `/marketplace/${x.id}` }));
     (rv.data ?? []).forEach((x: { id: string; comment: string | null; status: string }) => info.set(x.id, { text: x.comment?.slice(0, 90) || '(không lời bình)', status: x.status }));
     (c.data ?? []).forEach((x: { id: string; name: string; slug: string }) => info.set(x.id, { text: x.name, href: `/cong-ty/${x.slug}` }));
+    ((md.data ?? []) as unknown as { id: string; url: string; kind: string; caption: string | null; hidden_at: string | null; companies: { name: string } | null }[])
+      .forEach((x) => info.set(x.id, {
+        text: `${x.kind === 'video' ? 'Video' : 'Ảnh'}${x.caption ? ` “${x.caption}”` : ''} của ${x.companies?.name ?? '—'}`,
+        status: x.hidden_at ? 'hidden' : 'published',
+        href: /^https?:\/\//i.test(x.url) ? x.url : undefined,
+      }));
 
     const { data: meta } = await supa.rpc('admin_queue_meta', { _kind: 'report', _ids: reps.map((r) => r.id) });
     const isOpen = (r: Rep) => r.status === 'open' || r.status === 'reviewing';
@@ -54,7 +61,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: {
         <tbody>{reps.map((r) => {
           const e = r.entity_id ? info.get(r.entity_id) : undefined;
           const t = norm(r.entity_type);
-          const canHide = ['post', 'listing', 'review'].includes(t) && r.entity_id;
+          const canHide = ['post', 'listing', 'review', 'media'].includes(t) && r.entity_id && e?.status !== 'hidden';
           const open = r.status === 'open' || r.status === 'reviewing';
           return (
             <tr key={r.id}>
@@ -75,6 +82,7 @@ export default async function ModerationPage({ searchParams }: { searchParams: {
                     confirm={{ title: 'Ẩn nội dung vi phạm?', message: 'Nội dung bị gỡ khỏi trang công khai và báo cáo được đánh dấu đã xử lý.', confirmLabel: 'Ẩn nội dung', fields: [{ key: 'reason', label: 'Lý do', type: 'textarea', required: true }] }} success="Đã ẩn nội dung" />
                 )}
                 {open && <Act label="Bỏ qua" fn="admin_resolve_report" args={{ _id: r.id, _status: 'dismissed' }} success="Đã bỏ qua báo cáo" />}
+                {t === 'media' && e?.status === 'hidden' && <Act label="Khôi phục" tone="p" fn="admin_moderate" args={{ _entity: 'media', _id: r.entity_id, _hide: false }} success="Đã khôi phục" />}
                 {open && !canHide && <Act label="Đã xử lý" icon="ic-check" tone="p" fn="admin_resolve_report" args={{ _id: r.id, _status: 'resolved' }} success="Đã đóng báo cáo" />}
               </div></td>
             </tr>

@@ -96,6 +96,9 @@ export interface Staff {
   title: string | null;
   experience_years: number | null;
   avatar_url: string | null;
+  bio?: string | null;
+  certificate?: string | null;
+  sort_order?: number | null;
 }
 
 export interface Equipment {

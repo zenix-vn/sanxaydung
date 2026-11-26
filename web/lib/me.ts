@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createSupabaseServer } from '@/lib/supabase/server';
 import { SUPABASE_URL } from '@/lib/env';
 
@@ -6,7 +7,7 @@ export { canEdit, canAdmin } from '@/lib/roles';
 export type { MyCompany } from '@/lib/roles';
 
 /** Người dùng hiện tại + các doanh nghiệp họ đang là thành viên (Server Component). */
-export async function getMe(): Promise<{ userId: string | null; companies: MyCompany[] }> {
+export const getMe = cache(async (): Promise<{ userId: string | null; companies: MyCompany[] }> => {
   if (!SUPABASE_URL) return { userId: null, companies: [] };
   try {
     const supa = createSupabaseServer();
@@ -24,4 +25,4 @@ export async function getMe(): Promise<{ userId: string | null; companies: MyCom
   } catch {
     return { userId: null, companies: [] };
   }
-}
+});
