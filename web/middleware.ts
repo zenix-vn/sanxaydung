@@ -4,6 +4,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { CORS_HEADERS } from '@/lib/http';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/env';
 import { serverFetch } from '@/lib/supabase/internal-fetch';
+import { subdomainFromHost } from '@/lib/site';
 
 // Route cần đăng nhập
 const PROTECTED = ['/dashboard', '/admin'];
@@ -17,6 +18,21 @@ export async function middleware(req: NextRequest) {
   // Chặn Image Optimization API (không dùng; xem next.config.mjs)
   if (req.nextUrl.pathname.startsWith('/_next/image')) {
     return new NextResponse('Not found', { status: 404 });
+  }
+
+  // Website doanh nghiệp: <x>.sanxaydung.vn/<đường-dẫn> → /site/<x>/<đường-dẫn> (URL trên trình duyệt giữ nguyên).
+  // /api và /tai-lieu dùng chung với sàn; mọi đường dẫn khác (kể cả /dashboard) chỉ trỏ vào website,
+  // nên tên miền con không bao giờ có trang đăng nhập hay cookie phiên của sàn.
+  const sub = subdomainFromHost(req.headers.get('host'));
+  if (sub) {
+    const { pathname } = req.nextUrl;
+    if (!pathname.startsWith('/api/') && !pathname.startsWith('/tai-lieu/') && !/^\/[^/]+\.[a-z0-9]+$/i.test(pathname)) {
+      const url = req.nextUrl.clone();
+      url.pathname = `/site/${sub}${pathname === '/' ? '' : pathname}`;
+      const headers = new Headers(req.headers);
+      headers.set('x-site-host', sub);
+      return NextResponse.rewrite(url, { request: { headers } });
+    }
   }
 
   const res = NextResponse.next();
@@ -59,5 +75,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/api/:path*', '/dashboard/:path*', '/admin/:path*', '/_next/image'],
+  // Mọi đường dẫn trừ tài nguyên tĩnh: cần đọc Host để nhận diện website doanh nghiệp
+  matcher: ['/((?!_next/static|_next/data).*)'],
 };

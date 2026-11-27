@@ -47,7 +47,7 @@ svg.ic.fill{fill:currentColor;stroke:none}
 .btn-icon{padding:9px;border-radius:8px}
 
 /* ---------- Header ---------- */
-header{background:var(--navy);color:#fff;position:sticky;top:0;z-index:100}
+body>header{background:var(--navy);color:#fff;position:sticky;top:0;z-index:100}
 .nav{display:flex;align-items:center;gap:28px;height:70px;position:relative}
 .brand{display:flex;align-items:center;gap:10px}
 .brand .logo{width:44px;height:44px;border-radius:9px;object-fit:cover}
@@ -367,14 +367,14 @@ section.block,.block{padding:54px 0}
 .company-card h3{font-size:15px;color:var(--navy);margin-bottom:6px;font-weight:700}
 
 /* ---------- Footer ---------- */
-footer{background:var(--navy-3);color:#c6d3e2;padding:50px 0 22px;font-size:14px}
+body>footer{background:var(--navy-3);color:#c6d3e2;padding:50px 0 22px;font-size:14px}
 .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:30px;margin-bottom:34px}
-footer h4{color:#fff;font-size:15px;margin-bottom:16px}
-footer li{list-style:none;margin-bottom:10px;color:#a7bad0;display:flex;align-items:center;gap:8px}
-footer li a:hover{color:#fff}
-footer li svg{width:16px;height:16px;stroke:var(--orange-2);flex:none}
-footer .brand b{color:#fff}
-footer .brand span{color:#7f97b3}
+body>footer h4{color:#fff;font-size:15px;margin-bottom:16px}
+body>footer li{list-style:none;margin-bottom:10px;color:#a7bad0;display:flex;align-items:center;gap:8px}
+body>footer li a:hover{color:#fff}
+body>footer li svg{width:16px;height:16px;stroke:var(--orange-2);flex:none}
+body>footer .brand b{color:#fff}
+body>footer .brand span{color:#7f97b3}
 .foot-desc{color:#9db3cd;font-size:13.5px;margin:14px 0;max-width:300px}
 .foot-bottom{border-top:1px solid rgba(255,255,255,.1);padding-top:18px;text-align:center;color:#7f97b3;font-size:13px}
 

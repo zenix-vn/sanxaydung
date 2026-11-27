@@ -27,6 +27,7 @@ export default function DashNav({
         { href: '/dashboard/stats', icon: 'ic-eye', label: 'Thống kê hồ sơ' },
         { href: `/cong-ty/${active.slug}`, icon: 'ic-building', label: 'Hồ sơ công khai' },
         { href: '/dashboard/company-edit', icon: 'ic-edit', label: 'Chỉnh sửa hồ sơ' },
+        { href: '/dashboard/leads', icon: 'ic-clipboard', label: 'Yêu cầu từ website' },
       ],
     },
     {

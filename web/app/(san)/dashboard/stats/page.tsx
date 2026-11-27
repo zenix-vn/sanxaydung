@@ -5,11 +5,13 @@ import LineChart from '@/components/LineChart';
 export const metadata: Metadata = { title: 'Thống kê hồ sơ' };
 export const dynamic = 'force-dynamic';
 
-type Row = { day: string; views: number; contacts: number; impressions: number };
+type Row = { day: string; views: number; contacts: number; impressions: number; site_views: number; leads: number };
 const KEYS = [
   { key: 'impressions', label: 'Hiển thị trong danh bạ', hint: 'Số lần hồ sơ xuất hiện trong kết quả tìm kiếm' },
   { key: 'views', label: 'Lượt xem hồ sơ', hint: 'Số lượt mở trang hồ sơ công khai' },
-  { key: 'contacts', label: 'Lượt liên hệ', hint: 'Bấm nhắn tin, email, website trên hồ sơ' },
+  { key: 'contacts', label: 'Lượt liên hệ', hint: 'Bấm gọi, nhắn tin, email trên hồ sơ và website' },
+  { key: 'site_views', label: 'Lượt xem website', hint: 'Số lượt mở website <tên>.sanxaydung.vn' },
+  { key: 'leads', label: 'Yêu cầu từ website', hint: 'Số yêu cầu báo giá khách gửi qua form trên website' },
 ] as const;
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
@@ -21,7 +23,7 @@ export default async function StatsPage({ searchParams }: { searchParams: { days
   const start = new Date(Date.now() - (2 * days - 1) * 86400000);
   const { data } = await supa
     .from('company_stats_daily')
-    .select('day, views, contacts, impressions')
+    .select('day, views, contacts, impressions, site_views, leads')
     .eq('company_id', company.id)
     .gte('day', isoDay(start))
     .order('day');
@@ -30,7 +32,7 @@ export default async function StatsPage({ searchParams }: { searchParams: { days
   // Đủ mọi ngày (ngày không có dữ liệu = 0); nửa đầu = kỳ trước để so sánh
   const all: Row[] = Array.from({ length: 2 * days }, (_, i) => {
     const d = isoDay(new Date(start.getTime() + i * 86400000));
-    return byDay.get(d) ?? { day: d, views: 0, contacts: 0, impressions: 0 };
+    return byDay.get(d) ?? { day: d, views: 0, contacts: 0, impressions: 0, site_views: 0, leads: 0 };
   });
   const prev = all.slice(0, days);
   const cur = all.slice(days);

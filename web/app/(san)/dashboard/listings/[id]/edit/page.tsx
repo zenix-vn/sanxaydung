@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { requireUserCompany } from '@/lib/supabase/company';
 import { canEdit } from '@/lib/roles';
-import NewListingForm, { type ListingInit } from '@/app/marketplace/new/NewListingForm';
+import NewListingForm, { type ListingInit } from '@/app/(san)/marketplace/new/NewListingForm';
 
 export const metadata: Metadata = { title: 'Sửa tin đăng' };
 export const dynamic = 'force-dynamic';

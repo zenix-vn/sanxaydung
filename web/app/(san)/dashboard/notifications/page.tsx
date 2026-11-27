@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 const PAGE = 30;
 const ICONS: Record<string, string> = {
   new_message: 'ic-chat', new_quote: 'ic-file-text', quote_status: 'ic-file-text', review_received: 'ic-star-f',
-  verify_result: 'ic-shield-check', connection_request: 'ic-people', member_invite: 'ic-users', member_joined: 'ic-users',
+  verify_result: 'ic-shield-check', connection_request: 'ic-people', member_invite: 'ic-users', member_joined: 'ic-users', site_lead: 'ic-clipboard',
 };
 
 type N = { id: string; type: string; title: string | null; body: string | null; link: string | null; is_read: boolean; created_at: string };

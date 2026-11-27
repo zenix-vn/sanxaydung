@@ -26,6 +26,14 @@ export function TrackView({ companyId }: { companyId: string }) {
   return null;
 }
 
+/** Lượt xem website doanh nghiệp (<tên>.sanxaydung.vn) — tách khỏi lượt xem hồ sơ trên sàn. */
+export function TrackSiteView({ companyId }: { companyId: string }) {
+  useEffect(() => {
+    if (once(`sv:${companyId}`)) loadSupa().then((s) => s.rpc('track_company', { _company: companyId, _kind: 'site_view' })).catch(() => undefined);
+  }, [companyId]);
+  return null;
+}
+
 export function TrackImpressions({ ids }: { ids: string[] }) {
   const key = ids.join(',');
   useEffect(() => {
