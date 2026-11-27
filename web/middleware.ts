@@ -4,7 +4,30 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { CORS_HEADERS } from '@/lib/http';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@/lib/env';
 import { serverFetch } from '@/lib/supabase/internal-fetch';
-import { subdomainFromHost } from '@/lib/site';
+import { subdomainFromHost, isValidSubdomain, SITE_ROOT_DOMAIN } from '@/lib/site';
+
+// Slug → tên miền con tự chọn (để chuyển hướng địa chỉ cũ). Cache trong bộ nhớ 60 giây mỗi tiến trình.
+const renamed = new Map<string, { to: string | null; exp: number }>();
+async function renamedSubdomain(slug: string): Promise<string | null> {
+  const hit = renamed.get(slug);
+  if (hit && hit.exp > Date.now()) return hit.to;
+  let to: string | null = null;
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/companies?select=site_subdomain&slug=eq.${encodeURIComponent(slug)}&status=eq.published&deleted_at=is.null&limit=1`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` }, cache: 'no-store', signal: AbortSignal.timeout(1500) },
+    );
+    if (r.ok) {
+      const v = ((await r.json()) as { site_subdomain?: string | null }[])[0]?.site_subdomain;
+      to = v && v !== slug && isValidSubdomain(v) ? v : null;
+    }
+  } catch {
+    return null; // lỗi mạng: không chuyển hướng, cũng không cache
+  }
+  if (renamed.size > 5000) renamed.clear();
+  renamed.set(slug, { to, exp: Date.now() + 60_000 });
+  return to;
+}
 
 // Route cần đăng nhập
 const PROTECTED = ['/dashboard', '/admin'];
@@ -27,6 +50,9 @@ export async function middleware(req: NextRequest) {
   if (sub) {
     const { pathname } = req.nextUrl;
     if (!pathname.startsWith('/api/') && !pathname.startsWith('/tai-lieu/') && !/^\/[^/]+\.[a-z0-9]+$/i.test(pathname)) {
+      // Doanh nghiệp đã đổi sang tên miền con khác → 301 về địa chỉ mới, giữ nguyên trang đang mở
+      const to = SUPABASE_URL && SUPABASE_ANON_KEY ? await renamedSubdomain(sub) : null;
+      if (to) return NextResponse.redirect(`https://${to}.${SITE_ROOT_DOMAIN}${pathname}${req.nextUrl.search}`, 301);
       const url = req.nextUrl.clone();
       url.pathname = `/site/${sub}${pathname === '/' ? '' : pathname}`;
       const headers = new Headers(req.headers);

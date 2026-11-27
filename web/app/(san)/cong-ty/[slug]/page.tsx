@@ -17,6 +17,7 @@ import Gallery from './Gallery';
 import ProjectsGrid from './ProjectsGrid';
 import { AboutBlocks, AwardsSection, BranchesSection, FaqSection, ListingsSection, MilestonesSection, PartnersSection, PostsSection } from './ShowcaseSections';
 import RichText from '@/components/RichText';
+import { parseSiteSettings, siteUrl } from '@/lib/site';
 import { plainText } from '@/lib/richtext';
 import './profile.css';
 import {
@@ -167,6 +168,8 @@ export default async function CompanyPage({ params, searchParams }: PageProps) {
   const [relation, { photos, gallery, extras }, docs] = await Promise.all([getRelation(c.id), getContent(c.id, member), getSharedDocs(c.id, asGuest)]);
   const rel = asGuest ? { loggedIn: false, isMember: false, canReply: false, mine: [], existing: null, eligible: [] as Eligible[] } : relation;
   const settings = parseProfileSettings(c.profile_settings);
+  // Website doanh nghiệp <tên>.sanxaydung.vn (chỉ khi hồ sơ đã xuất bản và chưa tắt website)
+  const webUrl = c.status === 'published' && parseSiteSettings(c.site_settings).enabled ? siteUrl(c) : null;
   const links = LINK_KINDS.flatMap((k) => (settings.links?.[k] ? [{ kind: k, url: settings.links[k]! }] : []));
   const sameAs = [
     ...(c.website ? [c.website.startsWith('http') ? c.website : `https://${c.website}`] : []),
@@ -911,6 +914,12 @@ export default async function CompanyPage({ params, searchParams }: PageProps) {
                   >
                     {c.website.replace(/^https?:\/\//, '')}
                   </ContactLink>
+                </div>
+              )}
+              {webUrl && (
+                <div className="kv">
+                  <span className="k">{c.website ? 'Trang web trên sàn' : 'Website'}</span>
+                  <a className="v" href={webUrl} target="_blank" rel="noopener" style={{ color: 'var(--orange)', wordBreak: 'break-all' }}>{webUrl.replace('https://', '')}</a>
                 </div>
               )}
               {c.address && (

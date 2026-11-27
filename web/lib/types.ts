@@ -27,6 +27,10 @@ export interface Company {
   created_at: string;
   /** Dữ liệu thô — luôn đọc qua parseProfileSettings() */
   profile_settings?: unknown;
+  /** Website doanh nghiệp: tên miền con tự chọn (null = dùng slug) */
+  site_subdomain?: string | null;
+  /** Dữ liệu thô — luôn đọc qua parseSiteSettings() */
+  site_settings?: unknown;
 }
 
 export interface Category {

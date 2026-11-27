@@ -2,12 +2,12 @@
 // website là trang công khai, không phụ thuộc phiên đăng nhập.
 import { cache } from 'react';
 import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { SUPABASE_URL } from '@/lib/env';
 import { createSupabasePublic, cachedPublic } from '@/lib/supabase/public';
 import { getCompany, getContent, getSharedDocs } from '@/app/(san)/cong-ty/[slug]/data';
 import { parseProfileSettings, MAX_FEATURED, type ProfileSettings } from '@/lib/profile';
-import { parseSiteSettings, siteHref, isValidSubdomain, projectPath, type SiteSettings } from '@/lib/site';
+import { parseSiteSettings, siteHref, siteUrl, isValidSubdomain, projectPath, type SiteSettings } from '@/lib/site';
 import type { CompanyDetail, Project } from '@/lib/types';
 
 /** Tên miền con tự chọn → slug. null nếu không có (hoặc DB chưa có cột site_subdomain). */
@@ -50,13 +50,16 @@ export const getSite = cache(async (key: string): Promise<Site> => {
   } catch {
     slug = null;
   }
-  let c = (await getCompany(slug ?? key, false)) as SiteCompany | null;
-  // Đã chọn tên miền con riêng thì slug không còn mở website (tránh hai địa chỉ cho một website)
-  if (c && !slug && c.site_subdomain && c.site_subdomain !== key) c = null;
+  const c = (await getCompany(slug ?? key, false)) as SiteCompany | null;
   if (!c || c.status !== 'published') notFound();
   const site = parseSiteSettings(c.site_settings);
   if (!site.enabled) notFound();
-  const base = headers().get('x-site-host') === key ? '' : `/site/${key}`;
+  const hostMode = headers().get('x-site-host') === key;
+  // Đã chọn tên miền con riêng: địa chỉ theo slug cũ chuyển sang địa chỉ mới (link đã chia sẻ không bị hỏng)
+  if (!slug && c.site_subdomain && isValidSubdomain(c.site_subdomain) && c.site_subdomain !== key) {
+    redirect(hostMode ? siteUrl(c)! : `/site/${c.site_subdomain}`);
+  }
+  const base = hostMode ? '' : `/site/${key}`;
   return { c, settings: parseProfileSettings(c.profile_settings), site, base, href: (p = '/') => siteHref(base, p) };
 });
 
